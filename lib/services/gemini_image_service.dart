@@ -165,24 +165,64 @@ If nothing can be read, reply only with:
     return _callGemini(prompt, documentFile);
   }
 
-  Future<String> _callGemini(String prompt, File file) async {
-    final bytes = await file.readAsBytes();
-    final base64Data = base64Encode(bytes);
-    final mimeType = lookupMimeType(file.path) ?? 'image/jpeg';
+  /// Translates text segments already extracted from an image into another
+  /// target language, without sending the image again (Markus, video of
+  /// 2026-09-29: switching the target language re-read the whole image, "the
+  /// text was already here"). Returns one translation per entry of
+  /// [originals], in order. Billed like any other Gemini call, but only for
+  /// the text, so it is much cheaper and faster than [processImage].
+  Future<List<String>> retranslateSegments({
+    required List<String> originals,
+    required String fromLangCode,
+    required String toLangCode,
+  }) async {
+    final fromLangName = _langNames[fromLangCode] ?? fromLangCode;
+    final toLangName = _langNames[toLangCode] ?? toLangCode;
+    final targetDateFormat = _dateFormats[toLangCode] ?? "YYYY-MM-DD";
+    final prompt = '''
+You are a translator. Below is a JSON array of $fromLangName text segments taken from a document.
+
+Translate each segment individually into $toLangName.
+- Keep the same number of entries, in the same order.
+- Convert any dates into $targetDateFormat.
+- Do not add explanations.
+
+STRICT OUTPUT FORMAT: return ONLY a JSON array of strings, one translation per input segment, with nothing before or after it.
+
+Segments:
+${jsonEncode(originals)}
+''';
+    var text = await _callGemini(prompt, null);
+    final fence = RegExp(r'^```[a-zA-Z]*\s*([\s\S]*?)\s*```$').firstMatch(text);
+    if (fence != null) text = fence.group(1)!.trim();
+    final decoded = jsonDecode(text);
+    if (decoded is! List || decoded.length != originals.length) {
+      throw const FormatException('Re-translation did not match the segments');
+    }
+    return decoded.map((e) => e.toString()).toList();
+  }
+
+  /// [file] is the image/PDF to attach, or null for a text-only request.
+  Future<String> _callGemini(String prompt, File? file) async {
+    final requestParts = <Map<String, dynamic>>[
+      {"text": prompt},
+    ];
+    if (file != null) {
+      final bytes = await file.readAsBytes();
+      requestParts.add({
+        "inline_data": {
+          "mime_type": lookupMimeType(file.path) ?? 'image/jpeg',
+          "data": base64Encode(bytes),
+        },
+      });
+    }
 
     final response = await http.post(
       Uri.parse(_endpoint),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         "contents": [
-          {
-            "parts": [
-              {"text": prompt},
-              {
-                "inline_data": {"mime_type": mimeType, "data": base64Data},
-              },
-            ],
-          },
+          {"parts": requestParts},
         ],
         // Was 2048, which a multi-page PDF blows straight through: the
         // model (2.5 flash) spends output budget on internal thinking

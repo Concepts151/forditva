@@ -76,6 +76,14 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
   bool get _isPdf =>
       _imageFile != null && _imageFile!.path.toLowerCase().endsWith('.pdf');
 
+  /// A plain-text file. Gemini reads it straight through as text/plain
+  /// inline_data, same path as a PDF, so no conversion server is needed.
+  bool get _isTextFile =>
+      _imageFile != null && _imageFile!.path.toLowerCase().endsWith('.txt');
+
+  /// Loaded file has no bitmap to show (PDF or text).
+  bool get _isDocumentFile => _isPdf || _isTextFile;
+
   /// Which pages of the current PDF to process, e.g. "3" or "2-5". Null =
   /// all pages. Asked once when the PDF is picked (Markus, 2026-07-15:
   /// "maybe you can ask which page of a PDF should be opened") and kept so
@@ -111,7 +119,14 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
   final ValueNotifier<bool> hasHungarianText = ValueNotifier(false);
 
   void _updateHasHungarianText() {
-    hasHungarianText.value = _hungarianText().isNotEmpty;
+    final has = _hungarianText().isNotEmpty;
+    if (has == hasHungarianText.value) return;
+    // Called from build(), and the nav bar rebuilds on this notifier, so
+    // setting it mid-build threw "setState() called during build". Apply it
+    // right after the frame instead.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) hasHungarianText.value = has;
+    });
   }
 
   /// Extracts the Hungarian segment(s) from the result, whichever side
@@ -939,6 +954,75 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     }
   }
 
+  /// After a TARGET-language change in translate mode: re-translates the
+  /// segments already read from the image instead of sending the image again
+  /// (Markus, video of 2026-09-29: "it is calculating again... the text was
+  /// already here"). [previousResult] is the translate result from before the
+  /// change. Returns false when that isn't possible (nothing extracted yet,
+  /// unexpected format), so the caller can fall back to [_processImage].
+  Future<bool> _retranslateExtractedText(String? previousResult) async {
+    if (_interpretMode || previousResult == null) return false;
+    var raw = previousResult.trim();
+    final fence = RegExp(r'^```[a-zA-Z]*\s*([\s\S]*?)\s*```$').firstMatch(raw);
+    if (fence != null) raw = fence.group(1)!.trim();
+
+    final List<Map<String, dynamic>> segments;
+    try {
+      final decoded = json.decode(raw);
+      if (decoded is! List) return false;
+      segments = [
+        for (final e in decoded)
+          if (e is Map) Map<String, dynamic>.from(e),
+      ];
+    } catch (_) {
+      return false;
+    }
+    // Illegible segments stay "{unsafe}"; only real text is re-translated.
+    final readable = [
+      for (final s in segments)
+        if (s['o'] != null && !s['o'].toString().contains('{unsafe}')) s,
+    ];
+    if (readable.isEmpty) return false;
+    if (!await ensureWiuBalance(context)) return true;
+    if (!mounted) return true;
+
+    setState(() {
+      _isProcessing = true;
+      _statusText = AppLocalizations.of(context)!.analyzingAndTranslating;
+      _resultText = '';
+    });
+    try {
+      final translations = await _chat.retranslateSegments(
+        originals: [for (final s in readable) s['o'].toString()],
+        fromLangCode: _langCode(_rightLang),
+        toLangCode: _langCode(_leftLang),
+      );
+      for (var i = 0; i < readable.length; i++) {
+        readable[i]['t'] = translations[i];
+      }
+      final cleaned = json.encode(segments);
+      if (!mounted) return true;
+      setState(() {
+        _resultText = cleaned;
+        _translateResultCache = cleaned;
+      });
+      await _saveState(_croppedImageFile ?? _imageFile!, cleaned);
+      return true;
+    } catch (e) {
+      // Malformed reply or network trouble: fall back to the full re-read
+      // so the user still gets a result.
+      debugPrint('Re-translating extracted text failed, re-reading: $e');
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _statusText = '';
+        });
+      }
+    }
+  }
+
   Future<void> _takePhoto() async {
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.camera,
@@ -1025,10 +1109,12 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     await _loadImageWithCropper(File(picked.path));
   }
 
-  /// Extensions Gemini can't read directly (inline_data only accepts images
-  /// and PDF), so they're converted to PDF via our own LibreOffice-backed
-  /// service first, then handled exactly like an uploaded PDF (Markus, 2026-08
-  /// proposal).
+  /// Extensions Gemini can't read directly, so they're converted to PDF via
+  /// our own LibreOffice-backed service first, then handled exactly like an
+  /// uploaded PDF (Markus, 2026-08 proposal). Only offered in the file picker
+  /// once that service is configured: until then every pick failed with the
+  /// "conversion failed" dialog. TXT is no longer here, it needs no
+  /// conversion (see [_isTextFile]).
   static const _officeExtensions = {
     'doc',
     'docx',
@@ -1036,7 +1122,6 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     'xlsx',
     'odt',
     'ods',
-    'txt',
   };
 
   final _conversionService = DocumentConversionService();
@@ -1055,7 +1140,8 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
         'webp',
         'heic',
         'pdf',
-        ..._officeExtensions,
+        'txt',
+        if (_conversionService.isConfigured) ..._officeExtensions,
       ],
     );
     final path = result?.files.single.path;
@@ -1063,6 +1149,20 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
 
     final extension = path.split('.').last.toLowerCase();
     File file = File(path);
+
+    if (extension == 'txt') {
+      // Plain text: no pages to pick and nothing to crop; send it as is.
+      setState(() {
+        _imageFile = file;
+        _croppedImageFile = null;
+        _pdfPageSpec = null;
+        _resultText = '';
+        _translateResultCache = null;
+        _interpretResultCache = null;
+      });
+      await _processImage(imageFile: file);
+      return;
+    }
 
     if (_officeExtensions.contains(extension)) {
       final converted = await _convertOfficeDocument(file);
@@ -1234,17 +1334,20 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child:
-                                    _isPdf
-                                        // A PDF has no bitmap to show, so
-                                        // display the filename instead of
-                                        // failing an Image.file decode.
+                                    _isDocumentFile
+                                        // A PDF or text file has no bitmap to
+                                        // show, so display the filename
+                                        // instead of failing an Image.file
+                                        // decode.
                                         ? Center(
                                           child: Column(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
                                             children: [
-                                              const Icon(
-                                                Icons.picture_as_pdf,
+                                              Icon(
+                                                _isPdf
+                                                    ? Icons.picture_as_pdf
+                                                    : Icons.description,
                                                 size: 72,
                                                 color: navRed,
                                               ),
@@ -1940,7 +2043,11 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                 const SizedBox(width: 25),
                 // Left (output language, flag at top left, tap cycles)
                 GestureDetector(
-                  onTap: () {
+                  onTap: () async {
+                    // Only the target changes, so the text already read from
+                    // the image can be re-translated without re-reading it.
+                    final previousResult =
+                        _interpretMode ? null : _translateResultCache;
                     setState(() {
                       _leftLang = _next(_leftLang, _rightLang);
 
@@ -1952,7 +2059,8 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                       _laActive = false;
                       _zoomLevel = 1.0;
                     });
-                    if (_imageFile != null) {
+                    if (_imageFile != null &&
+                        !await _retranslateExtractedText(previousResult)) {
                       _processImage(imageFile: _imageFile!);
                     }
                   },
