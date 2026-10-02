@@ -1,10 +1,16 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
+import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../flutter_gen/gen_l10n/app_localizations.dart';
 import '../models/language_enum.dart';
+import '../services/google_speech_to_text_service.dart';
 
 /// Central recording panel shown when the user taps the mic on a
 /// conversation card.
@@ -21,6 +27,11 @@ import '../models/language_enum.dart';
 ///   (via [onEditRequested]) instead of translating immediately.
 /// - Checkmark manually finalizes now and translates, same as the automatic
 ///   1.5s path.
+/// - Cloud fallback: some phones' built-in recognizer can't do the language
+///   (e.g. Xiaomi's on-device Google engine has no Hungarian and returns
+///   error_language_unavailable). Then the session records audio and sends it
+///   to Google Cloud STT on finish instead (no live transcript; silence is
+///   detected from the mic level). Remembered per language for the app run.
 class RecordingModal extends StatefulWidget {
   final Language lang;
   final Function(String) onTranscribed;
@@ -74,6 +85,29 @@ class _RecordingModalState extends State<RecordingModal> {
   double _energy = 0.0;
   Timer? _waveTimer;
 
+  // --- Cloud STT fallback ---
+  // Languages the built-in recognizer reported as unavailable this app run;
+  // later sessions in them go straight to the cloud path.
+  static final Set<Language> _cloudLanguages = {};
+  // Recognizer errors meaning "this phone can't do this language at all",
+  // as opposed to the routine transient ones ignored in onError.
+  static const _languageErrors = {
+    'error_language_unavailable',
+    'error_language_not_supported',
+  };
+  // Synchronous Cloud STT recognize accepts at most ~60s of audio.
+  static const _cloudMaxDuration = Duration(seconds: 55);
+  // Mic level (0..1, from dBFS -45..0) above which the cloud path counts the
+  // input as speech for the 1.5s silence auto-finish.
+  static const double _voiceLevel = 0.35;
+  bool _cloudMode = false;
+  bool _languageUnavailable = false;
+  bool _isTranscribing = false;
+  AudioRecorder? _recorder;
+  StreamSubscription<Amplitude>? _ampSub;
+  String? _cloudPath;
+  Timer? _cloudLimitTimer;
+
   @override
   void initState() {
     super.initState();
@@ -85,6 +119,13 @@ class _RecordingModalState extends State<RecordingModal> {
     _silenceTimer?.cancel();
     _stallTimer?.cancel();
     _waveTimer?.cancel();
+    _cloudLimitTimer?.cancel();
+    _ampSub?.cancel();
+    _recorder?.dispose();
+    // Unhook only if still ours, so a closed panel never handles (or
+    // clobbers) a later panel's recognizer events.
+    if (_speech.statusListener == _onSpeechStatus) _speech.statusListener = null;
+    if (_speech.errorListener == _onSpeechError) _speech.errorListener = null;
     _speech.stop();
     super.dispose();
   }
@@ -129,41 +170,138 @@ class _RecordingModalState extends State<RecordingModal> {
       });
     });
 
+    if (_cloudMode || _cloudLanguages.contains(widget.lang)) {
+      await _startCloud();
+      return;
+    }
+
+    // SpeechToText() is an app-wide singleton and initialize() only stores
+    // its listeners on the FIRST call, so every later panel got no status or
+    // error events at all (no restarts, no language-unavailable fallback).
+    // Point the listeners at this panel on every session.
+    _speech.statusListener = _onSpeechStatus;
+    _speech.errorListener = _onSpeechError;
     final available = await _speech.initialize(
-      onStatus: (status) {
-        // If the OS-level recognizer stops itself (session limits, etc.)
-        // while we're still meant to be recording, restart it seamlessly so
-        // continuous mode genuinely keeps listening through long pauses.
-        if ((status == 'notListening' || status == 'done') &&
-            _isRecording &&
-            mounted) {
-          // The OS is stopping us mid-session, not because of silence — the
-          // user is likely still talking. Restart with minimal delay so the
-          // gap doesn't swallow the words being spoken right now (Markus,
-          // 2026-07-12: infinity mode breaking/losing the last 1.5-2s).
-          _restartListening(immediate: true);
-        }
-      },
-      onError: (e) {
-        // error_client (and the timeout/no-match variants) are transient,
-        // self-recovering conditions the recognizer throws routinely; the
-        // stall timer and retry-on-empty-result already handle the real
-        // consequences, so showing the raw code here is just noise.
-        // These transient codes (error_busy included) are self-recovering and
-        // must never surface to the user; the stall timer and retry-on-empty
-        // handle the real consequences. Raw codes are noise, so we ignore them.
-      },
+      onStatus: _onSpeechStatus,
+      onError: _onSpeechError,
     );
     if (!available) {
-      if (mounted) {
-        setState(() => _isRecording = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.couldNotTranscribe)),
-        );
-      }
+      // No usable built-in recognizer at all: record for Cloud STT instead.
+      await _startCloud();
       return;
     }
     _listen();
+  }
+
+  void _onSpeechStatus(String status) {
+    if (_cloudMode) return;
+    // If the OS-level recognizer stops itself (session limits, etc.)
+    // while we're still meant to be recording, restart it seamlessly so
+    // continuous mode genuinely keeps listening through long pauses.
+    if ((status == 'notListening' || status == 'done') &&
+        _isRecording &&
+        mounted) {
+      // The OS is stopping us mid-session, not because of silence — the
+      // user is likely still talking. Restart with minimal delay so the
+      // gap doesn't swallow the words being spoken right now (Markus,
+      // 2026-07-12: infinity mode breaking/losing the last 1.5-2s).
+      _restartListening(immediate: true);
+    }
+  }
+
+  void _onSpeechError(SpeechRecognitionError e) {
+    // The one error we act on: the recognizer can't do this language on
+    // this phone. _restartListening picks it up and switches to cloud.
+    if (_languageErrors.contains(e.errorMsg)) _languageUnavailable = true;
+    // All other codes (error_client, error_busy, timeout/no-match variants)
+    // are transient and self-recovering; the stall timer and
+    // retry-on-empty-result handle their consequences, so they never surface
+    // to the user (Markus: no raw error codes).
+  }
+
+  String get _cloudLanguageCode => _localeId.replaceAll('_', '-');
+
+  /// Switches this session to recording audio for Google Cloud STT (same
+  /// service and WAV format as the edit panel's mic).
+  Future<void> _startCloud() async {
+    if (_cloudLanguages.add(widget.lang)) {
+      debugPrint(
+        'RecordingModal: built-in recognizer cannot do $_localeId, '
+        'using Google Cloud STT',
+      );
+    }
+    _cloudMode = true;
+    _silenceTimer?.cancel();
+    _stallTimer?.cancel();
+    try {
+      await _speech.cancel();
+    } catch (_) {}
+    if (!mounted || !_isRecording) return;
+
+    final recorder = _recorder ??= AudioRecorder();
+    // record 5.x hands out one single-subscription amplitude stream per
+    // recorder, so subscribe once and reuse it across retries.
+    _ampSub ??= recorder
+        .onAmplitudeChanged(const Duration(milliseconds: 90))
+        .listen(_onCloudAmplitude);
+
+    final dir = await getTemporaryDirectory();
+    _cloudPath =
+        '${dir.path}/conv_rec_${DateTime.now().millisecondsSinceEpoch}.wav';
+    try {
+      await recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+        path: _cloudPath!,
+      );
+    } catch (_) {
+      _showCouldNotTranscribe();
+      widget.onCancel?.call();
+      return;
+    }
+    _cloudLimitTimer?.cancel();
+    _cloudLimitTimer = Timer(_cloudMaxDuration, _finishAndTranslate);
+  }
+
+  void _onCloudAmplitude(Amplitude amp) {
+    if (!mounted || !_cloudMode || !_isRecording || _isFinishing) return;
+    final e = ((amp.current + 45) / 45).clamp(0.0, 1.0);
+    if (e > _energy) _energy = e;
+    // Same 1.5s-after-last-speech auto-finish as the live recognizer path,
+    // driven by the mic level since there are no live words here.
+    if (e >= _voiceLevel && !_continuousMode) {
+      _silenceTimer?.cancel();
+      _silenceTimer = Timer(_silenceTimeout, _finishAndTranslate);
+    }
+  }
+
+  /// Stops the cloud recording and returns its transcript ('' on failure).
+  Future<String> _stopAndTranscribeCloud() async {
+    _cloudLimitTimer?.cancel();
+    final path = await _recorder?.stop() ?? _cloudPath;
+    if (path == null || !File(path).existsSync()) return '';
+    try {
+      final text = await GoogleSpeechToTextService(
+        dotenv.env['GOOGLE_STT_KEY']!,
+      ).transcribe(File(path), languageCode: _cloudLanguageCode);
+      return text?.trim() ?? '';
+    } catch (_) {
+      return '';
+    } finally {
+      try {
+        File(path).deleteSync();
+      } catch (_) {}
+    }
+  }
+
+  void _showCouldNotTranscribe() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.couldNotTranscribe)),
+    );
   }
 
   void _listen() {
@@ -254,7 +392,7 @@ class _RecordingModalState extends State<RecordingModal> {
   /// transcript so far is committed so words accumulate across sessions.
   bool _restarting = false;
   Future<void> _restartListening({bool immediate = false}) async {
-    if (_restarting || !mounted || !_isRecording) return;
+    if (_restarting || !mounted || !_isRecording || _cloudMode) return;
     // Restarting mid-utterance is only meant to keep infinity mode listening
     // through long pauses. In normal mode, once real words have already been
     // recognized, restarting re-hears trailing/buffered audio and duplicates
@@ -266,16 +404,25 @@ class _RecordingModalState extends State<RecordingModal> {
     _silenceTimer?.cancel();
     _stallTimer?.cancel();
     _committed = _transcript.trim();
-    try {
-      await _speech.stop();
-    } catch (_) {}
     // The 350ms delay avoids restarting so fast the recognizer stops picking
     // up voice at all — but that same delay is a dead gap that can swallow
     // words if the OS stopped us mid-speech rather than during real silence.
     // Use a much shorter gap for that case (Markus, 2026-07-12).
+    // The wait comes BEFORE stop(): the plugin delivers the recognizer's
+    // error just after its "done" status and drops errors once stop() has
+    // been called, so stopping first hid error_language_unavailable and the
+    // panel restarted forever, silently (Xiaomi, no Hungarian on-device).
     await Future.delayed(
       immediate ? const Duration(milliseconds: 60) : const Duration(milliseconds: 350),
     );
+    if (_languageUnavailable) {
+      _restarting = false;
+      if (mounted && _isRecording) await _startCloud();
+      return;
+    }
+    try {
+      await _speech.stop();
+    } catch (_) {}
     if (mounted && _isRecording) _listen();
     _restarting = false;
   }
@@ -289,17 +436,27 @@ class _RecordingModalState extends State<RecordingModal> {
   Future<void> _finishAndTranslate() async {
     if (!_isRecording || _isFinishing) return;
     _isFinishing = true;
-    // Hide the panel right away; keep transcribing in the background.
-    if (mounted) setState(() => _dismissed = true);
     _silenceTimer?.cancel();
     _stallTimer?.cancel();
-    // The recognizer trails the actual audio noticeably; stopping too soon was
-    // still cutting the last 2-3 words (Markus). Give it a longer moment to
-    // catch up before stopping.
-    await Future.delayed(const Duration(milliseconds: 1200));
-    _isRecording = false;
-    await _speech.stop();
-    if (!mounted) return;
+    if (_cloudMode) {
+      // The words only exist once Cloud STT answers (a few seconds), so keep
+      // the panel up with a spinner instead of hiding it with no feedback.
+      if (mounted) setState(() => _isTranscribing = true);
+      _isRecording = false;
+      _transcript = await _stopAndTranscribeCloud();
+      if (!mounted) return;
+      setState(() => _isTranscribing = false);
+    } else {
+      // Hide the panel right away; keep transcribing in the background.
+      if (mounted) setState(() => _dismissed = true);
+      // The recognizer trails the actual audio noticeably; stopping too soon
+      // was still cutting the last 2-3 words (Markus). Give it a longer
+      // moment to catch up before stopping.
+      await Future.delayed(const Duration(milliseconds: 1200));
+      _isRecording = false;
+      await _speech.stop();
+      if (!mounted) return;
+    }
 
     final text = _transcript.trim();
     if (text.isEmpty) {
@@ -313,6 +470,7 @@ class _RecordingModalState extends State<RecordingModal> {
       _start();
       return;
     }
+    if (_cloudMode) setState(() => _dismissed = true);
     widget.onTranscribed(text);
   }
 
@@ -321,21 +479,39 @@ class _RecordingModalState extends State<RecordingModal> {
     if (mounted) setState(() => _dismissed = true);
     _silenceTimer?.cancel();
     _stallTimer?.cancel();
+    _cloudLimitTimer?.cancel();
     _isRecording = false;
-    await _speech.cancel();
+    if (_cloudMode) {
+      await _recorder?.cancel();
+    } else {
+      await _speech.cancel();
+    }
     widget.onCancel?.call();
   }
 
   /// Pencil: stop and hand the transcript to the text editor.
   Future<void> _editInstead() async {
-    if (mounted) setState(() => _dismissed = true);
+    if (_isFinishing) return;
     _silenceTimer?.cancel();
     _stallTimer?.cancel();
-    // Same trailing-audio catch-up as confirm, so edit doesn't drop the last
-    // words either.
-    await Future.delayed(const Duration(milliseconds: 1200));
-    _isRecording = false;
-    await _speech.stop();
+    if (_cloudMode) {
+      _isFinishing = true;
+      if (mounted) setState(() => _isTranscribing = true);
+      _isRecording = false;
+      _transcript = await _stopAndTranscribeCloud();
+      if (!mounted) return;
+      setState(() {
+        _isTranscribing = false;
+        _dismissed = true;
+      });
+    } else {
+      if (mounted) setState(() => _dismissed = true);
+      // Same trailing-audio catch-up as confirm, so edit doesn't drop the
+      // last words either.
+      await Future.delayed(const Duration(milliseconds: 1200));
+      _isRecording = false;
+      await _speech.stop();
+    }
     widget.onEditRequested?.call(_transcript.trim());
   }
 
@@ -375,7 +551,16 @@ class _RecordingModalState extends State<RecordingModal> {
           children: [
             SizedBox(
               height: 50,
-              child: Center(child: _LevelWaveform(levels: _levels)),
+              child: Center(
+                child:
+                    _isTranscribing
+                        ? const SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : _LevelWaveform(levels: _levels),
+              ),
             ),
             // No raw error codes shown in the panel (Markus): genuine failures
             // surface via a friendly dialog elsewhere, not as red text here.
