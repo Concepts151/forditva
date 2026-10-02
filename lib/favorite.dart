@@ -37,7 +37,7 @@ class _FavoritePageState extends State<FavoritePage> {
   @override
   void initState() {
     super.initState();
-    _db = AppDatabase();
+    _db = AppDatabase.instance;
     _searchController = TextEditingController();
     _loadFavorites();
   }
@@ -51,7 +51,6 @@ class _FavoritePageState extends State<FavoritePage> {
   @override
   void dispose() {
     _searchController.dispose();
-    _db.close();
     super.dispose();
   }
 

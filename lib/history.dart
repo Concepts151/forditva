@@ -38,7 +38,7 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   void initState() {
     super.initState();
-    _db = AppDatabase();
+    _db = AppDatabase.instance;
     _searchController = TextEditingController();
     _loadHistory();
   }
@@ -50,7 +50,6 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   void dispose() {
     _searchController.dispose();
-    _db.close();
     super.dispose();
   }
 

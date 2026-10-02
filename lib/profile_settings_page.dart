@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'flutter_gen/gen_l10n/app_localizations.dart';
 import 'models/language_enum.dart';
+import 'services/history_store.dart';
 import 'services/level_pref.dart';
 import 'services/prepaid_token_service.dart';
 import 'services/third_language_pref.dart';
@@ -43,10 +44,13 @@ class ProfileSettingsPage extends StatefulWidget {
 }
 
 class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
-  bool _saveHistory = true;
+  bool _saveHistory = HistoryStore.enabled;
   bool _howItWorksExpanded = true;
   int _level = LevelPref.level;
   final TextEditingController _codeController = TextEditingController();
+  // The "How it works" box's always-visible scrollbar needs its own
+  // controller; without one Flutter threw an error every time Settings opened.
+  final ScrollController _howItWorksScroll = ScrollController();
   final PrepaidTokenService _prepaidTokens = PrepaidTokenService();
   bool _isRedeeming = false;
 
@@ -67,6 +71,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   @override
   void dispose() {
     _codeController.dispose();
+    _howItWorksScroll.dispose();
     super.dispose();
   }
 
@@ -114,7 +119,8 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
           ),
     );
     if (ok == true && mounted) {
-      // TODO: clear history data once storage is wired here.
+      await HistoryStore.clear();
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(_loc.historyCleared)));
@@ -388,7 +394,10 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         value: _saveHistory,
         activeThumbColor: Colors.white,
         activeTrackColor: _navGreen,
-        onChanged: (v) => setState(() => _saveHistory = v),
+        onChanged: (v) {
+          setState(() => _saveHistory = v);
+          HistoryStore.setEnabled(v);
+        },
       ),
     ],
   );
@@ -446,8 +455,10 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
             height: 150,
             padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
             child: Scrollbar(
+              controller: _howItWorksScroll,
               thumbVisibility: true,
               child: SingleChildScrollView(
+                controller: _howItWorksScroll,
                 padding: const EdgeInsets.only(right: 8),
                 child: Text(_loc.howItWorksBody, style: _greenBody),
               ),
