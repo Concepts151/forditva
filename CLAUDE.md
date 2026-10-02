@@ -67,6 +67,14 @@ machine; the CI workflows bump it to 4g (Jetifier OOMs at 1536m on the runner).
 
 ## Signing keys
 
+- **2026-10-02: new sideload key.** Kayode (and his key below) became
+  unreachable, so tester APKs from v1.0.1+70 on are signed with
+  `.deploy/forditva-sideload.jks`, SHA-256
+  `32:B6:75:A1:F3:A7:4E:7E:AC:4C:82:61:05:BF:94:1F:87:C3:ED:C8:28:40:96:2E:4F:CF:AD:3D:F3:65:74:F9`.
+  Build with `FORDITVA_DEBUG_KEYSTORE="$PWD/.deploy/forditva-sideload.jks"`;
+  details and backup notes in `.deploy/SIDELOAD_SIGNING.md`. Testers had to
+  uninstall the old build once (losing local WIU balance). The notes below
+  describe the old setup.
 - **Debug/sideload key** (all APKs Markus installs): SHA-256
   `037e7f9488a7920ad7961494f89c697207f1b71a72ae9b12e8f76a7e2530401c`. The
   release build type signs with the *debug* key so testers can install updates
@@ -282,6 +290,9 @@ the short version:
    the standing translation rule below.
 
 ## Open / blocked tasks (from the 17-22 Jul Telegram export)
+
+- **Issue lists live in `docs/issues/`**, one file per feedback round (latest:
+  `2026-09-29-markus-demo-video.md`). Keep details there, not here.
 
 - **Forditva → Play Store: BLOCKED on Markus.** He must open the Play Console
   ($25, Personal account, identity verification ~1-2 days), add Kayode's Google
