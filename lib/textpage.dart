@@ -10,6 +10,7 @@ import 'package:forditva/conversation_state.dart';
 import 'package:forditva/document/document_translation_state.dart';
 import 'package:forditva/models/language_enum.dart';
 import 'package:forditva/services/gemini_tts_service.dart';
+import 'package:forditva/services/history_store.dart';
 import 'package:forditva/services/learning_store.dart';
 import 'package:forditva/services/level_pref.dart';
 import 'package:forditva/widgets/error_dialog.dart';
@@ -407,6 +408,14 @@ class _TextPageState extends State<TextPage> {
         fromLang.code,
         toLang.code,
       );
+      unawaited(
+        HistoryStore.save(
+          input: sourceText,
+          output: result,
+          from: fromLang,
+          to: toLang,
+        ),
+      );
       if (!mounted) return;
       setState(() {
         if (leftChanged) {
@@ -454,10 +463,6 @@ class _TextPageState extends State<TextPage> {
         final keyboard = MediaQuery.of(ctx).viewInsets.bottom;
         final screenHeight = MediaQuery.of(ctx).size.height;
         final availableHeight = screenHeight - keyboard;
-        final TextEditingController editController = TextEditingController(
-          text: initialText,
-        );
-
         return Center(
           child: SingleChildScrollView(
             // This makes the entire stack move above the keyboard!
@@ -477,7 +482,7 @@ class _TextPageState extends State<TextPage> {
                 ),
                 const SizedBox(height: 16),
                 EditTextModal(
-                  controller: editController,
+                  initialText: initialText,
                   onEdited: ({
                     required String edited,
                     required String translated,
@@ -506,10 +511,15 @@ class _TextPageState extends State<TextPage> {
     );
   }
 
-  Future<String> translateFinal(String input, String from, String to) async {
+  /// Translates a finished voice recording and records it in History.
+  Future<String> translateFinal(String input, Language from, Language to) async {
     // Single pass — the previous HU branch translated twice, which doubled
     // latency and re-translated an already-translated result.
-    return await _gemini.translate(input, from, to);
+    final result = await _gemini.translate(input, from.code, to.code);
+    unawaited(
+      HistoryStore.save(input: input, output: result, from: from, to: to),
+    );
+    return result;
   }
 
   // Default CEFR level derived from the numeric level the user set in Settings
@@ -783,7 +793,14 @@ class _TextPageState extends State<TextPage> {
             : _rightLanguage == Language.hungarian
             ? _translation
             : '';
-    hasHungarianText.value = hungarianText.trim().isNotEmpty;
+    final has = hungarianText.trim().isNotEmpty;
+    if (has == hasHungarianText.value) return;
+    // Called from build(), and the nav bar rebuilds on this notifier, so
+    // setting it mid-build threw "setState() called during build". Apply it
+    // right after the frame instead.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) hasHungarianText.value = has;
+    });
   }
 
   // 4) Helper to pick the next language, skipping the one on the other side.
@@ -821,11 +838,9 @@ class _TextPageState extends State<TextPage> {
       _isAudioPlaying = false;
     });
 
-    // Create the controller ONCE, outside the builder. The bottom sheet's
-    // builder re-runs on every keyboard toggle; creating the controller inside
-    // it rebuilt a fresh controller each time and wiped the recorded/typed text
-    // back to initialText (Markus: text disappears after record + keyboard).
-    final controller = TextEditingController(text: initialText);
+    // EditTextModal owns its controller, so the sheet builder re-running on
+    // keyboard toggles never resets the text (Markus: text disappears after
+    // record + keyboard) and it is disposed only after the sheet is gone.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -833,7 +848,7 @@ class _TextPageState extends State<TextPage> {
       builder: (ctx) {
         return SafeArea(
           child: EditTextModal(
-            controller: controller,
+            initialText: initialText,
             onEdited: onEdited, // Pass it directly
             isTextInLanguage: isTextInLanguage,
             fromLang: fromLang,
@@ -842,7 +857,7 @@ class _TextPageState extends State<TextPage> {
           ),
         );
       },
-    ).whenComplete(controller.dispose);
+    );
   }
 
   final GlobalKey inputKey = GlobalKey();
@@ -1299,8 +1314,8 @@ class _TextPageState extends State<TextPage> {
                           try {
                             final result = await translateFinal(
                               txt,
-                              _rightLanguage.code,
-                              _leftLanguage.code,
+                              _rightLanguage,
+                              _leftLanguage,
                             );
                             if (!mounted) return;
                             setState(() {
@@ -1368,8 +1383,8 @@ class _TextPageState extends State<TextPage> {
                           try {
                             final result = await translateFinal(
                               txt,
-                              _leftLanguage.code,
-                              _rightLanguage.code,
+                              _leftLanguage,
+                              _rightLanguage,
                             );
                             if (!mounted) return;
                             setState(() {

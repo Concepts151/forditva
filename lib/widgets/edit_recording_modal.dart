@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:forditva/services/gemini_translation_service.dart';
 import 'package:forditva/services/google_speech_to_text_service.dart';
+import 'package:forditva/services/history_store.dart';
 import 'package:forditva/widgets/amp_waveform.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,7 +19,12 @@ typedef OnEditAndTranslate =
     void Function({required String edited, required String translated});
 
 class EditTextModal extends StatefulWidget {
-  final TextEditingController controller;
+  // The modal owns its TextEditingController (created from this, disposed in
+  // State.dispose). Callers used to create it and dispose it in
+  // showModalBottomSheet().whenComplete, which fires at pop() while the
+  // TextField is still mounted for the exit animation; that crashed the
+  // whole Navigator ('_dependents.isEmpty' red screen) after every edit.
+  final String initialText;
   final Future<bool> Function(String text) isTextInLanguage;
   final Language fromLang;
   final Language toLang;
@@ -32,7 +38,7 @@ class EditTextModal extends StatefulWidget {
 
   const EditTextModal({
     super.key,
-    required this.controller,
+    required this.initialText,
     required this.onEdited,
     required this.isTextInLanguage,
     required this.fromLang,
@@ -46,6 +52,11 @@ class EditTextModal extends StatefulWidget {
 }
 
 class _EditTextModalState extends State<EditTextModal> {
+  // Survives the sheet builder re-running on keyboard toggles, so typed or
+  // recorded text is never reset to initialText.
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialText,
+  );
   late final AudioRecorder _audioRecorder;
 
   bool _loading = false;
@@ -66,6 +77,23 @@ class _EditTextModalState extends State<EditTextModal> {
     super.initState();
     _audioRecorder = AudioRecorder();
 
+    // Drive the waveform from the same recorder's amplitude (dBFS ~ -45..0),
+    // so no second microphone recorder is needed. Subscribed once for the
+    // modal's lifetime: record 5.x returns the same single-subscription
+    // stream on every onAmplitudeChanged() call, so re-listening on each mic
+    // tap threw "Stream has already been listened to" on the second
+    // recording. The recorder only emits while recording.
+    _ampSub = _audioRecorder
+        .onAmplitudeChanged(const Duration(milliseconds: 90))
+        .listen((amp) {
+          if (!mounted || !_isRecording) return;
+          final norm = ((amp.current + 45) / 45).clamp(0.0, 1.0);
+          setState(() {
+            _levels.add(norm);
+            if (_levels.length > 60) _levels.removeAt(0);
+          });
+        });
+
     // Use addPostFrameCallback to set cursor after the initial build and focus
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -79,12 +107,12 @@ class _EditTextModalState extends State<EditTextModal> {
   void _moveCursorToEnd() {
     // Only update selection if the text is not empty and the current selection is not already at the end.
     // This helps prevent unnecessary rebuilds and potential cursor jumpiness.
-    final text = widget.controller.text;
+    final text = _controller.text;
     if (text.isNotEmpty) {
-      final currentSelection = widget.controller.selection;
+      final currentSelection = _controller.selection;
       if (currentSelection.baseOffset != text.length ||
           currentSelection.extentOffset != text.length) {
-        widget.controller.selection = TextSelection.collapsed(
+        _controller.selection = TextSelection.collapsed(
           offset: text.length,
         );
       }
@@ -99,8 +127,8 @@ class _EditTextModalState extends State<EditTextModal> {
   void _insertAtCursor(String text) {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
-    final current = widget.controller.text;
-    final selection = widget.controller.selection;
+    final current = _controller.text;
+    final selection = _controller.selection;
     final offset =
         selection.isValid ? selection.start.clamp(0, current.length) : current.length;
 
@@ -113,7 +141,7 @@ class _EditTextModalState extends State<EditTextModal> {
     final insertion =
         '${needsSpaceBefore ? ' ' : ''}$trimmed${needsSpaceAfter ? ' ' : ''}';
 
-    widget.controller.value = TextEditingValue(
+    _controller.value = TextEditingValue(
       text: before + insertion + after,
       selection: TextSelection.collapsed(offset: before.length + insertion.length),
     );
@@ -123,6 +151,7 @@ class _EditTextModalState extends State<EditTextModal> {
   void dispose() {
     _ampSub?.cancel();
     _audioRecorder.dispose(); // Dispose of the audio recorder
+    _controller.dispose();
     super.dispose();
   }
 
@@ -144,25 +173,10 @@ class _EditTextModalState extends State<EditTextModal> {
       ),
       path: _audioPath!,
     );
-
-    // Drive the waveform from the same recorder's amplitude (dBFS ~ -45..0),
-    // so no second microphone recorder is needed.
-    _ampSub = _audioRecorder
-        .onAmplitudeChanged(const Duration(milliseconds: 90))
-        .listen((amp) {
-          if (!mounted) return;
-          final norm = ((amp.current + 45) / 45).clamp(0.0, 1.0);
-          setState(() {
-            _levels.add(norm);
-            if (_levels.length > 60) _levels.removeAt(0);
-          });
-        });
   }
 
   Future<void> _onStopTap() async {
     setState(() => _isSttLoading = true);
-    await _ampSub?.cancel();
-    _ampSub = null;
     await _audioRecorder.stop(); // stops the actual file recording
 
     final path = _audioPath;
@@ -199,7 +213,7 @@ class _EditTextModalState extends State<EditTextModal> {
 
         setState(() {}); // Refresh font size, etc.
 
-        print('Updated text: "${widget.controller.text}"');
+        print('Updated text: "${_controller.text}"');
       }
     } else {
       setState(() {
@@ -219,7 +233,7 @@ class _EditTextModalState extends State<EditTextModal> {
   /// Trash: empty the whole text field (Markus: "throw everything to the
   /// garbage tin"). The red X still cancels/closes the panel.
   void _clearText() {
-    widget.controller.clear();
+    _controller.clear();
     setState(() {});
   }
 
@@ -246,8 +260,6 @@ class _EditTextModalState extends State<EditTextModal> {
   /// Stop recording and discard the audio without transcribing (the X shown
   /// while recording).
   Future<void> _discardRecording() async {
-    await _ampSub?.cancel();
-    _ampSub = null;
     await _audioRecorder.stop();
     if (mounted) {
       setState(() {
@@ -266,7 +278,7 @@ class _EditTextModalState extends State<EditTextModal> {
       await _onStopTap();
     }
     setState(() => _loading = true);
-    final inputText = widget.controller.text.trim();
+    final inputText = _controller.text.trim();
     bool isValid = await widget.isTextInLanguage(inputText);
     if (!isValid) {
       setState(() => _loading = false);
@@ -293,6 +305,14 @@ class _EditTextModalState extends State<EditTextModal> {
       widget.toLang.code,
     );
     setState(() => _loading = false);
+    unawaited(
+      HistoryStore.save(
+        input: inputText,
+        output: translated,
+        from: widget.fromLang,
+        to: widget.toLang,
+      ),
+    );
     widget.onEdited(edited: inputText, translated: translated);
     if (mounted) {
       Navigator.of(context).pop();
@@ -340,7 +360,7 @@ class _EditTextModalState extends State<EditTextModal> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(18, 18, 18, 70),
                         child: TextField(
-                          controller: widget.controller,
+                          controller: _controller,
                           autofocus: true,
                           // Fixed font size that never shrinks; the field fills
                           // the card and scrolls when the text gets long, so no

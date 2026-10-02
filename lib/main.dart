@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -19,6 +21,7 @@ import 'history.dart';
 import 'image_page.dart';
 import 'learning_list.dart';
 import 'profile_settings_page.dart';
+import 'services/history_store.dart';
 import 'services/level_pref.dart';
 import 'services/third_language_pref.dart';
 import 'services/token_balance.dart';
@@ -43,8 +46,12 @@ void main() async {
   await _initFirebaseAppCheck();
   await ThirdLanguagePref.load();
   await LevelPref.load();
+  await HistoryStore.load();
   await TokenBalance.instance.load();
-  await TokenBalance.instance.grantWelcomeIfFirstRun();
+  // Not awaited: on a first Android launch this waits on the welcome-grant
+  // server check (10s timeout), which kept the app on a blank screen. The
+  // balance is a ValueNotifier, so the UI picks up the grant when it lands.
+  unawaited(TokenBalance.instance.grantWelcomeIfFirstRun());
   runApp(
     MultiProvider(
       providers: [
@@ -73,8 +80,10 @@ Future<void> _initFirebaseAppCheck() async {
       appleProvider: AppleProvider.appAttest,
     );
   } catch (e) {
-    debugPrint('Firebase App Check not active (expected until the real '
-        'Firebase project is configured): $e');
+    debugPrint(
+      'Firebase App Check not active (expected until the real '
+      'Firebase project is configured): $e',
+    );
   }
 }
 
@@ -161,10 +170,15 @@ class SplashScreenRedirect extends StatefulWidget {
 }
 
 class _SplashScreenRedirectState extends State<SplashScreenRedirect> {
+  // Startup work is done before runApp, so this is only how long the logos
+  // stay visible.
+  static const _minSplashDuration = Duration(seconds: 1);
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(_minSplashDuration, () {
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => MainScreen(onLocaleChanged: widget.onLocaleChanged),
@@ -191,18 +205,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentPage = 1;
-
-  @override
-  void initState() {
-    super.initState();
-    // The page GlobalKeys have no currentState during the first build, so the
-    // Tutor bulb initially binds to the disabled notifier and never lights up.
-    // Rebuild once after the first frame so it binds to the active page's
-    // hasHungarianText notifier and reacts to Hungarian text appearing.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() {});
-    });
-  }
 
   // Lets the nav bar's bulb button reach into each page's state to open the
   // Tutor modal for whatever Hungarian text is currently on screen there.
@@ -250,6 +252,15 @@ class _MainScreenState extends State<MainScreen> {
   ValueListenable<bool> get _bulbEnabledListenable {
     final state = _activePageState;
     if (state != null) return state.hasHungarianText as ValueListenable<bool>;
+    // Only the current page is mounted, and it is created in this same build
+    // (app start or a page switch), so its GlobalKey has no State yet. Rebuild
+    // after the frame so the bulb binds to that page's notifier; otherwise it
+    // stayed grey on a freshly opened Document/Image page with Hungarian text.
+    if (_currentPage == 1 || _currentPage == 5 || _currentPage == 6) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    }
     return _disabled;
   }
 
@@ -276,9 +287,24 @@ class _MainScreenState extends State<MainScreen> {
   // calculation below always accounts for the longest one regardless of
   // which page/language is currently showing.
   static const List<String> _allPageNames = [
-    'Conversation', 'Document', 'Image', 'Learning List', 'Favorites', 'History',
-    'Gespräch', 'Dokument', 'Bild', 'Lernliste', 'Favoriten', 'Verlauf',
-    'Beszélgetés', 'Dokumentum', 'Kép', 'Tanulási lista', 'Kedvencek', 'Előzmények',
+    'Conversation',
+    'Text',
+    'Image/Document',
+    'Learning List',
+    'Favorites',
+    'History',
+    'Gespräch',
+    'Dokument',
+    'Bild',
+    'Lernliste',
+    'Favoriten',
+    'Verlauf',
+    'Beszélgetés',
+    'Dokumentum',
+    'Kép',
+    'Tanulási lista',
+    'Kedvencek',
+    'Előzmények',
   ];
 
   /// The largest size (from a fixed tier list) at which every possible
@@ -477,8 +503,7 @@ class _MainScreenState extends State<MainScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         GestureDetector(
-                          onTap:
-                              () => setState(() => _currentPage = 2),
+                          onTap: () => setState(() => _currentPage = 2),
                           child: Image.asset(
                             'assets/png24/white/w_learninglist.png',
                             width: iconSize,
@@ -487,8 +512,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap:
-                              () => setState(() => _currentPage = 3),
+                          onTap: () => setState(() => _currentPage = 3),
                           child: Image.asset(
                             'assets/png24/white/w_favorit.png',
                             width: iconSize,
@@ -497,8 +521,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap:
-                              () => setState(() => _currentPage = 4),
+                          onTap: () => setState(() => _currentPage = 4),
                           child: Image.asset(
                             'assets/png24/white/w_history.png',
                             width: iconSize,
@@ -518,4 +541,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-

@@ -175,13 +175,13 @@ abstract class AppLocalizations {
   /// No description provided for @documentMode.
   ///
   /// In en, this message translates to:
-  /// **'Document'**
+  /// **'Text'**
   String get documentMode;
 
   /// No description provided for @imageMode.
   ///
   /// In en, this message translates to:
-  /// **'Image'**
+  /// **'Image/Document'**
   String get imageMode;
 
   /// No description provided for @copyToClipboard.
@@ -679,7 +679,7 @@ abstract class AppLocalizations {
   /// No description provided for @uploadAreaUploadFile.
   ///
   /// In en, this message translates to:
-  /// **'Upload an image or document (PDF, Word, Excel, OpenDocument, or text file)'**
+  /// **'Upload an image or document (PDF or text file)'**
   String get uploadAreaUploadFile;
 
   /// No description provided for @convertingDocument.

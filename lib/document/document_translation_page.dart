@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:forditva/db/database.dart';
 import 'package:forditva/document/document_translation_state.dart';
 import 'package:forditva/models/language_enum.dart';
 import 'package:forditva/services/gemini_tts_service.dart';
+import 'package:forditva/services/history_store.dart';
 import 'package:forditva/flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:forditva/widgets/copied_toast.dart';
 import 'package:forditva/widgets/edit_recording_modal.dart';
@@ -54,7 +54,6 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
   late FocusNode _inputFocusNode;
 
   String _explanationLevel = 'A2'; // default level
-  late final AppDatabase _db;
 
   Language _leftLang = Language.english;
   Language _rightLang = Language.hungarian;
@@ -74,7 +73,14 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
             : _leftLang == Language.hungarian
             ? _translatedText
             : '';
-    hasHungarianText.value = hungarianText.trim().isNotEmpty;
+    final has = hungarianText.trim().isNotEmpty;
+    if (has == hasHungarianText.value) return;
+    // Called from build(), and the nav bar rebuilds on this notifier, so
+    // setting it mid-build threw "setState() called during build". Apply it
+    // right after the frame instead.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) hasHungarianText.value = has;
+    });
   }
 
   final Map<Language, String> _flagPaths = {
@@ -229,7 +235,6 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
       });
     });
     _speech = stt.SpeechToText();
-    _db = AppDatabase(); // ← initialize the DB
 
     _flutterTts = FlutterTts();
     _flutterTts.setSpeechRate(0.5);
@@ -262,7 +267,6 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
   void dispose() {
     _inputFocusNode.dispose();
 
-    _db.close(); // ← close the DB when the page is torn down
     _ttsAudioPlayer?.dispose();
 
     _inputController.dispose();
@@ -281,7 +285,6 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
   /// so recording begins immediately rather than requiring another tap.
   void _showEditModal({bool autoStartRecording = false}) {
     _ttsAudioPlayer?.stop();
-    final controller = TextEditingController(text: _inputController.text);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -289,7 +292,7 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
       builder: (ctx) {
         return SafeArea(
           child: EditTextModal(
-            controller: controller,
+            initialText: _inputController.text,
             fromLang: _rightLang,
             toLang: _leftLang,
             gemini: _gemini,
@@ -307,7 +310,7 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
           ),
         );
       },
-    ).whenComplete(controller.dispose);
+    );
   }
 
   Widget _buildSection(String title, String content) {
@@ -562,8 +565,10 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
   Future<void> _translateText(String input) async {
     if (!await ensureWiuBalance(context)) return;
 
-    final from = _langLabels[_rightLang]!; // used to be _leftLang
-    final to = _langLabels[_leftLang]!; // used to be _rightLang
+    final fromLang = _rightLang;
+    final toLang = _leftLang;
+    final from = _langLabels[fromLang]!; // used to be _leftLang
+    final to = _langLabels[toLang]!; // used to be _rightLang
 
     final String currentText = _inputController.text.trim();
 
@@ -589,6 +594,14 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
           _translatedText = result;
           DocumentTranslationState.translatedText = result;
         });
+        unawaited(
+          HistoryStore.save(
+            input: currentText,
+            output: result,
+            from: fromLang,
+            to: toLang,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Translation error: $e');
@@ -899,6 +912,11 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                                     DocumentTranslationState.inputText =
                                         pasted;
                                   });
+                                  // Translate right away (Markus, video of
+                                  // 2026-09-29: "it should translate in the
+                                  // lower area"). Pasting only filled the
+                                  // box before.
+                                  _translateText(data.text!.trim());
                                 }
                               },
                               child: Image.asset(
@@ -1081,45 +1099,13 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                                                 () => _rightLang = detectedLang,
                                               );
 
-                                              // ✅ Save after user confirms
-                                              try {
-                                                final inputText =
-                                                    _inputController.text
-                                                        .trim();
-                                                final outputText =
-                                                    _translatedText.trim();
-                                                if (inputText.isNotEmpty &&
-                                                    outputText.isNotEmpty &&
-                                                    inputText != outputText) {
-                                                  final exists = await _db
-                                                      .translationDao
-                                                      .findExactMatch(
-                                                        inputText,
-                                                        outputText,
-                                                      );
-                                                  if (exists == null) {
-                                                    await _db.translationDao
-                                                        .insertTranslation(
-                                                          TranslationsCompanion.insert(
-                                                            input: inputText,
-                                                            output: outputText,
-                                                            fromLang:
-                                                                _langLabels[_rightLang]!,
-                                                            toLang:
-                                                                _langLabels[_leftLang]!,
-                                                          ),
-                                                        );
-                                                  } else {
-                                                    debugPrint(
-                                                      '⚠️ Already saved. Skipping DB insert.',
-                                                    );
-                                                  }
-                                                }
-                                              } catch (e) {
-                                                debugPrint(
-                                                  'DB insert failed: $e',
-                                                );
-                                              }
+                                              // Translate with the corrected
+                                              // source language (this also
+                                              // records it in History).
+                                              FocusScope.of(this.context).unfocus();
+                                              _translateText(
+                                                _inputController.text.trim(),
+                                              );
                                             }
                                           });
                                         },
@@ -1131,34 +1117,13 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                               return;
                             }
 
-                            // ✅ Save if no correction needed
+                            // Language matches: translate now. Nothing else
+                            // translates text typed into this box, so this
+                            // check used to save a stale (often empty)
+                            // translation and show none. _translateText also
+                            // records it in History.
                             FocusScope.of(context).unfocus();
-                            try {
-                              final inputText = _inputController.text.trim();
-                              final outputText = _translatedText.trim();
-                              if (inputText.isNotEmpty &&
-                                  outputText.isNotEmpty &&
-                                  inputText != outputText) {
-                                final exists = await _db.translationDao
-                                    .findExactMatch(inputText, outputText);
-                                if (exists == null) {
-                                  await _db.translationDao.insertTranslation(
-                                    TranslationsCompanion.insert(
-                                      input: inputText,
-                                      output: outputText,
-                                      fromLang: _langLabels[_rightLang]!,
-                                      toLang: _langLabels[_leftLang]!,
-                                    ),
-                                  );
-                                } else {
-                                  debugPrint(
-                                    '⚠️ Already saved. Skipping DB insert.',
-                                  );
-                                }
-                              }
-                            } catch (e) {
-                              debugPrint('DB insert failed: $e');
-                            }
+                            _translateText(input);
                           },
                           child: Image.asset(
                             'assets/images/check.png',

@@ -45,10 +45,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outputPlaceholder => 'Translation will appear here.';
 
   @override
-  String get documentMode => 'Document';
+  String get documentMode => 'Text';
 
   @override
-  String get imageMode => 'Image';
+  String get imageMode => 'Image/Document';
 
   @override
   String get copyToClipboard => 'Copy to clipboard';
@@ -324,7 +324,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get uploadAreaUploadFile =>
-      'Upload an image or document (PDF, Word, Excel, OpenDocument, or text file)';
+      'Upload an image or document (PDF or text file)';
 
   @override
   String get convertingDocument => 'Converting document...';
