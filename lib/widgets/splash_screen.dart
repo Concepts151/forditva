@@ -1,23 +1,10 @@
 import 'package:flutter/material.dart';
 
-class SplashScreen extends StatefulWidget {
+/// Splash visuals only. Navigation away from it lives in
+/// SplashScreenRedirect (main.dart); a second timer here used to push the
+/// main screen a second time.
+class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Wait for 2 seconds, then navigate to your main screen.
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(
-        context,
-      ).pushReplacementNamed('/home'); // Set your home route!
-    });
-  }
 
   @override
   Widget build(BuildContext context) {

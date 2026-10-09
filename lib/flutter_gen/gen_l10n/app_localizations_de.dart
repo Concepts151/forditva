@@ -48,7 +48,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get documentMode => 'Dokument';
 
   @override
-  String get imageMode => 'Bild';
+  String get imageMode => 'Datei';
 
   @override
   String get copyToClipboard => 'In die Zwischenablage kopieren';
@@ -341,4 +341,79 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get conversionFailedBody =>
       'Bitte stellen Sie sicher, dass die Datei nicht passwortgeschützt oder beschädigt ist und ein unterstütztes Format hat. Versuchen Sie es anschließend erneut.';
+
+  @override
+  String languageMismatchBody(String detected, String selected) {
+    return 'This text is in $detected, not $selected.';
+  }
+
+  @override
+  String languageNotFoundBody(String selected) {
+    return 'No $selected text was found. Please check the source language.';
+  }
+
+  @override
+  String languageMismatchUse(String language) {
+    return 'Use $language';
+  }
+
+  @override
+  String get languageNameHu => 'Hungarian';
+
+  @override
+  String get languageNameDe => 'German';
+
+  @override
+  String get languageNameEn => 'English';
+
+  @override
+  String get languageNameNl => 'Dutch';
+
+  @override
+  String get languageNameFr => 'French';
+
+  @override
+  String get languageNameEs => 'Spanish';
+
+  @override
+  String get languageNameRu => 'Russian';
+
+  @override
+  String get languageNameIt => 'Italian';
+
+  @override
+  String get tutorUnderstanding => 'Verstehen';
+
+  @override
+  String get tutorDecoding => 'Dekodieren';
+
+  @override
+  String get tutorFocus => 'Lernfokus';
+
+  @override
+  String get tutorChooseSentences => 'Sätze auswählen';
+
+  @override
+  String tutorCharCount(int count, int max) {
+    return '$count / $max Zeichen';
+  }
+
+  @override
+  String get tutorConsecutiveOnly => 'nur aufeinanderfolgende Sätze';
+
+  @override
+  String get tutorApplySelection => 'Auswahl übernehmen';
+
+  @override
+  String get tutorLevel => 'Sprachlevel';
+
+  @override
+  String get tutorThinking => 'A good answer takes a moment...';
+
+  @override
+  String get tutorAnswerNow => 'Answer now';
+
+  @override
+  String get swipeToDeleteTip =>
+      'Tip: swipe an entry to the left to delete it.';
 }

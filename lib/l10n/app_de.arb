@@ -13,7 +13,7 @@
   "inputPlaceholder": "Was möchtest du heute übersetzen?",
   "outputPlaceholder": "Die Übersetzung erscheint hier.",
   "documentMode": "Dokument",
-  "imageMode": "Bild",
+  "imageMode": "Datei",
   "copyToClipboard": "In die Zwischenablage kopieren",
   "copiedToClipboard": "In die Zwischenablage kopiert",
   "searchFavorites": "Favoriten durchsuchen...",
@@ -105,5 +105,13 @@
   "convertingDocument": "Dokument wird konvertiert...",
   "analyzingAndTranslating": "Dokument wird analysiert und übersetzt...",
   "conversionFailedTitle": "Dieses Dokument konnte nicht konvertiert werden.",
-  "conversionFailedBody": "Bitte stellen Sie sicher, dass die Datei nicht passwortgeschützt oder beschädigt ist und ein unterstütztes Format hat. Versuchen Sie es anschließend erneut."
+  "conversionFailedBody": "Bitte stellen Sie sicher, dass die Datei nicht passwortgeschützt oder beschädigt ist und ein unterstütztes Format hat. Versuchen Sie es anschließend erneut.",
+  "tutorUnderstanding": "Verstehen",
+  "tutorDecoding": "Dekodieren",
+  "tutorFocus": "Lernfokus",
+  "tutorChooseSentences": "Sätze auswählen",
+  "tutorCharCount": "{count} / {max} Zeichen",
+  "tutorConsecutiveOnly": "nur aufeinanderfolgende Sätze",
+  "tutorApplySelection": "Auswahl übernehmen",
+  "tutorLevel": "Sprachlevel"
 }

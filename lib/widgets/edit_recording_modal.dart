@@ -6,7 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:forditva/services/gemini_translation_service.dart';
 import 'package:forditva/services/google_speech_to_text_service.dart';
+import 'package:forditva/services/history_store.dart';
 import 'package:forditva/widgets/amp_waveform.dart';
+import 'package:forditva/widgets/language_mismatch_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -17,9 +19,19 @@ import '../models/language_enum.dart';
 typedef OnEditAndTranslate =
     void Function({required String edited, required String translated});
 
+/// Called before [OnEditAndTranslate] when the user accepted the shared
+/// language-mismatch panel's suggestion, with the language pair that was
+/// actually used, so the page can update its flags to match.
+typedef OnLanguagesChanged = void Function(Language from, Language to);
+
 class EditTextModal extends StatefulWidget {
-  final TextEditingController controller;
-  final Future<bool> Function(String text) isTextInLanguage;
+  // The modal owns its TextEditingController (created from this, disposed in
+  // State.dispose). Callers used to create it and dispose it in
+  // showModalBottomSheet().whenComplete, which fires at pop() while the
+  // TextField is still mounted for the exit animation; that crashed the
+  // whole Navigator ('_dependents.isEmpty' red screen) after every edit.
+  final String initialText;
+  final OnLanguagesChanged? onLanguagesChanged;
   final Language fromLang;
   final Language toLang;
   final GeminiTranslator gemini;
@@ -29,16 +41,21 @@ class EditTextModal extends StatefulWidget {
   // an edit/pencil icon (Markus, 2026-07-11: tapping mic on the Document page
   // should switch to this exact panel AND start recording).
   final bool autoStartRecording;
+  // Where to put the cursor when the panel opens; null = end of the text.
+  // Set when the user opened the panel by tapping into the text, so a
+  // dictated sentence lands where they tapped (Markus, 2026-10-09).
+  final int? initialCursorOffset;
 
   const EditTextModal({
     super.key,
-    required this.controller,
+    required this.initialText,
     required this.onEdited,
-    required this.isTextInLanguage,
+    this.onLanguagesChanged,
     required this.fromLang,
     required this.toLang,
     required this.gemini,
     this.autoStartRecording = false,
+    this.initialCursorOffset,
   });
 
   @override
@@ -46,6 +63,15 @@ class EditTextModal extends StatefulWidget {
 }
 
 class _EditTextModalState extends State<EditTextModal> {
+  // Height of the waveform band shown above the buttons while recording
+  // (AmpWaveform bars are at most 36px tall).
+  static const double _waveBandHeight = 44;
+
+  // Survives the sheet builder re-running on keyboard toggles, so typed or
+  // recorded text is never reset to initialText.
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialText,
+  );
   late final AudioRecorder _audioRecorder;
 
   bool _loading = false;
@@ -66,11 +92,35 @@ class _EditTextModalState extends State<EditTextModal> {
     super.initState();
     _audioRecorder = AudioRecorder();
 
+    // Drive the waveform from the same recorder's amplitude (dBFS ~ -45..0),
+    // so no second microphone recorder is needed. Subscribed once for the
+    // modal's lifetime: record 5.x returns the same single-subscription
+    // stream on every onAmplitudeChanged() call, so re-listening on each mic
+    // tap threw "Stream has already been listened to" on the second
+    // recording. The recorder only emits while recording.
+    _ampSub = _audioRecorder
+        .onAmplitudeChanged(const Duration(milliseconds: 90))
+        .listen((amp) {
+          if (!mounted || !_isRecording) return;
+          final norm = ((amp.current + 45) / 45).clamp(0.0, 1.0);
+          setState(() {
+            _levels.add(norm);
+            if (_levels.length > 60) _levels.removeAt(0);
+          });
+        });
+
     // Use addPostFrameCallback to set cursor after the initial build and focus
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         // Ensure the widget is still in the tree
-        _moveCursorToEnd();
+        final offset = widget.initialCursorOffset;
+        if (offset != null) {
+          _controller.selection = TextSelection.collapsed(
+            offset: offset.clamp(0, _controller.text.length),
+          );
+        } else {
+          _moveCursorToEnd();
+        }
         if (widget.autoStartRecording) _onMicTap();
       }
     });
@@ -79,12 +129,12 @@ class _EditTextModalState extends State<EditTextModal> {
   void _moveCursorToEnd() {
     // Only update selection if the text is not empty and the current selection is not already at the end.
     // This helps prevent unnecessary rebuilds and potential cursor jumpiness.
-    final text = widget.controller.text;
+    final text = _controller.text;
     if (text.isNotEmpty) {
-      final currentSelection = widget.controller.selection;
+      final currentSelection = _controller.selection;
       if (currentSelection.baseOffset != text.length ||
           currentSelection.extentOffset != text.length) {
-        widget.controller.selection = TextSelection.collapsed(
+        _controller.selection = TextSelection.collapsed(
           offset: text.length,
         );
       }
@@ -99,8 +149,8 @@ class _EditTextModalState extends State<EditTextModal> {
   void _insertAtCursor(String text) {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
-    final current = widget.controller.text;
-    final selection = widget.controller.selection;
+    final current = _controller.text;
+    final selection = _controller.selection;
     final offset =
         selection.isValid ? selection.start.clamp(0, current.length) : current.length;
 
@@ -113,7 +163,7 @@ class _EditTextModalState extends State<EditTextModal> {
     final insertion =
         '${needsSpaceBefore ? ' ' : ''}$trimmed${needsSpaceAfter ? ' ' : ''}';
 
-    widget.controller.value = TextEditingValue(
+    _controller.value = TextEditingValue(
       text: before + insertion + after,
       selection: TextSelection.collapsed(offset: before.length + insertion.length),
     );
@@ -123,6 +173,7 @@ class _EditTextModalState extends State<EditTextModal> {
   void dispose() {
     _ampSub?.cancel();
     _audioRecorder.dispose(); // Dispose of the audio recorder
+    _controller.dispose();
     super.dispose();
   }
 
@@ -144,30 +195,15 @@ class _EditTextModalState extends State<EditTextModal> {
       ),
       path: _audioPath!,
     );
-
-    // Drive the waveform from the same recorder's amplitude (dBFS ~ -45..0),
-    // so no second microphone recorder is needed.
-    _ampSub = _audioRecorder
-        .onAmplitudeChanged(const Duration(milliseconds: 90))
-        .listen((amp) {
-          if (!mounted) return;
-          final norm = ((amp.current + 45) / 45).clamp(0.0, 1.0);
-          setState(() {
-            _levels.add(norm);
-            if (_levels.length > 60) _levels.removeAt(0);
-          });
-        });
   }
 
   Future<void> _onStopTap() async {
     setState(() => _isSttLoading = true);
-    await _ampSub?.cancel();
-    _ampSub = null;
     await _audioRecorder.stop(); // stops the actual file recording
 
     final path = _audioPath;
     if (path != null && File(path).existsSync()) {
-      print('DEBUG: Audio file length: ${File(path).lengthSync()} bytes');
+      debugPrint('DEBUG: Audio file length: ${File(path).lengthSync()} bytes');
     }
     if (path != null && File(path).existsSync()) {
       String langCode;
@@ -181,13 +217,13 @@ class _EditTextModalState extends State<EditTextModal> {
         default:
           langCode = 'en-US';
       }
-      print('DEBUG: Using langCode: $langCode');
+      debugPrint('DEBUG: Using langCode: $langCode');
 
       String? transcript = await _sttService.transcribe(
         File(path),
         languageCode: langCode,
       );
-      print('DEBUG: Transcript from Google STT: "$transcript"');
+      debugPrint('DEBUG: Transcript from Google STT: "$transcript"');
 
       setState(() {
         _isRecording = false;
@@ -199,7 +235,7 @@ class _EditTextModalState extends State<EditTextModal> {
 
         setState(() {}); // Refresh font size, etc.
 
-        print('Updated text: "${widget.controller.text}"');
+        debugPrint('Updated text: "${_controller.text}"');
       }
     } else {
       setState(() {
@@ -219,7 +255,7 @@ class _EditTextModalState extends State<EditTextModal> {
   /// Trash: empty the whole text field (Markus: "throw everything to the
   /// garbage tin"). The red X still cancels/closes the panel.
   void _clearText() {
-    widget.controller.clear();
+    _controller.clear();
     setState(() {});
   }
 
@@ -246,8 +282,6 @@ class _EditTextModalState extends State<EditTextModal> {
   /// Stop recording and discard the audio without transcribing (the X shown
   /// while recording).
   Future<void> _discardRecording() async {
-    await _ampSub?.cancel();
-    _ampSub = null;
     await _audioRecorder.stop();
     if (mounted) {
       setState(() {
@@ -266,33 +300,46 @@ class _EditTextModalState extends State<EditTextModal> {
       await _onStopTap();
     }
     setState(() => _loading = true);
-    final inputText = widget.controller.text.trim();
-    bool isValid = await widget.isTextInLanguage(inputText);
-    if (!isValid) {
+    final inputText = _controller.text.trim();
+    var from = widget.fromLang;
+    var to = widget.toLang;
+    final detected = await detectSupportedLanguageCode(
+      inputText,
+      widget.gemini,
+    );
+    if (detected != null && detected != from.code) {
       setState(() => _loading = false);
       if (!mounted) return;
-      await showDialog(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: Text(AppLocalizations.of(context)!.wrongLanguage),
-              content: Text(AppLocalizations.of(context)!.wrongLanguageBody),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(AppLocalizations.of(context)!.ok),
-                ),
-              ],
-            ),
+      final useDetected = await showLanguageMismatchDialog(
+        context,
+        selectedCode: from.code,
+        detectedCode: detected,
       );
-      return;
+      // Cancel keeps the panel open with the text, so it can be fixed.
+      if (!useDetected || !mounted) return;
+      final newFrom = Language.values.firstWhere((l) => l.code == detected);
+      // Text written in the target language: swap the pair.
+      if (newFrom == to) to = from;
+      from = newFrom;
+      setState(() => _loading = true);
     }
     final translated = await widget.gemini.translate(
       inputText,
-      widget.fromLang.code,
-      widget.toLang.code,
+      from.code,
+      to.code,
     );
     setState(() => _loading = false);
+    unawaited(
+      HistoryStore.save(
+        input: inputText,
+        output: translated,
+        from: from,
+        to: to,
+      ),
+    );
+    if (from != widget.fromLang || to != widget.toLang) {
+      widget.onLanguagesChanged?.call(from, to);
+    }
     widget.onEdited(edited: inputText, translated: translated);
     if (mounted) {
       Navigator.of(context).pop();
@@ -338,9 +385,15 @@ class _EditTextModalState extends State<EditTextModal> {
                     children: [
                       // Text input
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 70),
+                        // Leaves room for the waveform band while recording.
+                        padding: EdgeInsets.fromLTRB(
+                          18,
+                          18,
+                          18,
+                          _isRecording ? 70 + _waveBandHeight : 70,
+                        ),
                         child: TextField(
-                          controller: widget.controller,
+                          controller: _controller,
                           autofocus: true,
                           // Fixed font size that never shrinks; the field fills
                           // the card and scrolls when the text gets long, so no
@@ -361,9 +414,20 @@ class _EditTextModalState extends State<EditTextModal> {
                           ),
                         ),
                       ),
+                      // Full-width waveform band above the button row while
+                      // recording; squeezed into the row it only had room for
+                      // a bar or two (Markus, 2026-10-09).
+                      if (_isRecording)
+                        Positioned(
+                          left: 18,
+                          right: 18,
+                          bottom: 66,
+                          height: _waveBandHeight,
+                          child: AmpWaveform(levels: _levels),
+                        ),
                       // All edit controls on ONE row so nothing overlaps:
-                      // cancel, clear, paste, waveform (while recording),
-                      // mic/stop, confirm.
+                      // cancel, clear, paste, mic (or discard/stop while
+                      // recording), confirm.
                       Positioned(
                         left: 8,
                         right: 8,
@@ -388,8 +452,7 @@ class _EditTextModalState extends State<EditTextModal> {
                               _loading ? null : _pasteFromClipboard,
                             ),
                             // Middle fills all remaining width: mic centred
-                            // when idle; X + tick + a wide waveform (filling the
-                            // rest) when recording.
+                            // when idle; X + tick centred when recording.
                             Expanded(
                               child:
                                   _isSttLoading
@@ -404,6 +467,8 @@ class _EditTextModalState extends State<EditTextModal> {
                                       )
                                       : _isRecording
                                       ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           _iconBtn(
                                             'assets/png24/black/b_close.png',
@@ -414,17 +479,6 @@ class _EditTextModalState extends State<EditTextModal> {
                                             'assets/png24/black/b_check.png',
                                             30,
                                             _onStopTap,
-                                          ),
-                                          Expanded(
-                                            child: Padding(
-                                              padding: const EdgeInsets.only(
-                                                left: 6,
-                                                right: 10,
-                                              ),
-                                              child: AmpWaveform(
-                                                levels: _levels,
-                                              ),
-                                            ),
                                           ),
                                         ],
                                       )

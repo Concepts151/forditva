@@ -21,7 +21,11 @@ class GeminiTranslator {
     TokenBalance.instance.spendFractional(
       geminiWiuCost(
         promptTokens: usage?.promptTokenCount ?? 0,
-        outputTokens: usage?.candidatesTokenCount ?? 0,
+        outputTokens: billableOutputTokens(
+          prompt: usage?.promptTokenCount ?? 0,
+          candidates: usage?.candidatesTokenCount ?? 0,
+          total: usage?.totalTokenCount,
+        ),
       ),
     );
   }

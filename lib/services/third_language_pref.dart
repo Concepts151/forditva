@@ -23,6 +23,15 @@ class ThirdLanguagePref {
   /// the same name and would collide with it).
   static String get currentCode => _current.label;
 
+  /// A page may only show Hungarian, German and the current third language.
+  /// Any other language (e.g. English kept from the app-language start pair
+  /// after Dutch was chosen in Settings) becomes the current third language
+  /// (Markus, 2026-10-09).
+  static Language normalize(Language language) =>
+      language == Language.hungarian || language == Language.german
+          ? language
+          : _current;
+
   static Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString(_key);

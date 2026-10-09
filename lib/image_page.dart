@@ -17,6 +17,8 @@ import 'package:forditva/utils/utils.dart';
 import 'package:forditva/widgets/cropper.dart';
 import 'package:forditva/services/document_conversion_service.dart';
 import 'package:forditva/widgets/document_question_dialog.dart';
+import 'package:forditva/tutor/tutor_page.dart';
+import 'package:forditva/widgets/language_mismatch_dialog.dart';
 import 'package:forditva/widgets/pdf_page_selector.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -76,11 +78,35 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
   bool get _isPdf =>
       _imageFile != null && _imageFile!.path.toLowerCase().endsWith('.pdf');
 
+  /// A plain-text file. Gemini reads it straight through as text/plain
+  /// inline_data, same path as a PDF, so no conversion server is needed.
+  bool get _isTextFile =>
+      _imageFile != null && _imageFile!.path.toLowerCase().endsWith('.txt');
+
+  /// Loaded file has no bitmap to show (PDF or text).
+  bool get _isDocumentFile => _isPdf || _isTextFile;
+
   /// Which pages of the current PDF to process, e.g. "3" or "2-5". Null =
   /// all pages. Asked once when the PDF is picked (Markus, 2026-07-15:
   /// "maybe you can ask which page of a PDF should be opened") and kept so
   /// re-runs (language switch, retranslate) honor the same choice.
   String? _pdfPageSpec;
+
+  // Languages the last analysis found in the document (two-letter codes),
+  // and which document/page selection they belong to. Lets a source-language
+  // change be refused instantly, without paying to read the document again
+  // (Markus, 2026-10-09).
+  List<String> _docLanguages = const [];
+  String? _docLanguagesKey;
+
+  String _documentKey(File file) => '${file.path}|${_pdfPageSpec ?? ''}';
+
+  /// The known languages of the document currently loaded, or empty.
+  List<String> get _knownDocLanguages {
+    final file = _croppedImageFile ?? _imageFile;
+    if (file == null || _docLanguagesKey != _documentKey(file)) return const [];
+    return _docLanguages;
+  }
 
   // AI service & state
   final GeminiImageService _chat = GeminiImageService();
@@ -111,7 +137,14 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
   final ValueNotifier<bool> hasHungarianText = ValueNotifier(false);
 
   void _updateHasHungarianText() {
-    hasHungarianText.value = _hungarianText().isNotEmpty;
+    final has = _hungarianText().isNotEmpty;
+    if (has == hasHungarianText.value) return;
+    // Called from build(), and the nav bar rebuilds on this notifier, so
+    // setting it mid-build threw "setState() called during build". Apply it
+    // right after the frame instead.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) hasHungarianText.value = has;
+    });
   }
 
   /// Extracts the Hungarian segment(s) from the result, whichever side
@@ -138,42 +171,11 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
 
   // Tutor: called by the nav bar's bulb button (main.dart, via GlobalKey).
   void openTutor() {
-    final hungarianText = _hungarianText();
-    if (hungarianText.isEmpty) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+    // The new Tutor page (Markus, 2026-10-09) replaces the old popup.
+    TutorLauncher.open(
+      _hungarianText(),
+      otherLangCode: _langCode(_leftLang == Language.hu ? _rightLang : _leftLang),
     );
-    _gemini
-        .translate(
-          hungarianText,
-          _langCode(Language.hu),
-          _langCode(_leftLang == Language.hu ? _rightLang : _leftLang),
-          explain: true,
-          uiLanguage:
-              Localizations.localeOf(context).languageCode.toUpperCase(),
-        )
-        .then((explanation) {
-          if (!mounted) return;
-          Navigator.of(context).pop();
-          showDialog(
-            context: context,
-            builder:
-                (_) => AlertDialog(
-                  content: SingleChildScrollView(child: Text(explanation)),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(AppLocalizations.of(context)!.ok),
-                    ),
-                  ],
-                ),
-          );
-        })
-        .catchError((_) {
-          if (mounted) Navigator.of(context).pop();
-        });
   }
 
   Future<void> _speakResult() async {
@@ -382,16 +384,24 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     Language.ru: 'assets/flags/RU_L.png',
     Language.it: 'assets/flags/IT_L.png',
   };
+  // Label images exist only for EN/DE/HU. The NL/FR/ES/RU/IT paths pointed
+  // at files that were never added, so picking one of those as the third
+  // language broke the Image page's language row ("Unable to load asset");
+  // they get a text label instead, like on the Document page.
   final Map<Language, String> _labelPaths = {
     Language.en: 'assets/images/EN-EN.png',
     Language.de: 'assets/images/DE-DE.png',
     Language.hu: 'assets/images/HU-HU.png',
-    Language.nl: 'assets/images/NL-NL.png',
-    Language.fr: 'assets/images/FR-FR.png',
-    Language.es: 'assets/images/ES-ES.png',
-    Language.ru: 'assets/images/RU-RU.png',
-    Language.it: 'assets/images/IT-IT.png',
   };
+
+  Widget _languageLabel(Language lang) {
+    final path = _labelPaths[lang];
+    if (path != null) return Image.asset(path, height: 32);
+    return Text(
+      _langCode(lang),
+      style: GoogleFonts.roboto(fontSize: 28, fontWeight: FontWeight.w500),
+    );
+  }
 
   String stripHtmlCodeFence(String input) {
     // Remove leading ```html or ```HTML and trailing ```
@@ -464,7 +474,35 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    ThirdLanguagePref.notifier.addListener(_onThirdLanguageChanged);
     _loadState();
+  }
+
+  /// The third language changed in Settings: switch to it right away. A new
+  /// target re-translates the text already read (no new image read).
+  Future<void> _onThirdLanguageChanged() async {
+    if (!mounted) return;
+    Language normalize(Language l) =>
+        l == Language.hu || l == Language.de ? l : _localThirdLang();
+    final left = normalize(_leftLang);
+    final right = normalize(_rightLang);
+    if (left == _leftLang && right == _rightLang) return;
+    final targetChanged = left != _leftLang;
+    final previousResult = _interpretMode ? null : _translateResultCache;
+    setState(() {
+      _leftLang = left;
+      _rightLang = right;
+      if (targetChanged) {
+        _resultText = '';
+        _translateResultCache = null;
+        _interpretResultCache = null;
+      }
+    });
+    if (targetChanged &&
+        _imageFile != null &&
+        !await _retranslateExtractedText(previousResult)) {
+      _processImage(imageFile: _imageFile!);
+    }
   }
 
   Future<void> _loadState() async {
@@ -483,6 +521,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
 
   @override
   void dispose() {
+    ThirdLanguagePref.notifier.removeListener(_onThirdLanguageChanged);
     _scrollController.dispose();
     hasHungarianText.dispose();
     super.dispose();
@@ -522,16 +561,6 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     return next;
   }
 
-  void _switchLanguages() {
-    setState(() {
-      final temp = _leftLang;
-      _leftLang = _rightLang;
-      _rightLang = temp;
-      // Optionally swap result direction (not strictly needed for image)
-    });
-    if (_imageFile != null) _processImage(imageFile: _imageFile!);
-  }
-
   List<dynamic>? extractFirstJsonArray(String input) {
     final arrayMatch = RegExp(r'(\[[\s\S]*\])').firstMatch(input);
     if (arrayMatch != null) {
@@ -557,16 +586,6 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
         jsonStr,
         style: GoogleFonts.robotoCondensed(fontSize: 22, color: Colors.black),
       );
-    }
-
-    double calcFont(String text) {
-      const double maxFont = 36;
-      const double minFont = 18;
-      double scale = (panelH / 200).clamp(0.7, 1.0);
-      double scaled = maxFont * scale - (text.length * 0.1);
-      if (scaled < minFont) return minFont;
-      if (scaled > maxFont) return maxFont;
-      return scaled * 0.5; // 👈 halve the font
     }
 
     return Column(
@@ -636,65 +655,6 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     return input.trim();
   }
 
-  Widget _formattedResult(String resultJson, double panelH) {
-    final cleanJson = stripCodeFence(resultJson);
-    List<dynamic> items;
-    try {
-      items = json.decode(cleanJson) as List;
-      // ...format your output as widgets...
-    } catch (e) {
-      // Fallback: show plain text
-      return Text(
-        cleanJson,
-        style: GoogleFonts.robotoCondensed(fontSize: 22, color: Colors.black),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:
-          items.map<Widget>((item) {
-            final orig = (item['o'] ?? '').toString().trim();
-            final trans = (item['t'] ?? '').toString().trim();
-
-            if (orig.isEmpty && trans.isEmpty) return SizedBox.shrink();
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (orig.isNotEmpty)
-                    Text(
-                      orig,
-                      style: GoogleFonts.robotoCondensed(
-                        fontSize: calculateFontSizes(orig, panelH) * _zoomLevel,
-                        fontWeight: FontWeight.bold,
-                        color: navRed,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                  if (trans.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        trans,
-                        style: GoogleFonts.robotoCondensed(
-                          fontSize:
-                              calculateFontSizes(trans, panelH) * _zoomLevel,
-                          fontWeight: FontWeight.w500,
-                          color: navGreen,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          }).toList(),
-    );
-  }
-
   Future<void> _processImage({required File imageFile}) async {
     if (!await ensureWiuBalance(context)) return;
 
@@ -715,157 +675,58 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
         pdfPages: _isPdf ? _pdfPageSpec : null,
       );
 
-      // The language-mismatch check only makes sense in translate mode, where
-      // each JSON segment has an "o" (original) field in the source language.
-      // In interpret mode the whole output is already written in the target
-      // language, so detecting its language and comparing it against the
-      // source language was a guaranteed false mismatch (Markus, 2026-07-10:
-      // "explain image" reporting "your language is German" right after a
-      // correct Hungarian translation).
+      final sourceCode = _langCode(_rightLang);
+      final noMatchingText = _noMatchingLanguageText(out);
+
+      // Remember which languages the document contains. When text WAS found
+      // in the chosen source language, trust that over the reported list.
+      var docLanguages = _chat.lastDocumentLanguages;
+      if (!_interpretMode &&
+          !noMatchingText &&
+          docLanguages.isNotEmpty &&
+          !docLanguages.contains(sourceCode)) {
+        docLanguages = [...docLanguages, sourceCode];
+      }
+      _docLanguages = docLanguages;
+      _docLanguagesKey = _documentKey(imageFile);
+
+      // Only translate mode can tell a wrong source language from the
+      // result: in interpret mode the output is in the target language.
       if (!_interpretMode) {
-        // Build the detection sample STRICTLY from the extracted "o"
-        // (original) segments — never from Gemini's raw reply. The raw reply
-        // is a JSON blob (often wrapped in a ```json fence despite the
-        // prompt), and asking "what language is this?" about JSON syntax
-        // reliably comes back "EN". That was the real cause of a 100%
-        // Hungarian utility bill being reported as English (Markus,
-        // 2026-07-15): the fence made json.decode throw, the old code fell
-        // back to sampleText = raw out, and the detector saw code, not
-        // Hungarian.
-        String fenceStripped = out.trim();
-        final fenceMatch = RegExp(
-          r'^```[a-zA-Z]*\s*([\s\S]*?)\s*```$',
-        ).firstMatch(fenceStripped);
-        if (fenceMatch != null) fenceStripped = fenceMatch.group(1)!.trim();
-
-        String sampleText = '';
-        try {
-          final maybeJson = json.decode(fenceStripped);
-          if (maybeJson is List && maybeJson.isNotEmpty) {
-            // Use every segment's original text, not just the first, so
-            // short/ambiguous fragments don't dominate detection (Markus,
-            // 2026-07-10: genuine Hungarian misdetected as Portuguese).
-            sampleText = maybeJson
-                .map(
-                  (e) => (e is Map && e['o'] != null) ? e['o'].toString() : '',
-                )
-                .where((s) => s.isNotEmpty && !s.contains('{unsafe}'))
-                .join(' ');
+        String? suggestion;
+        var mismatch = false;
+        if (noMatchingText) {
+          // Nothing found in the chosen language (Markus's "kein EN-Text").
+          mismatch = true;
+          suggestion = _suggestSource(docLanguages, excluding: sourceCode);
+        } else if (docLanguages.isEmpty) {
+          // Older-style reply without a language list: fall back to
+          // detecting the language of the extracted original segments.
+          final detected = await _detectSegmentsLanguage(out);
+          if (detected != null && detected != sourceCode) {
+            mismatch = true;
+            suggestion = detected;
           }
-        } catch (_) {
-          // Decode still failed: salvage the "o" values by regex rather
-          // than handing raw JSON to the detector.
-          sampleText = RegExp(r'"o"\s*:\s*"((?:[^"\\]|\\.)*)"')
-              .allMatches(fenceStripped)
-              .map((m) => m.group(1)!)
-              .where((s) => !s.contains('{unsafe}'))
-              .join(' ');
         }
-
-        // Documents like bills are full of dates, amounts and IDs; digits
-        // and punctuation say nothing about the language, so the "enough
-        // text to judge" guard counts letters only.
-        final letterCount =
-            RegExp(
-              r'[a-zA-ZáéíóöőúüűÁÉÍÓÖŐÚÜŰäöüßÄÖÜàâçèêëîïôùûÀÂÇÈÊËÎÏÔÙÛñÑа-яА-Я]',
-            ).allMatches(sampleText).length;
-
-        final langCodes = {
-          Language.hu: 'HU',
-          Language.de: 'DE',
-          Language.en: 'EN',
-          Language.nl: 'NL',
-          Language.fr: 'FR',
-          Language.es: 'ES',
-          Language.ru: 'RU',
-          Language.it: 'IT',
-        };
-
-        String detected = '';
-        if (letterCount >= 20) {
-          final rawDetected = await _gemini.detectLanguage(sampleText);
-          // Normalize the result. Guard the substring so a short/empty
-          // result can't throw a RangeError.
-          final normalized = rawDetected.toUpperCase().replaceAll('-', '');
-          detected =
-              normalized.length >= 2 ? normalized.substring(0, 2) : normalized;
-        }
-
-        // Only a confident, supported answer may interrupt the user: if the
-        // detector answered UNKNOWN, garbage, or something outside the app's
-        // 8 languages, silently accept the user's own selection.
-        if (detected.isNotEmpty &&
-            langCodes.containsValue(detected) &&
-            detected != langCodes[_rightLang]) {
-          if (mounted) {
-            await showDialog(
-              context: context,
-              builder:
-                  (context) => AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    content: Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.langMismatch(detected, langCodes[_rightLang] ?? ''),
-                    ),
-                    actionsPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    actions: [
-                      // ❌ CLOSE
-                      IconButton(
-                        icon: Image.asset(
-                          'assets/images/close.png',
-                          width: 28,
-                          height: 28,
-                          color: navRed,
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      // ✅ CHECK = apply detected language
-                      IconButton(
-                        icon: Image.asset(
-                          'assets/images/check.png',
-                          width: 28,
-                          height: 28,
-                          color: navGreen,
-                        ),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (!mounted) return;
-                            final newRightLang =
-                                langCodes.entries
-                                    .firstWhere((e) => e.value == detected)
-                                    .key;
-                            setState(() {
-                              _rightLang = newRightLang;
-                              // Guard against both sides ending up on the same
-                              // language (e.g. accepting "detected DE" while
-                              // the left side is already DE).
-                              if (_leftLang == newRightLang) {
-                                _leftLang = _next(_leftLang, newRightLang);
-                              }
-                              _translateResultCache = null;
-                              _interpretResultCache = null;
-                            });
-                            if (_imageFile != null) {
-                              _processImage(imageFile: _imageFile!);
-                            }
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-            );
-          }
+        if (mismatch) {
           setState(() {
             _isProcessing = false;
             _resultText = '';
           });
+          if (!mounted) return;
+          final useSuggestion = await showLanguageMismatchDialog(
+            context,
+            selectedCode: sourceCode,
+            detectedCode: suggestion,
+          );
+          if (useSuggestion && suggestion != null && mounted) {
+            setState(() {
+              _applySource(_langFromCode(suggestion!));
+              _translateResultCache = null;
+              _interpretResultCache = null;
+            });
+            if (_imageFile != null) _processImage(imageFile: _imageFile!);
+          }
           return;
         }
       }
@@ -884,26 +745,8 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
         await _saveState(_croppedImageFile ?? _imageFile!, cleaned);
       }
 
-      if (_noMatchingLanguageText(out)) {
-        showDialog(
-          context: context,
-          builder:
-              (_) => AlertDialog(
-                title: Text(AppLocalizations.of(context)!.noTextFoundTitle),
-                content: Text(
-                  AppLocalizations.of(
-                    context,
-                  )!.noTextFoundBody(_langCode(_rightLang)),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(AppLocalizations.of(context)!.ok),
-                  ),
-                ],
-              ),
-        );
-      } else if (_imageIsUnclear(out)) {
+      if (!mounted) return;
+      if (_imageIsUnclear(out)) {
         showDialog(
           context: context,
           builder:
@@ -939,6 +782,159 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     }
   }
 
+  Language _langFromCode(String code) =>
+      Language.values.firstWhere((l) => _langCode(l) == code);
+
+  /// A language from [docLanguages] to offer instead of [excluding], or null
+  /// when the document's languages are unknown.
+  String? _suggestSource(List<String> docLanguages, {required String excluding}) {
+    for (final code in docLanguages) {
+      if (code != excluding) return code;
+    }
+    return null;
+  }
+
+  /// Makes [source] the source language; if it equals the target, the target
+  /// moves to the next language so the pair stays valid.
+  void _applySource(Language source) {
+    final previous = _rightLang;
+    _rightLang = source;
+    if (_leftLang == source) {
+      _leftLang = previous != source ? previous : _next(_leftLang, source);
+    }
+  }
+
+  /// Before re-reading the document for a new source language [candidate]:
+  /// if the last analysis already showed the document has no [candidate]
+  /// text, shows the shared mismatch panel instead and returns the language
+  /// to use (the suggestion), or null to change nothing. Returns [candidate]
+  /// when it is fine or the document's languages are unknown. No WIU spent.
+  Future<Language?> _checkKnownSource(Language candidate) async {
+    final known = _knownDocLanguages;
+    final code = _langCode(candidate);
+    if (known.isEmpty || known.contains(code)) return candidate;
+    final suggestion = _suggestSource(known, excluding: code);
+    final useSuggestion = await showLanguageMismatchDialog(
+      context,
+      selectedCode: code,
+      detectedCode: suggestion,
+    );
+    if (!useSuggestion || suggestion == null) return null;
+    return _langFromCode(suggestion);
+  }
+
+  /// Fallback detector for analysis replies without a language list: the
+  /// language of the extracted original ("o") segments, or null when there
+  /// is too little text or the detector is unsure.
+  Future<String?> _detectSegmentsLanguage(String out) async {
+    // Build the detection sample STRICTLY from the extracted "o" (original)
+    // segments, never from Gemini's raw reply: JSON syntax (often in a
+    // ```json fence) reliably reads as "EN" (Markus, 2026-07-15: a 100%
+    // Hungarian utility bill reported as English).
+    String fenceStripped = out.trim();
+    final fenceMatch = RegExp(
+      r'^```[a-zA-Z]*\s*([\s\S]*?)\s*```$',
+    ).firstMatch(fenceStripped);
+    if (fenceMatch != null) fenceStripped = fenceMatch.group(1)!.trim();
+
+    String sampleText = '';
+    try {
+      final maybeJson = json.decode(fenceStripped);
+      if (maybeJson is List && maybeJson.isNotEmpty) {
+        // Every segment, so short fragments don't dominate (Markus,
+        // 2026-07-10: genuine Hungarian misdetected as Portuguese).
+        sampleText = maybeJson
+            .map((e) => (e is Map && e['o'] != null) ? e['o'].toString() : '')
+            .where((s) => s.isNotEmpty && !s.contains('{unsafe}'))
+            .join(' ');
+      }
+    } catch (_) {
+      sampleText = RegExp(r'"o"\s*:\s*"((?:[^"\\]|\\.)*)"')
+          .allMatches(fenceStripped)
+          .map((m) => m.group(1)!)
+          .where((s) => !s.contains('{unsafe}'))
+          .join(' ');
+    }
+
+    // Bills are full of dates, amounts and IDs that say nothing about the
+    // language, so the "enough text to judge" guard counts letters only.
+    final letterCount =
+        RegExp(
+          r'[a-zA-ZáéíóöőúüűÁÉÍÓÖŐÚÜŰäöüßÄÖÜàâçèêëîïôùûÀÂÇÈÊËÎÏÔÙÛñÑа-яА-Я]',
+        ).allMatches(sampleText).length;
+    if (letterCount < 20) return null;
+    return detectSupportedLanguageCode(sampleText, _gemini);
+  }
+
+  /// After a TARGET-language change in translate mode: re-translates the
+  /// segments already read from the image instead of sending the image again
+  /// (Markus, video of 2026-09-29: "it is calculating again... the text was
+  /// already here"). [previousResult] is the translate result from before the
+  /// change. Returns false when that isn't possible (nothing extracted yet,
+  /// unexpected format), so the caller can fall back to [_processImage].
+  Future<bool> _retranslateExtractedText(String? previousResult) async {
+    if (_interpretMode || previousResult == null) return false;
+    var raw = previousResult.trim();
+    final fence = RegExp(r'^```[a-zA-Z]*\s*([\s\S]*?)\s*```$').firstMatch(raw);
+    if (fence != null) raw = fence.group(1)!.trim();
+
+    final List<Map<String, dynamic>> segments;
+    try {
+      final decoded = json.decode(raw);
+      if (decoded is! List) return false;
+      segments = [
+        for (final e in decoded)
+          if (e is Map) Map<String, dynamic>.from(e),
+      ];
+    } catch (_) {
+      return false;
+    }
+    // Illegible segments stay "{unsafe}"; only real text is re-translated.
+    final readable = [
+      for (final s in segments)
+        if (s['o'] != null && !s['o'].toString().contains('{unsafe}')) s,
+    ];
+    if (readable.isEmpty) return false;
+    if (!await ensureWiuBalance(context)) return true;
+    if (!mounted) return true;
+
+    setState(() {
+      _isProcessing = true;
+      _statusText = AppLocalizations.of(context)!.analyzingAndTranslating;
+      _resultText = '';
+    });
+    try {
+      final translations = await _chat.retranslateSegments(
+        originals: [for (final s in readable) s['o'].toString()],
+        fromLangCode: _langCode(_rightLang),
+        toLangCode: _langCode(_leftLang),
+      );
+      for (var i = 0; i < readable.length; i++) {
+        readable[i]['t'] = translations[i];
+      }
+      final cleaned = json.encode(segments);
+      if (!mounted) return true;
+      setState(() {
+        _resultText = cleaned;
+        _translateResultCache = cleaned;
+      });
+      await _saveState(_croppedImageFile ?? _imageFile!, cleaned);
+      return true;
+    } catch (e) {
+      // Malformed reply or network trouble: fall back to the full re-read
+      // so the user still gets a result.
+      debugPrint('Re-translating extracted text failed, re-reading: $e');
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _statusText = '';
+        });
+      }
+    }
+  }
+
   Future<void> _takePhoto() async {
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.camera,
@@ -946,6 +942,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
       imageQuality: _pickQuality,
     );
     if (picked != null) {
+      if (!mounted) return;
       File file = File(picked.path);
       final cropped = await Navigator.push<File?>(
         context,
@@ -1025,10 +1022,12 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     await _loadImageWithCropper(File(picked.path));
   }
 
-  /// Extensions Gemini can't read directly (inline_data only accepts images
-  /// and PDF), so they're converted to PDF via our own LibreOffice-backed
-  /// service first, then handled exactly like an uploaded PDF (Markus, 2026-08
-  /// proposal).
+  /// Extensions Gemini can't read directly, so they're converted to PDF via
+  /// our own LibreOffice-backed service first, then handled exactly like an
+  /// uploaded PDF (Markus, 2026-08 proposal). Only offered in the file picker
+  /// once that service is configured: until then every pick failed with the
+  /// "conversion failed" dialog. TXT is no longer here, it needs no
+  /// conversion (see [_isTextFile]).
   static const _officeExtensions = {
     'doc',
     'docx',
@@ -1036,7 +1035,6 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     'xlsx',
     'odt',
     'ods',
-    'txt',
   };
 
   final _conversionService = DocumentConversionService();
@@ -1055,7 +1053,8 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
         'webp',
         'heic',
         'pdf',
-        ..._officeExtensions,
+        'txt',
+        if (_conversionService.isConfigured) ..._officeExtensions,
       ],
     );
     final path = result?.files.single.path;
@@ -1063,6 +1062,20 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
 
     final extension = path.split('.').last.toLowerCase();
     File file = File(path);
+
+    if (extension == 'txt') {
+      // Plain text: no pages to pick and nothing to crop; send it as is.
+      setState(() {
+        _imageFile = file;
+        _croppedImageFile = null;
+        _pdfPageSpec = null;
+        _resultText = '';
+        _translateResultCache = null;
+        _interpretResultCache = null;
+      });
+      await _processImage(imageFile: file);
+      return;
+    }
 
     if (_officeExtensions.contains(extension)) {
       final converted = await _convertOfficeDocument(file);
@@ -1234,17 +1247,20 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child:
-                                    _isPdf
-                                        // A PDF has no bitmap to show, so
-                                        // display the filename instead of
-                                        // failing an Image.file decode.
+                                    _isDocumentFile
+                                        // A PDF or text file has no bitmap to
+                                        // show, so display the filename
+                                        // instead of failing an Image.file
+                                        // decode.
                                         ? Center(
                                           child: Column(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
                                             children: [
-                                              const Icon(
-                                                Icons.picture_as_pdf,
+                                              Icon(
+                                                _isPdf
+                                                    ? Icons.picture_as_pdf
+                                                    : Icons.description,
                                                 size: 72,
                                                 color: navRed,
                                               ),
@@ -1317,6 +1333,10 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                             // + line 1 open the camera, PDF
                                             // icon + line 3 open the file
                                             // dialog.
+                                            // Markus, 2026-10-09 ("reduce the
+                                            // size of the hint", mockup):
+                                            // icons, text and gaps all scaled
+                                            // to about 75% (72/26 -> 54/20).
                                             Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
@@ -1325,25 +1345,26 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                                   onTap: _takePhoto,
                                                   child: Image.asset(
                                                     'assets/png24/black/b_photo.png',
-                                                    width: 72,
-                                                    height: 72,
+                                                    width: 54,
+                                                    height: 54,
                                                   ),
                                                 ),
-                                                const SizedBox(width: 28),
+                                                const SizedBox(width: 21),
                                                 GestureDetector(
                                                   onTap: _showLoadSourceSheet,
                                                   child: Image.asset(
                                                     'assets/png24/black/b_pdf.png',
-                                                    width: 72,
-                                                    height: 72,
+                                                    width: 54,
+                                                    height: 54,
                                                   ),
                                                 ),
                                               ],
                                             ),
                                             // Markus, 2026-07-24: "Bit more
                                             // space between icons and text"
-                                            // (was 8).
-                                            const SizedBox(height: 16),
+                                            // (was 8); scaled with the rest
+                                            // below (was 16).
+                                            const SizedBox(height: 12),
                                             Padding(
                                               padding:
                                                   const EdgeInsets.symmetric(
@@ -1359,7 +1380,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                                       )!.uploadAreaTakePhoto,
                                                       style:
                                                           GoogleFonts.robotoCondensed(
-                                                            fontSize: 26,
+                                                            fontSize: 20,
                                                             color: Colors.black,
                                                             fontWeight:
                                                                 FontWeight.bold,
@@ -1374,7 +1395,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                                     )!.uploadAreaOr,
                                                     style:
                                                         GoogleFonts.robotoCondensed(
-                                                          fontSize: 26,
+                                                          fontSize: 20,
                                                           color: Colors.black,
                                                         ),
                                                   ),
@@ -1386,7 +1407,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                                       )!.uploadAreaUploadFile,
                                                       style:
                                                           GoogleFonts.robotoCondensed(
-                                                            fontSize: 26,
+                                                            fontSize: 20,
                                                             color: Colors.black,
                                                             fontWeight:
                                                                 FontWeight.bold,
@@ -1508,31 +1529,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                       height: bottomH,
                       child: LayoutBuilder(
                         builder: (ctx2, panelConstraints) {
-                          final panelH = panelConstraints.maxHeight;
-                          final panelW = panelConstraints.maxWidth;
                           const iconRowH = 48.0;
-                          final availH = panelH - iconRowH - 16;
-
-                          // pick a font size that fits (same logic)
-                          final sizes = [40.0, 35.0, 30.0, 25.0, 18.0, 12.0];
-                          double chosenSize = sizes.last;
-                          for (final s in sizes) {
-                            final tp = TextPainter(
-                              text: TextSpan(
-                                text:
-                                    _resultText.isNotEmpty
-                                        ? _resultText
-                                        : _placeholderText,
-                                style: TextStyle(fontSize: s),
-                              ),
-                              textDirection: TextDirection.ltr,
-                              maxLines: null,
-                            )..layout(maxWidth: panelW);
-                            if (tp.height <= availH) {
-                              chosenSize = s;
-                              break;
-                            }
-                          }
 
                           // ...rest of your bottom panel widget...
                           // (keep as in your code, passing chosenSize)
@@ -1603,8 +1600,6 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                           builder: (_) {
                                             final panelH =
                                                 panelConstraints.maxHeight;
-                                            final panelW =
-                                                panelConstraints.maxWidth;
                                             final res =
                                                 _resultText.isNotEmpty
                                                     ? _resultText
@@ -1880,9 +1875,20 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
               children: [
                 // Right (input language, flag at bottom right, tap cycles)
                 GestureDetector(
-                  onTap: () {
+                  onTap: () async {
+                    // If the last analysis showed the document has no text in
+                    // the new source language, say so right away instead of
+                    // paying to read it again (Markus, 2026-10-09).
+                    final candidate = _next(_rightLang, _leftLang);
+                    final source =
+                        _imageFile == null
+                            ? candidate
+                            : await _checkKnownSource(candidate);
+                    if (source == null || !mounted) return;
+                    // Suggestion was the current source: nothing to redo.
+                    if (source == _rightLang) return;
                     setState(() {
-                      _rightLang = _next(_rightLang, _leftLang);
+                      _applySource(source);
 
                       // clear old output
                       _resultText = '';
@@ -1898,7 +1904,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                   },
                   child: Row(
                     children: [
-                      Image.asset(_labelPaths[_rightLang]!, height: 32),
+                      _languageLabel(_rightLang),
                       const SizedBox(width: 8),
                       Image.asset(
                         _flagPaths[_rightLang]!,
@@ -1911,7 +1917,28 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                 const SizedBox(width: 25),
                 // Swap button
                 GestureDetector(
-                  onTap: () {
+                  onTap: () async {
+                    // Same free check as the source flag: after a swap the
+                    // old target becomes the source.
+                    if (_imageFile != null) {
+                      final source = await _checkKnownSource(_leftLang);
+                      if (source == null || !mounted) return;
+                      if (source != _leftLang) {
+                        // Took the suggestion instead of swapping.
+                        if (source == _rightLang) return;
+                        setState(() {
+                          _applySource(source);
+                          _resultText = '';
+                          _translateResultCache = null;
+                          _interpretResultCache = null;
+                          _isProcessing = false;
+                          _laActive = false;
+                          _zoomLevel = 1.0;
+                        });
+                        _processImage(imageFile: _imageFile!);
+                        return;
+                      }
+                    }
                     setState(() {
                       // swap
                       final tmp = _leftLang;
@@ -1940,7 +1967,11 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                 const SizedBox(width: 25),
                 // Left (output language, flag at top left, tap cycles)
                 GestureDetector(
-                  onTap: () {
+                  onTap: () async {
+                    // Only the target changes, so the text already read from
+                    // the image can be re-translated without re-reading it.
+                    final previousResult =
+                        _interpretMode ? null : _translateResultCache;
                     setState(() {
                       _leftLang = _next(_leftLang, _rightLang);
 
@@ -1952,7 +1983,8 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                       _laActive = false;
                       _zoomLevel = 1.0;
                     });
-                    if (_imageFile != null) {
+                    if (_imageFile != null &&
+                        !await _retranslateExtractedText(previousResult)) {
                       _processImage(imageFile: _imageFile!);
                     }
                   },
@@ -1965,7 +1997,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                         height: flagSize,
                       ),
                       const SizedBox(width: 8),
-                      Image.asset(_labelPaths[_leftLang]!, height: 32),
+                      _languageLabel(_leftLang),
                     ],
                   ),
                 ),

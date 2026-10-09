@@ -6,18 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:forditva/db/database.dart';
 import 'package:forditva/document/document_translation_state.dart';
 import 'package:forditva/models/language_enum.dart';
 import 'package:forditva/services/gemini_tts_service.dart';
+import 'package:forditva/services/history_store.dart';
 import 'package:forditva/flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:forditva/widgets/copied_toast.dart';
 import 'package:forditva/widgets/edit_recording_modal.dart';
 import 'package:forditva/widgets/wiu_gate.dart';
 import 'package:forditva/utils/utils.dart';
+import 'package:forditva/tutor/tutor_page.dart';
+import 'package:forditva/widgets/language_mismatch_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../services/gemini_translation_service.dart';
 import '../services/third_language_pref.dart';
@@ -43,18 +44,15 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
   bool _keyboardIsVisible = false;
   final _ttsService = GeminiTtsService();
   ap.AudioPlayer? _ttsAudioPlayer; // 👈 audio player instance
-  double _zoomLevel = 1.0; // Default zoom factor
+  final double _zoomLevel = 1.0; // Default zoom factor
 
   late final FlutterTts _flutterTts;
-  late stt.SpeechToText _speech;
-  final bool _isListening = false;
   final ScrollController _scrollController = ScrollController();
   final GeminiTranslator _gemini = GeminiTranslator();
   late TextEditingController _inputController;
   late FocusNode _inputFocusNode;
 
   String _explanationLevel = 'A2'; // default level
-  late final AppDatabase _db;
 
   Language _leftLang = Language.english;
   Language _rightLang = Language.hungarian;
@@ -74,7 +72,14 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
             : _leftLang == Language.hungarian
             ? _translatedText
             : '';
-    hasHungarianText.value = hungarianText.trim().isNotEmpty;
+    final has = hungarianText.trim().isNotEmpty;
+    if (has == hasHungarianText.value) return;
+    // Called from build(), and the nav bar rebuilds on this notifier, so
+    // setting it mid-build threw "setState() called during build". Apply it
+    // right after the frame instead.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) hasHungarianText.value = has;
+    });
   }
 
   final Map<Language, String> _flagPaths = {
@@ -87,59 +92,6 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
   String instructionForLang(Language lang) {
     return "The following text is in ${lang.fullName}. Read it aloud in "
         "${lang.fullName} with a natural native ${lang.fullName} accent.";
-  }
-
-  String _localeFor(Language lang) {
-    switch (lang) {
-      case Language.english:
-        return 'en-US';
-      case Language.german:
-        return 'de-DE';
-      case Language.hungarian:
-        return 'hu-HU';
-      case Language.dutch:
-        return 'nl-NL';
-      case Language.french:
-        return 'fr-FR';
-      case Language.spanish:
-        return 'es-ES';
-      case Language.russian:
-        return 'ru-RU';
-      case Language.italian:
-        return 'it-IT';
-    }
-  }
-
-  String _translatingText(Language lang) {
-    switch (lang) {
-      case Language.hungarian:
-        return 'Fordítás…';
-      case Language.german:
-        return 'Übersetzen…';
-      case Language.english:
-      case Language.dutch:
-      case Language.french:
-      case Language.spanish:
-      case Language.russian:
-      case Language.italian:
-        return 'Translating…';
-    }
-  }
-
-  String _detectedLangDialog(Language lang, String detectedLangName) {
-    switch (lang) {
-      case Language.hungarian:
-        return "Az észlelt nyelv: $detectedLangName. Szeretné módosítani a beállítást erre?";
-      case Language.german:
-        return "Die erkannte Sprache ist $detectedLangName. Sollen wir deine Einstellung darauf anpassen?";
-      case Language.english:
-      case Language.dutch:
-      case Language.french:
-      case Language.spanish:
-      case Language.russian:
-      case Language.italian:
-        return "The detected language is $detectedLangName. Should we change your setting to this?";
-    }
   }
 
   bool _isSpeaking = false;
@@ -206,14 +158,19 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
     _inputFocusNode = FocusNode();
 
     final locale =
-        WidgetsBinding.instance.window.locale; // safer than waiting for context
+        WidgetsBinding.instance.platformDispatcher.locale; // safer than waiting for context
     final pair = getInitialLangPair(locale);
 
     // Prefer languages carried over from the conversation page (so copied
     // content is spoken in the correct language); otherwise fall back to the
     // locale-derived pair.
-    _leftLang = DocumentTranslationState.leftLang ?? pair[0];
-    _rightLang = DocumentTranslationState.rightLang ?? pair[1];
+    _leftLang = ThirdLanguagePref.normalize(
+      DocumentTranslationState.leftLang ?? pair[0],
+    );
+    _rightLang = ThirdLanguagePref.normalize(
+      DocumentTranslationState.rightLang ?? pair[1],
+    );
+    ThirdLanguagePref.notifier.addListener(_onThirdLanguageChanged);
     DocumentTranslationState.leftLang = null;
     DocumentTranslationState.rightLang = null;
     _inputController = TextEditingController(
@@ -228,8 +185,6 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
         _keyboardIsVisible = visible;
       });
     });
-    _speech = stt.SpeechToText();
-    _db = AppDatabase(); // ← initialize the DB
 
     _flutterTts = FlutterTts();
     _flutterTts.setSpeechRate(0.5);
@@ -251,6 +206,52 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
     });
   }
 
+  /// The third language changed in Settings (this page stays loaded under
+  /// the Settings screen): switch to it right away. A new target gets a new
+  /// translation; a new source keeps its text (the language check catches a
+  /// mismatch on the next translation).
+  void _onThirdLanguageChanged() {
+    if (!mounted) return;
+    final left = ThirdLanguagePref.normalize(_leftLang);
+    final right = ThirdLanguagePref.normalize(_rightLang);
+    if (left == _leftLang && right == _rightLang) return;
+    final targetChanged = left != _leftLang;
+    setState(() {
+      _leftLang = left;
+      _rightLang = right;
+    });
+    final input = _inputController.text.trim();
+    if (targetChanged && input.isNotEmpty) _translateText(input);
+  }
+
+  /// Checks that [text] is in [candidate] (the source language about to be
+  /// used, default the current one) and returns the source to use: the
+  /// candidate when it matches or the detector is unsure, the detected
+  /// language when the user accepts the shared mismatch panel's suggestion,
+  /// or null when they cancel (then nothing should change).
+  Future<Language?> _checkSourceLanguage(
+    String text, {
+    Language? candidate,
+  }) async {
+    final source = candidate ?? _rightLang;
+    final detected = await detectSupportedLanguageCode(text, _gemini);
+    if (detected == null || detected == source.code || !mounted) return source;
+    final useDetected = await showLanguageMismatchDialog(
+      context,
+      selectedCode: source.code,
+      detectedCode: detected,
+    );
+    return useDetected ? _langFromCode(detected) : null;
+  }
+
+  /// Makes [source] the source language; if it equals the target, the target
+  /// takes the previous source so the pair stays valid.
+  void _applySourceLanguage(Language source) {
+    final previous = _rightLang;
+    _rightLang = source;
+    if (_leftLang == source) _leftLang = previous;
+  }
+
   Language _langFromCode(String code) {
     return Language.values.firstWhere(
       (lang) => lang.code.toLowerCase() == code.toLowerCase(),
@@ -260,9 +261,9 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
 
   @override
   void dispose() {
+    ThirdLanguagePref.notifier.removeListener(_onThirdLanguageChanged);
     _inputFocusNode.dispose();
 
-    _db.close(); // ← close the DB when the page is torn down
     _ttsAudioPlayer?.dispose();
 
     _inputController.dispose();
@@ -279,9 +280,9 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
   /// now switches to that identical panel instead of recording inline here).
   /// [autoStartRecording] is set when opened via the mic icon specifically,
   /// so recording begins immediately rather than requiring another tap.
-  void _showEditModal({bool autoStartRecording = false}) {
+  /// [cursorOffset] places the panel's cursor (null = end of the text).
+  void _showEditModal({bool autoStartRecording = false, int? cursorOffset}) {
     _ttsAudioPlayer?.stop();
-    final controller = TextEditingController(text: _inputController.text);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -289,13 +290,17 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
       builder: (ctx) {
         return SafeArea(
           child: EditTextModal(
-            controller: controller,
+            initialText: _inputController.text,
             fromLang: _rightLang,
             toLang: _leftLang,
             gemini: _gemini,
             autoStartRecording: autoStartRecording,
-            isTextInLanguage:
-                (text) => isTextInLanguage(text, _langLabels[_rightLang]!, _gemini),
+            initialCursorOffset: cursorOffset,
+            onLanguagesChanged:
+                (from, to) => setState(() {
+                  _rightLang = from;
+                  _leftLang = to;
+                }),
             onEdited: ({required String edited, required String translated}) {
               setState(() {
                 _inputController.text = edited;
@@ -307,7 +312,7 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
           ),
         );
       },
-    ).whenComplete(controller.dispose);
+    );
   }
 
   Widget _buildSection(String title, String content) {
@@ -326,7 +331,7 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            content ?? '',
+            content,
             style: GoogleFonts.robotoCondensed(
               fontSize: 16,
               color: Colors.black,
@@ -553,17 +558,13 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
     return next;
   }
 
-  /// Map our Language enum into Lingvanex’s `xx_XX` codes
-  String _lingvanexCode(Language lang) {
-    // reuse your existing _localeFor() which returns "en-US", "de-DE", etc.
-    return _localeFor(lang).replaceAll('-', '_');
-  }
-
   Future<void> _translateText(String input) async {
     if (!await ensureWiuBalance(context)) return;
 
-    final from = _langLabels[_rightLang]!; // used to be _leftLang
-    final to = _langLabels[_leftLang]!; // used to be _rightLang
+    final fromLang = _rightLang;
+    final toLang = _leftLang;
+    final from = _langLabels[fromLang]!; // used to be _leftLang
+    final to = _langLabels[toLang]!; // used to be _rightLang
 
     final String currentText = _inputController.text.trim();
 
@@ -589,6 +590,14 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
           _translatedText = result;
           DocumentTranslationState.translatedText = result;
         });
+        unawaited(
+          HistoryStore.save(
+            input: currentText,
+            output: result,
+            from: fromLang,
+            to: toLang,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Translation error: $e');
@@ -600,25 +609,6 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
     }
   }
 
-  Future<void> _showLoaderBeforeModal(
-    Future<String> Function() loadExplanation,
-  ) async {
-    // Show fullscreen loader
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: GifLoader(size: 80)),
-    );
-
-    // Run the translation and close loader when done
-    final explanation = await loadExplanation();
-
-    if (!mounted) return;
-
-    Navigator.of(context).pop(); // Close the loader
-    _showExplanationModal(explanation); // Show modal
-  }
-
   // Tutor: called by the nav bar's bulb button (main.dart, via GlobalKey).
   // Explains whichever Hungarian text is currently on this page.
   void openTutor() {
@@ -628,43 +618,18 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
             : _rightLang == Language.hungarian
             ? _translatedText.trim()
             : '';
-    if (hungarianText.isEmpty) return;
-    _showLoaderBeforeModal(() async {
-      try {
-        return await _gemini.translate(
-          hungarianText,
-          _langLabels[_leftLang]!,
-          _langLabels[_rightLang]!,
-          explain: true,
-          level: _explanationLevel,
-          uiLanguage: Localizations.localeOf(context).languageCode.toUpperCase(),
-        );
-      } catch (_) {
-        return 'Failed to load explanation.';
-      }
-    });
+    final other = _leftLang == Language.hungarian ? _rightLang : _leftLang;
+    // The new Tutor page (Markus, 2026-10-09) replaces the old modal.
+    TutorLauncher.open(hungarianText, otherLangCode: other.code);
   }
 
   @override
   Widget build(BuildContext context) {
     _updateHasHungarianText();
     final media = MediaQuery.of(context);
-    final bool keyboardIsOpen = media.viewInsets.bottom > 50;
 
     final double cardWidth = media.size.width.clamp(0, 486);
-    final double cardHeight = media.size.height * 0.8;
-    String inputText = _inputController.text;
-    String outText = _translatedText;
     // 1) compute iconSize once at the top of your build:
-    final screenWidth = MediaQuery.of(context).size.width;
-    // ~9.5% of screen width → ~34 dp on a 360 dp screen. Clamp so it never gets too small/large.
-    final double iconSize = (screenWidth * 0.085).clamp(24.0, 48.0);
-    double inputFontSize = dynamicFontSize(inputText);
-    double outputFontSize = dynamicFontSize(outText);
-    final double bottomReserve =
-        _keyboardIsVisible
-            ? 60.0
-            : iconSize + 16.0; // iconSize + some extra margin
     return MediaQuery.removeViewInsets(
       context: context,
       removeBottom: true,
@@ -779,7 +744,9 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
           fit: BoxFit.cover,
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 0, 5),
+      // Same inset as the translation card below (all 10), Markus
+      // 2026-10-09: the top card had visibly more space around its text.
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 5),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final double iconSize = (MediaQuery.of(context).size.width * 0.085)
@@ -801,7 +768,6 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                         // it should be the other panel we just switched to").
                         onTap: () => _showEditModal(),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
                           constraints: const BoxConstraints(minHeight: 180),
                           width: double.infinity,
                           child: TextField(
@@ -811,6 +777,22 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                             // shared modal, so this never summons a keyboard.
                             readOnly: true,
                             showCursor: false,
+                            // The read-only field swallows taps, so the
+                            // GestureDetector above never saw taps on the
+                            // text itself and they only selected for copy.
+                            // A tap now opens the edit panel with the cursor
+                            // where the user tapped, so dictation inserts
+                            // there; long-press still selects/copies
+                            // (Markus, 2026-10-09).
+                            onTap:
+                                () => _showEditModal(
+                                  cursorOffset:
+                                      _inputController.selection.isValid
+                                          ? _inputController
+                                              .selection
+                                              .baseOffset
+                                          : null,
+                                ),
                             maxLines: null,
                             style: GoogleFonts.robotoCondensed(
                               fontSize:
@@ -830,11 +812,11 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                       if (!_inputFocusNode.hasFocus &&
                           _inputController.text.trim().isEmpty)
                         Positioned(
-                          top: 12,
+                          top: 0,
                           left: 0,
                           right: 0,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: EdgeInsets.zero,
                             child: IgnorePointer(
                               child: Text(
                                 AppLocalizations.of(context)!.documentPlaceholder,
@@ -853,7 +835,9 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
               if (!_keyboardIsVisible)
                 Positioned(
                   bottom: 8,
-                  left: 45,
+                  // Left-aligned like the translation card's icons (their
+                  // IconButtons add 8 of padding), Markus 2026-10-09.
+                  left: 8,
                   right: 0,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -899,6 +883,11 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                                     DocumentTranslationState.inputText =
                                         pasted;
                                   });
+                                  // Translate right away (Markus, video of
+                                  // 2026-09-29: "it should translate in the
+                                  // lower area"). Pasting only filled the
+                                  // box before.
+                                  _translateText(data.text!.trim());
                                 }
                               },
                               child: Image.asset(
@@ -1011,154 +1000,19 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                             final input = _inputController.text.trim();
                             if (input.isEmpty) return;
 
-                            final detected = await _gemini.detectLanguage(
-                              input,
-                            );
-                            final expected = _rightLang.code;
+                            // Shared language check (same panel as every
+                            // other page, Markus 2026-10-09).
+                            final source = await _checkSourceLanguage(input);
+                            if (source == null || !context.mounted) return;
+                            setState(() => _applySourceLanguage(source));
 
-                            if (!context.mounted) return;
-
-                            // Only a confident, supported answer may prompt a
-                            // language switch: UNKNOWN or garbage would fall
-                            // back to _leftLang in _langFromCode and offer a
-                            // nonsense change.
-                            final isSupported = Language.values.any(
-                              (l) => l.code.toUpperCase() == detected,
-                            );
-                            if (isSupported && detected != expected) {
-                              final detectedLang = _langFromCode(detected);
-                              final currentLocale =
-                                  Localizations.localeOf(context).languageCode;
-
-                              String dialogText;
-                              switch (currentLocale) {
-                                case 'de':
-                                  dialogText =
-                                      'Die erkannte Sprache ist ${detectedLang.label}. Sollen wir deine Einstellung darauf anpassen?';
-                                  break;
-                                case 'hu':
-                                  dialogText =
-                                      'A felismerte nyelv: ${detectedLang.label}. Szeretné, hogy ehhez igazítsuk a beállítást?';
-                                  break;
-                                case 'en':
-                                default:
-                                  dialogText =
-                                      'The detected language is ${detectedLang.label}. Should we change your setting to this?';
-                                  break;
-                              }
-
-                              showDialog(
-                                context: context,
-                                builder: (_) {
-                                  return AlertDialog(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    content: Text(dialogText),
-                                    actions: [
-                                      IconButton(
-                                        icon: Image.asset(
-                                          'assets/images/close.png',
-                                          width: iconSize,
-                                          color: navRed,
-                                        ),
-                                        onPressed:
-                                            () => Navigator.of(context).pop(),
-                                      ),
-                                      IconButton(
-                                        icon: Image.asset(
-                                          'assets/images/check.png',
-                                          width: iconSize,
-                                          color: navGreen,
-                                        ),
-                                        onPressed: () async {
-                                          Navigator.of(context).pop();
-                                          WidgetsBinding.instance.addPostFrameCallback((
-                                            _,
-                                          ) async {
-                                            if (mounted) {
-                                              setState(
-                                                () => _rightLang = detectedLang,
-                                              );
-
-                                              // ✅ Save after user confirms
-                                              try {
-                                                final inputText =
-                                                    _inputController.text
-                                                        .trim();
-                                                final outputText =
-                                                    _translatedText.trim();
-                                                if (inputText.isNotEmpty &&
-                                                    outputText.isNotEmpty &&
-                                                    inputText != outputText) {
-                                                  final exists = await _db
-                                                      .translationDao
-                                                      .findExactMatch(
-                                                        inputText,
-                                                        outputText,
-                                                      );
-                                                  if (exists == null) {
-                                                    await _db.translationDao
-                                                        .insertTranslation(
-                                                          TranslationsCompanion.insert(
-                                                            input: inputText,
-                                                            output: outputText,
-                                                            fromLang:
-                                                                _langLabels[_rightLang]!,
-                                                            toLang:
-                                                                _langLabels[_leftLang]!,
-                                                          ),
-                                                        );
-                                                  } else {
-                                                    debugPrint(
-                                                      '⚠️ Already saved. Skipping DB insert.',
-                                                    );
-                                                  }
-                                                }
-                                              } catch (e) {
-                                                debugPrint(
-                                                  'DB insert failed: $e',
-                                                );
-                                              }
-                                            }
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                              return;
-                            }
-
-                            // ✅ Save if no correction needed
+                            // Language matches: translate now. Nothing else
+                            // translates text typed into this box, so this
+                            // check used to save a stale (often empty)
+                            // translation and show none. _translateText also
+                            // records it in History.
                             FocusScope.of(context).unfocus();
-                            try {
-                              final inputText = _inputController.text.trim();
-                              final outputText = _translatedText.trim();
-                              if (inputText.isNotEmpty &&
-                                  outputText.isNotEmpty &&
-                                  inputText != outputText) {
-                                final exists = await _db.translationDao
-                                    .findExactMatch(inputText, outputText);
-                                if (exists == null) {
-                                  await _db.translationDao.insertTranslation(
-                                    TranslationsCompanion.insert(
-                                      input: inputText,
-                                      output: outputText,
-                                      fromLang: _langLabels[_rightLang]!,
-                                      toLang: _langLabels[_leftLang]!,
-                                    ),
-                                  );
-                                } else {
-                                  debugPrint(
-                                    '⚠️ Already saved. Skipping DB insert.',
-                                  );
-                                }
-                              }
-                            } catch (e) {
-                              debugPrint('DB insert failed: $e');
-                            }
+                            _translateText(input);
                           },
                           child: Image.asset(
                             'assets/images/check.png',
@@ -1317,12 +1171,30 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           GestureDetector(
-            onTap:
-                () => setState(() {
-                  _rightLang = _next(_rightLang, _leftLang);
-                  final input = _inputController.text.trim();
-                  if (input.isNotEmpty) _translateText(input);
-                }),
+            // Changing the source with text present used to translate it
+            // as the new language whatever it really was (Markus,
+            // 2026-10-09: German text re-translated "as Hungarian"). Check
+            // first; Cancel leaves everything as it was.
+            onTap: () async {
+              final candidate = _next(_rightLang, _leftLang);
+              final input = _inputController.text.trim();
+              if (input.isEmpty) {
+                setState(() => _rightLang = candidate);
+                return;
+              }
+              setState(() => _isTranslating = true);
+              final source = await _checkSourceLanguage(
+                input,
+                candidate: candidate,
+              );
+              if (!mounted) return;
+              if (source == null) {
+                setState(() => _isTranslating = false);
+                return;
+              }
+              setState(() => _applySourceLanguage(source));
+              _translateText(input);
+            },
             child: Row(
               children: [
                 Text(
@@ -1438,33 +1310,3 @@ class LandscapeZoomModal extends StatelessWidget {
   }
 }
 
-class _StaticWave extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(size: const Size(90, 50), painter: _GreenWavePainter());
-  }
-}
-
-class _GreenWavePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = Colors.green
-          ..strokeWidth = 8
-          ..strokeCap = StrokeCap.round;
-
-    for (int i = 0; i < 6; i++) {
-      final dx = 8 + i * 14.0;
-      final waveHeight = (i % 2 == 0) ? 20.0 : 35.0;
-      canvas.drawLine(
-        Offset(dx, size.height / 2 - waveHeight / 2),
-        Offset(dx, size.height / 2 + waveHeight / 2),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

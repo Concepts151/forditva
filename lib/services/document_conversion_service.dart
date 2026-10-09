@@ -41,6 +41,10 @@ class DocumentConversionException implements Exception {
 class DocumentConversionService {
   String get _baseUrl => (dotenv.env['CONVERSION_API_BASE_URL'] ?? '').trim();
 
+  /// False until the conversion server is deployed and its URL is in .env;
+  /// the Image page only offers Office formats once this is true.
+  bool get isConfigured => _baseUrl.isNotEmpty;
+
   /// Uploads [sourceFile] and returns a temp file containing the converted
   /// PDF. Throws [DocumentConversionException] on any failure.
   Future<File> convertToPdf(File sourceFile) async {
