@@ -13,7 +13,7 @@
   "inputPlaceholder": "What would you like to translate today?",
   "outputPlaceholder": "Translation will appear here.",
   "documentMode": "Text",
-  "imageMode": "Image/Document",
+  "imageMode": "File",
   "copyToClipboard": "Copy to clipboard",
   "copiedToClipboard": "Copied to clipboard",
   "searchFavorites": "Search favorites...",
@@ -127,5 +127,44 @@
   "convertingDocument": "Converting document...",
   "analyzingAndTranslating": "Analyzing and translating...",
   "conversionFailedTitle": "This document could not be converted.",
-  "conversionFailedBody": "Please make sure the file is not password-protected, corrupted, or in an unsupported format, then try again."
+  "conversionFailedBody": "Please make sure the file is not password-protected, corrupted, or in an unsupported format, then try again.",
+  "languageMismatchBody": "This text is in {detected}, not {selected}.",
+  "@languageMismatchBody": {
+    "placeholders": {
+      "detected": {"type": "String"},
+      "selected": {"type": "String"}
+    }
+  },
+  "languageNotFoundBody": "No {selected} text was found. Please check the source language.",
+  "@languageNotFoundBody": {
+    "placeholders": {
+      "selected": {"type": "String"}
+    }
+  },
+  "languageMismatchUse": "Use {language}",
+  "@languageMismatchUse": {
+    "placeholders": {
+      "language": {"type": "String"}
+    }
+  },
+  "languageNameHu": "Hungarian",
+  "languageNameDe": "German",
+  "languageNameEn": "English",
+  "languageNameNl": "Dutch",
+  "languageNameFr": "French",
+  "languageNameEs": "Spanish",
+  "languageNameRu": "Russian",
+  "languageNameIt": "Italian",
+  "tutorUnderstanding": "Understanding",
+  "tutorDecoding": "Decoding",
+  "tutorFocus": "Learning Focus",
+  "tutorChooseSentences": "Choose sentences",
+  "tutorCharCount": "{count} / {max} characters",
+  "@tutorCharCount": {"placeholders": {"count": {"type": "int"}, "max": {"type": "int"}}},
+  "tutorConsecutiveOnly": "only consecutive sentences",
+  "tutorApplySelection": "Apply selection",
+  "tutorLevel": "Language level",
+  "tutorThinking": "A good answer takes a moment...",
+  "tutorAnswerNow": "Answer now",
+  "swipeToDeleteTip": "Tip: swipe an entry to the left to delete it."
 }

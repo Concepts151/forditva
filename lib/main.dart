@@ -27,6 +27,7 @@ import 'services/third_language_pref.dart';
 import 'services/token_balance.dart';
 import 'spacing.dart';
 import 'textpage.dart';
+import 'tutor/tutor_page.dart';
 
 // Colors and constants
 const Color navRed = Color(0xFFCD2A3E);
@@ -200,11 +201,31 @@ class MainScreen extends StatefulWidget {
   const MainScreen({super.key, required this.onLocaleChanged});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
   int _currentPage = 1;
+
+  // Anything that opens the Tutor (bulb, History, Favorites, Tutor history)
+  // sets TutorLauncher.request; switch to the Tutor page when it does.
+  @override
+  void initState() {
+    super.initState();
+    TutorLauncher.request.addListener(_showTutorPage);
+  }
+
+  @override
+  void dispose() {
+    TutorLauncher.request.removeListener(_showTutorPage);
+    super.dispose();
+  }
+
+  void _showTutorPage() {
+    if (TutorLauncher.request.value != null && mounted) {
+      setState(() => _currentPage = 7);
+    }
+  }
 
   // Lets the nav bar's bulb button reach into each page's state to open the
   // Tutor modal for whatever Hungarian text is currently on screen there.
@@ -226,6 +247,7 @@ class _MainScreenState extends State<MainScreen> {
     HistoryPage(), // 4: History (was placeholder)
     DocumentPlaceholderPage(key: _documentPageKey), // 5: Document
     ImagePlaceholderPage(key: _imagePageKey), // 6: Image
+    const TutorPage(), // 7: Tutor (Markus, 2026-10-09)
   ];
 
   dynamic get _activePageState {
@@ -278,6 +300,8 @@ class _MainScreenState extends State<MainScreen> {
         return AppLocalizations.of(context)!.documentMode;
       case 6:
         return AppLocalizations.of(context)!.imageMode;
+      case 7:
+        return 'Tutor';
       default:
         return '';
     }
@@ -289,46 +313,52 @@ class _MainScreenState extends State<MainScreen> {
   static const List<String> _allPageNames = [
     'Conversation',
     'Text',
-    'Image/Document',
+    'File',
     'Learning List',
     'Favorites',
     'History',
     'Gespräch',
     'Dokument',
-    'Bild',
+    'Datei',
     'Lernliste',
     'Favoriten',
     'Verlauf',
     'Beszélgetés',
     'Dokumentum',
-    'Kép',
+    'Fájl',
     'Tanulási lista',
     'Kedvencek',
     'Előzmények',
+    'Tutor',
   ];
 
-  /// The largest size (from a fixed tier list) at which every possible
-  /// nav-bar label still fits on one line within [maxWidth], so every label
-  /// renders at the same size instead of auto-shrinking individually.
-  double _navLabelFontSize(double maxWidth) {
-    const tiers = [24.0, 22.0, 20.0, 18.0, 16.0, 14.0];
-    for (final size in tiers) {
+  /// One size for every nav-bar label (Markus, 2026-07-11: all labels the
+  /// same size), now as large as the longest single WORD allows (Markus,
+  /// 2026-10-09: maximum size for "Conversation" / "Beszélgetés"). Two-word
+  /// labels ("Tanulási lista") wrap onto two lines at that size, so the
+  /// size is also capped to fit two lines in [maxHeight].
+  double _navLabelFontSize(double maxWidth, double maxHeight) {
+    final maxForTwoLines = (maxHeight / (2 * _navLabelLineHeight)).floor();
+    for (var size = 34; size >= 12; size--) {
+      if (size > maxForTwoLines) continue;
       final style = GoogleFonts.robotoCondensed(
         fontWeight: FontWeight.w500,
-        fontSize: size,
+        fontSize: size.toDouble(),
       );
-      final fitsAll = _allPageNames.every((name) {
+      final fitsAll = _allPageNames.expand((n) => n.split(' ')).every((word) {
         final painter = TextPainter(
-          text: TextSpan(text: name, style: style),
+          text: TextSpan(text: word, style: style),
           maxLines: 1,
           textDirection: TextDirection.ltr,
         )..layout(maxWidth: double.infinity);
         return painter.width <= maxWidth;
       });
-      if (fitsAll) return size;
+      if (fitsAll) return size.toDouble();
     }
-    return tiers.last;
+    return 12;
   }
+
+  static const _navLabelLineHeight = 1.0;
 
   @override
   Widget build(BuildContext context) {
@@ -374,16 +404,28 @@ class _MainScreenState extends State<MainScreen> {
           Spacing.sm + MediaQuery.of(context).viewPadding.bottom,
         ),
         child: Container(
-          // antiAliasWithSaveLayer composites the rounded-corner children
-          // cleanly against the border; the plain antiAlias clip was
-          // leaving a hairline red fringe bleeding past the black border
-          // at the left corner.
-          clipBehavior: Clip.antiAliasWithSaveLayer,
+          // The outline is painted ON TOP of the clipped coloured sections
+          // (foregroundDecoration). Drawn underneath, the sections' anti-
+          // aliased edges covered it and it looked uneven, worst at the
+          // rounded ends (Markus, 2026-10-09, fixed version in Photoshop:
+          // even outline plus a soft shadow).
           decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 4,
+                offset: Offset(0, 1.5),
+              ),
+            ],
+          ),
+          foregroundDecoration: BoxDecoration(
             borderRadius: BorderRadius.circular(32),
             border: Border.all(color: Colors.black, width: 2),
           ),
-          child: SizedBox(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: SizedBox(
             height: navBarHeight,
             child: Row(
               children: [
@@ -457,10 +499,11 @@ class _MainScreenState extends State<MainScreen> {
                         () => setState(() {
                           if (_currentPage == 1) {
                             _currentPage = 5;
-                          } else if (_currentPage == 5)
+                          } else if (_currentPage == 5) {
                             _currentPage = 6;
-                          else
+                          } else {
                             _currentPage = 1;
+                          }
                         }),
                     child: Container(
                       color: Colors.white,
@@ -477,12 +520,15 @@ class _MainScreenState extends State<MainScreen> {
                           builder: (context, constraints) {
                             return Text(
                               _getPageName(_currentPage),
-                              maxLines: 1,
+                              maxLines: 2,
+                              textAlign: TextAlign.center,
                               style: GoogleFonts.robotoCondensed(
                                 fontWeight: FontWeight.w500,
                                 fontSize: _navLabelFontSize(
                                   constraints.maxWidth,
+                                  navBarHeight - 6,
                                 ),
+                                height: _navLabelLineHeight,
                                 color: Colors.black,
                               ),
                             );
@@ -535,6 +581,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),

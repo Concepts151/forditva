@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart' as ap;
@@ -11,15 +10,12 @@ import 'package:forditva/document/document_translation_state.dart';
 import 'package:forditva/models/language_enum.dart';
 import 'package:forditva/services/gemini_tts_service.dart';
 import 'package:forditva/services/history_store.dart';
-import 'package:forditva/services/learning_store.dart';
-import 'package:forditva/services/level_pref.dart';
 import 'package:forditva/widgets/error_dialog.dart';
 import 'package:forditva/widgets/wiu_gate.dart';
-import 'package:forditva/services/gemini_translation_service.dart'; // your Gemini client
+import 'package:forditva/services/gemini_translation_service.dart';
+import 'package:forditva/tutor/tutor_page.dart'; // your Gemini client
 import 'package:forditva/services/third_language_pref.dart';
 import 'package:forditva/spacing.dart';
-import 'package:forditva/utils/debouncer.dart'; // if you created it separately
-import 'package:forditva/utils/utils.dart';
 import 'package:forditva/widgets/edit_recording_modal.dart';
 import 'package:forditva/widgets/recording_modal.dart'; // adjust path as needed
 import 'package:forditva/widgets/copied_toast.dart';
@@ -33,7 +29,6 @@ const Color navRed = Color(0xFFCD2A3E);
 const Color navGreen = Color(0xFF436F4D);
 const Color textGrey = Color(0xFF898888);
 const Color gold = Colors.amber;
-bool _showRecording = false;
 
 typedef OnEditAndTranslate =
     void Function({required String edited, required String translated});
@@ -66,10 +61,6 @@ String instructionForLang(Language lang) {
       "language's accent.";
 }
 
-final Map<Language, String> _labelImages = {
-  for (final lang in Language.values) lang: 'assets/images/${lang.label}-${lang.label}.png',
-};
-
 // Add this OUTSIDE your classes
 // Markus's own bordered square flag: the `_W` (white border) variant on dark
 // cards, `_B` (anthracite border) on light ones. Clipped to rounded corners so
@@ -90,6 +81,9 @@ Widget borderedFlag(
   );
 }
 
+// Written by the audio listeners but never read. Kept (with their setState
+// calls) so this cleanup cannot change when the page rebuilds.
+// ignore: unused_element
 bool _isAudioPlaying = false;
 
 /// Clips a card to a stepped seam that runs through the switch button.
@@ -155,15 +149,12 @@ class TextPage extends StatefulWidget {
   const TextPage({super.key, this.onOpenDocument});
 
   @override
-  _TextPageState createState() => _TextPageState();
+  State<TextPage> createState() => _TextPageState();
 }
 
 /// ==================== TextPage ====================
 class _TextPageState extends State<TextPage> {
   final TextEditingController _inputController = TextEditingController();
-  final _debouncer = Debouncer(
-    milliseconds: 700,
-  ); // Debounce interval for live translation
   String _translation = '';
   // ▶︎ spinner while Gemini runs
   bool _isTranslating = false;
@@ -187,19 +178,30 @@ class _TextPageState extends State<TextPage> {
   final GeminiTranslator _gemini = GeminiTranslator();
   final _ttsService = GeminiTtsService();
 
-  // ▶︎ map your Language enum into its two-letter codes
-  final Map<Language, String> _langLabels = {
-    for (final lang in Language.values) lang: lang.label,
-  };
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final locale = Localizations.localeOf(context);
     final pair = getInitialLangPair(locale);
     setState(() {
-      _leftLanguage = pair[0];
-      _rightLanguage = pair[1];
+      _leftLanguage = ThirdLanguagePref.normalize(pair[0]);
+      _rightLanguage = ThirdLanguagePref.normalize(pair[1]);
     });
+  }
+
+  /// The third language changed in Settings (this page stays loaded under
+  /// the Settings screen): switch to it right away and translate into it.
+  void _onThirdLanguageChanged() {
+    if (!mounted) return;
+    final left = ThirdLanguagePref.normalize(_leftLanguage);
+    final right = ThirdLanguagePref.normalize(_rightLanguage);
+    if (left == _leftLanguage && right == _rightLanguage) return;
+    final leftChanged = left != _leftLanguage;
+    setState(() {
+      _leftLanguage = left;
+      _rightLanguage = right;
+    });
+    autoTranslateOnLanguageChange(leftChanged: leftChanged, playTTS: false);
   }
 
   Future<void> _playInputSound() async {
@@ -231,6 +233,12 @@ class _TextPageState extends State<TextPage> {
 
     late final StreamSubscription sub;
     sub = _inputAudioPlayer!.onPlayerStateChanged.listen((state) {
+      // The page can be closed mid-playback (only the visible page stays
+      // mounted); disposing the player then still reports "stopped".
+      if (!mounted) {
+        sub.cancel();
+        return;
+      }
       if (state == ap.PlayerState.completed ||
           state == ap.PlayerState.stopped) {
         setState(() => _isInputPlaying = false);
@@ -275,6 +283,12 @@ class _TextPageState extends State<TextPage> {
 
     late final StreamSubscription sub;
     sub = _outputAudioPlayer!.onPlayerStateChanged.listen((state) {
+      // The page can be closed mid-playback (only the visible page stays
+      // mounted); disposing the player then still reports "stopped".
+      if (!mounted) {
+        sub.cancel();
+        return;
+      }
       if (state == ap.PlayerState.completed ||
           state == ap.PlayerState.stopped) {
         setState(() => _isOutputPlaying = false);
@@ -307,7 +321,7 @@ class _TextPageState extends State<TextPage> {
         langCode: lang.code,
       );
       if (!await file.exists() || (await file.length()) == 0) {
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("TTS failed: ${file.path}")));
@@ -319,6 +333,12 @@ class _TextPageState extends State<TextPage> {
 
       late final StreamSubscription sub;
       sub = _audioPlayer!.onPlayerStateChanged.listen((state) {
+        // The page can be closed mid-playback (only the visible page stays
+        // mounted); disposing the player then still reports "stopped".
+        if (!mounted) {
+          sub.cancel();
+          return;
+        }
         if (state == ap.PlayerState.playing) {
           setState(() => _isAudioPlaying = true);
           onStart();
@@ -337,7 +357,7 @@ class _TextPageState extends State<TextPage> {
 
       await _audioPlayer!.play(ap.DeviceFileSource(file.path));
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('TTS failed: $e')));
@@ -457,12 +477,10 @@ class _TextPageState extends State<TextPage> {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Dismiss',
-      barrierColor: Colors.black54.withOpacity(0.3),
+      barrierColor: Colors.black54.withValues(alpha: 0.3),
       transitionDuration: const Duration(milliseconds: 150),
       pageBuilder: (ctx, a1, a2) {
         final keyboard = MediaQuery.of(ctx).viewInsets.bottom;
-        final screenHeight = MediaQuery.of(ctx).size.height;
-        final availableHeight = screenHeight - keyboard;
         return Center(
           child: SingleChildScrollView(
             // This makes the entire stack move above the keyboard!
@@ -495,9 +513,12 @@ class _TextPageState extends State<TextPage> {
                           translated; // the translation for the opposite panel
                     });
                   },
-                  isTextInLanguage:
-                      (text) =>
-                          isTextInLanguage(text, _langLabels[lang]!, _gemini),
+                  onLanguagesChanged:
+                      (from, to) => _applyEditedLanguages(
+                        leftPanel: lang == _leftLanguage,
+                        from: from,
+                        to: to,
+                      ),
                   fromLang: lang, // this panel's language
                   toLang:
                       lang == _leftLanguage ? _rightLanguage : _leftLanguage,
@@ -522,230 +543,6 @@ class _TextPageState extends State<TextPage> {
     return result;
   }
 
-  // Default CEFR level derived from the numeric level the user set in Settings
-  // (1-33 = A1, 34-66 = A2, 67-99 = B1). Refreshed each time the Tutor opens.
-  String _explanationLevel = LevelPref.cefr;
-
-  void _showExplanationModal(String initialExplanation) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) {
-        String explanationText = initialExplanation;
-        bool isLoading = false;
-
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            void fetchExplanation(String level) async {
-              setModalState(() => isLoading = true);
-              try {
-                final newExp = await _gemini.translate(
-                  _inputController.text.trim(),
-                  _langLabels[_leftLanguage]!,
-                  _langLabels[_rightLanguage]!,
-                  explain: true,
-                  level: level,
-                );
-                setModalState(() {
-                  explanationText = newExp;
-                });
-              } catch (_) {
-                setModalState(() {
-                  explanationText = 'Failed to load explanation.';
-                });
-              } finally {
-                setModalState(() => isLoading = false);
-              }
-            }
-
-            Map<String, dynamic> parsed = {};
-            try {
-              final cleanJson = stripCodeFence(explanationText);
-              parsed = cleanJson.isNotEmpty ? jsonDecode(cleanJson) : {};
-            } catch (_) {}
-
-            return Dialog(
-              backgroundColor: Colors.white,
-              // Was the Material default (40 horizontal / 24 vertical),
-              // which made the modal read noticeably smaller than the rest
-              // of the app (Markus, 2026-07-23: "the screen with the tutor
-              // is too small").
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 24,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: const BorderSide(width: 0.5, color: Colors.black),
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.9,
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Image.asset(
-                                'assets/images/logo.png',
-                                width: 80,
-                                height: 80,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                "Tutor",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: navGreen,
-                                ),
-                              ),
-                            ],
-                          ),
-                          IconButton(
-                            icon: Image.asset(
-                              'assets/png24/black/b_close.png',
-                              width: 24,
-                              height: 24,
-                            ),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child:
-                            isLoading
-                                ? const Center(
-                                  child: CircularProgressIndicator(),
-                                )
-                                : parsed.isEmpty
-                                ? Text(explanationText)
-                                : SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      _buildSection(
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.grammarExplanation,
-                                        parsed["grammar_explanation"],
-                                      ),
-                                      _buildSection(
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.keyVocabulary,
-                                        parsed["key_vocabulary"],
-                                      ),
-                                      _buildSection(
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.translationHeading,
-                                        parsed["translation"],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                      ),
-                    ),
-                    const Divider(),
-                    Container(
-                      color: Colors.grey[200],
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children:
-                            ['A1', 'A2', 'B1'].map((level) {
-                              final active = _explanationLevel == level;
-                              return GestureDetector(
-                                onTap: () {
-                                  setModalState(
-                                    () => _explanationLevel = level,
-                                  );
-                                  fetchExplanation(level);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: active ? navRed : null,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    level,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      color:
-                                          active ? Colors.white : Colors.black,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildSection(String title, String? content) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.robotoCondensed(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            content ?? '',
-            style: GoogleFonts.robotoCondensed(
-              fontSize: 16,
-              color: Colors.black,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showLoaderBeforeModal(
-    Future<String> Function() loadExplanation,
-  ) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: GifLoader(size: 80)),
-    );
-
-    final explanation = await loadExplanation();
-    if (!mounted) return;
-    Navigator.of(context).pop();
-    _showExplanationModal(explanation);
-  }
-
   bool _isTopRecording = false;
   bool _isBottomRecording = false;
 
@@ -754,7 +551,7 @@ class _TextPageState extends State<TextPage> {
     required Language to,
     required bool isTopPanel,
   }) async {
-    print('Opening recording modal - top? $isTopPanel');
+    debugPrint('Opening recording modal - top? $isTopPanel');
 
     // Interrupt any audio currently playing so it doesn't keep talking over
     // the new recording (Markus, 2026-07-12: tapping record should pause all
@@ -818,6 +615,25 @@ class _TextPageState extends State<TextPage> {
     return next;
   }
 
+  /// The edit panel's language check found the text in another language
+  /// and the user chose to use it: [from]/[to] is the pair it translated
+  /// with. [leftPanel] says which panel was edited (its language is [from]).
+  void _applyEditedLanguages({
+    required bool leftPanel,
+    required Language from,
+    required Language to,
+  }) {
+    setState(() {
+      if (leftPanel) {
+        _leftLanguage = from;
+        _rightLanguage = to;
+      } else {
+        _rightLanguage = from;
+        _leftLanguage = to;
+      }
+    });
+  }
+
   void showEditTextModal({
     required BuildContext context,
     required String initialText,
@@ -825,7 +641,7 @@ class _TextPageState extends State<TextPage> {
     required Language toLang,
     required GeminiTranslator gemini,
     required OnEditAndTranslate onEdited, // <- Use your typedef!
-    required Future<bool> Function(String text) isTextInLanguage,
+    OnLanguagesChanged? onLanguagesChanged,
   }) {
     // Interrupt any audio currently playing before the user starts editing,
     // so the TTS voice doesn't keep talking over the correction.
@@ -850,7 +666,7 @@ class _TextPageState extends State<TextPage> {
           child: EditTextModal(
             initialText: initialText,
             onEdited: onEdited, // Pass it directly
-            isTextInLanguage: isTextInLanguage,
+            onLanguagesChanged: onLanguagesChanged,
             fromLang: fromLang,
             toLang: toLang,
             gemini: gemini,
@@ -866,6 +682,7 @@ class _TextPageState extends State<TextPage> {
   @override
   void initState() {
     super.initState();
+    ThirdLanguagePref.notifier.addListener(_onThirdLanguageChanged);
     _flutterTts = FlutterTts();
     _flutterTts
       ..setSpeechRate(0.5)
@@ -909,57 +726,21 @@ class _TextPageState extends State<TextPage> {
   // be on top). Public so the nav bar's bulb button (main.dart) can trigger
   // it via a GlobalKey, now that the bulb no longer lives on the card itself.
   void openTutor() {
-    // Pick up the latest level from Settings each time the Tutor opens.
-    _explanationLevel = LevelPref.cefr;
     final hungarianText =
         _leftLanguage == Language.hungarian
             ? _inputController.text.trim()
             : _rightLanguage == Language.hungarian
             ? _translation.trim()
             : '';
-    if (hungarianText.isNotEmpty) {
-      setState(() => _isTranslating = true);
-      _showLoaderBeforeModal(() async {
-        try {
-          final explanation = await _gemini.translate(
-            hungarianText,
-            _langLabels[_leftLanguage]!,
-            _langLabels[_rightLanguage]!,
-            explain: true,
-            level: _explanationLevel,
-            // Explanation must be written in the app's UI language, not
-            // whichever content language is currently selected for translation.
-            uiLanguage: Localizations.localeOf(context).languageCode.toUpperCase(),
-          );
-          // Record it in the Learning history so the user can revisit it later.
-          await LearningStore.add(
-            sentence: hungarianText,
-            explanation: explanation,
-          );
-          return explanation;
-        } catch (_) {
-          return 'Failed to load explanation.';
-        } finally {
-          if (mounted) setState(() => _isTranslating = false);
-        }
-      });
-    }
-  }
-
-  Future<void> _playSound(String text, Language lang) async {
-    if (text.isEmpty) return;
-    final locale =
-        lang == Language.hungarian
-            ? 'hu-HU'
-            : lang == Language.german
-            ? 'de-DE'
-            : 'en-US';
-    await _flutterTts.setLanguage(locale);
-    await _flutterTts.speak(text);
+    final other =
+        _leftLanguage == Language.hungarian ? _rightLanguage : _leftLanguage;
+    // The new Tutor page (Markus, 2026-10-09) replaces the old modal.
+    TutorLauncher.open(hungarianText, otherLangCode: other.code);
   }
 
   @override
   void dispose() {
+    ThirdLanguagePref.notifier.removeListener(_onThirdLanguageChanged);
     ConversationState.inputText = _inputController.text;
     ConversationState.translation = _translation;
     ConversationState.leftLang = _leftLanguage;
@@ -1066,11 +847,11 @@ class _TextPageState extends State<TextPage> {
                             },
                           );
                         },
-                        isTextInLanguage:
-                            (text) => isTextInLanguage(
-                              text,
-                              _langLabels[_leftLanguage]!,
-                              _gemini,
+                        onLanguagesChanged:
+                            (from, to) => _applyEditedLanguages(
+                              leftPanel: true,
+                              from: from,
+                              to: to,
                             ),
                       ),
                 ),
@@ -1139,11 +920,11 @@ class _TextPageState extends State<TextPage> {
                             },
                           );
                         },
-                        isTextInLanguage:
-                            (text) => isTextInLanguage(
-                              text,
-                              _langLabels[_leftLanguage]!,
-                              _gemini,
+                        onLanguagesChanged:
+                            (from, to) => _applyEditedLanguages(
+                              leftPanel: true,
+                              from: from,
+                              to: to,
                             ),
                       ),
                 ),
@@ -1327,7 +1108,7 @@ class _TextPageState extends State<TextPage> {
                           } catch (_) {
                             if (mounted) {
                               setState(() => _isTranslating = false);
-                              showFriendlyError(context);
+                              if (context.mounted) showFriendlyError(context);
                             }
                           }
                         },
@@ -1350,11 +1131,11 @@ class _TextPageState extends State<TextPage> {
                               });
                               _playOutputSound();
                             },
-                            isTextInLanguage:
-                                (text) => isTextInLanguage(
-                                  text,
-                                  _langLabels[_rightLanguage]!,
-                                  _gemini,
+                            onLanguagesChanged:
+                                (from, to) => _applyEditedLanguages(
+                                  leftPanel: false,
+                                  from: from,
+                                  to: to,
                                 ),
                           );
                         },
@@ -1396,7 +1177,7 @@ class _TextPageState extends State<TextPage> {
                           } catch (_) {
                             if (mounted) {
                               setState(() => _isTranslating = false);
-                              showFriendlyError(context);
+                              if (context.mounted) showFriendlyError(context);
                             }
                           }
                         },
@@ -1419,11 +1200,11 @@ class _TextPageState extends State<TextPage> {
                               });
                               _playInputSound();
                             },
-                            isTextInLanguage:
-                                (text) => isTextInLanguage(
-                                  text,
-                                  _langLabels[_leftLanguage]!,
-                                  _gemini,
+                            onLanguagesChanged:
+                                (from, to) => _applyEditedLanguages(
+                                  leftPanel: true,
+                                  from: from,
+                                  to: to,
                                 ),
                           );
                         },

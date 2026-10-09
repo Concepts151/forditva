@@ -24,7 +24,7 @@ class FavoritePage extends StatefulWidget {
   const FavoritePage({super.key});
 
   @override
-  _FavoritePageState createState() => _FavoritePageState();
+  State<FavoritePage> createState() => _FavoritePageState();
 }
 
 class _FavoritePageState extends State<FavoritePage> {
@@ -135,14 +135,21 @@ class _FavoritePageState extends State<FavoritePage> {
                           ),
                         ],
                       ),
-                      child: Row(
+                      // Bulb + star sit in the top-right corner; only the
+                      // source text stops short of them, the translation
+                      // runs full width underneath (Markus, 2026-10-09).
+                      child: Stack(
+                        clipBehavior: Clip.none,
                         children: [
                           // Texts
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  right: _hasHungarian(entry) ? 80 : 40,
+                                ),
+                                child: Text(
                                   entry.input,
                                   style: GoogleFonts.robotoCondensed(
                                     fontSize: 16,
@@ -152,57 +159,74 @@ class _FavoritePageState extends State<FavoritePage> {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  entry.output,
-                                  style: GoogleFonts.robotoCondensed(
-                                    fontSize: 14,
-                                    color: Colors.black,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                entry.output,
+                                style: GoogleFonts.robotoCondensed(
+                                  fontSize: 14,
+                                  color: Colors.black,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+
+                          Positioned(
+                            top: -8,
+                            right: -8,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Tutor (light-bulb): only when the entry has Hungarian.
+                                if (_hasHungarian(entry))
+                                  IconButton(
+                                    visualDensity: VisualDensity.compact,
+                                    icon: Image.asset(
+                                      'assets/images/bulb.png',
+                                      width: 24,
+                                      height: 24,
+                                    ),
+                                    tooltip: 'Tutor',
+                                    onPressed:
+                                        () => showTutorExplanation(
+                                          context: context,
+                                          hungarianText: _hungarianOf(entry),
+                                          otherLangCode:
+                                              entry.fromLang.toUpperCase() == 'HU'
+                                                  ? entry.toLang
+                                                  : entry.fromLang,
+                                        ),
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+
+                                // Unfavorite star
+                                IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  icon: const Icon(
+                                    Icons.star,
+                                    color: gold,
+                                    size: 24,
+                                  ),
+                                  onPressed: () async {
+                                    await _db.translationDao.toggleFavorite(
+                                      entry.id,
+                                      false,
+                                    );
+                                    if (!mounted) return;
+                                    setState(_loadFavorites);
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          loc.removedFromFavorites,
+                                        ), // ← localized
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
-                          ),
-
-                          // Tutor (light-bulb): only when the entry has Hungarian.
-                          if (_hasHungarian(entry))
-                            IconButton(
-                              icon: Image.asset(
-                                'assets/images/bulb.png',
-                                width: 24,
-                                height: 24,
-                              ),
-                              tooltip: 'Tutor',
-                              onPressed:
-                                  () => showTutorExplanation(
-                                    context: context,
-                                    hungarianText: _hungarianOf(entry),
-                                    uiLang:
-                                        Localizations.localeOf(
-                                          context,
-                                        ).languageCode.toUpperCase(),
-                                  ),
-                            ),
-
-                          // Unfavorite star
-                          IconButton(
-                            icon: const Icon(Icons.star, color: gold, size: 24),
-                            onPressed: () async {
-                              await _db.translationDao.toggleFavorite(
-                                entry.id,
-                                false,
-                              );
-                              setState(_loadFavorites);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    loc.removedFromFavorites,
-                                  ), // ← localized
-                                ),
-                              );
-                            },
                           ),
                         ],
                       ),

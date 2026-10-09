@@ -299,7 +299,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         Text(_loc.appLanguage, style: _label),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: currentName,
+          initialValue: currentName,
           icon: const Icon(Icons.keyboard_arrow_down),
           style: GoogleFonts.robotoCondensed(fontSize: 20, color: _labelDark),
           decoration: InputDecoration(

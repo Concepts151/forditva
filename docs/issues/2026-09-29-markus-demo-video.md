@@ -13,7 +13,7 @@ Status key: `open`, `confirm` (ask Markus first), `done`.
 |---|---|---|---|---|
 | 1 | Document | Pasting text from the clipboard does not translate automatically; the lower box stays empty until he taps again. "It should translate in the lower area but it is not doing it." | 04:35 | done, verified on device |
 | 2 | Document | Tapping the mic opens the edit mode (text editor + keyboard) instead of just recording. "This is also not good." Cause: the Document mic is wired to `EditTextModal`. **Conflicts with his own 2026-07-11 spec** ("tapping mic on the Document page should switch to this exact panel AND start recording", comment in `edit_recording_modal.dart`), so confirm what he wants now. | 05:30 | confirm |
-| 3 | Image | Rename the "Image" tab, since it also handles text/PDF documents ("image slash ..."). Exact name not given. | 06:25 | English done ("Text", "Image/Document"); DE/HU wording to confirm with Markus |
+| 3 | Image | Rename the "Image" tab, since it also handles text/PDF documents ("image slash ..."). Exact name not given. | 06:25 | done 2026-10-09: Markus chose "Datei" / "Fájl" / "File" (see 2026-10-09 file, item 6) |
 | 4 | Image | Switching the target language re-runs the full image analysis ("calculating again") instead of re-translating the text already extracted, so it re-spends WIU. | 07:20 | done (fix built, device test pending): target change re-translates the extracted text; source change still re-reads |
 | 5 | Image (explanation mode) | An icon sits too far right: "you need to put it a bit back". Which icon is unclear, probably the `?` ask-question icon in the bottom row. | 08:15 | confirm |
 | 6 | History / Favorites / Learning List | All three stay empty ("No history found") after several translations, with Save History on. "It's not showing." | 10:05 | done, verified on device (save, star, Favorites, Save History off, Clear history): nothing but the Document inline check ever saved; Save History switch and Clear history were stubs |
@@ -24,7 +24,7 @@ Status key: `open`, `confirm` (ask Markus first), `done`.
 
 | # | Where | Issue | Status |
 |---|---|---|---|
-| A | All pages | "Your WIU balance is getting low" toast shows constantly. New installs get a 100 WIU welcome grant but the low-balance threshold is 200 (`token_balance.dart`), so every new user sees it from the start. | confirm |
+| A | All pages | "Your WIU balance is getting low" toast shows constantly. New installs get a 100 WIU welcome grant but the low-balance threshold is 200 (`token_balance.dart`), so every new user sees it from the start. | done 2026-10-09: Markus set the threshold to 50 (see 2026-10-09 file, item 7) |
 | B | Document | Mixed English/Hungarian dictation produced garbled German. Expected for mixed input, not a bug. | n/a |
 
 ## Found and fixed during local testing, 2026-10-02

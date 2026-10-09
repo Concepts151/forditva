@@ -13,7 +13,7 @@
   "inputPlaceholder": "Mit szeretnél ma lefordítani?",
   "outputPlaceholder": "A fordítás itt fog megjelenni.",
   "documentMode": "Dokumentum",
-  "imageMode": "Kép",
+  "imageMode": "Fájl",
   "copyToClipboard": "Vágólapra másolás",
   "copiedToClipboard": "Vágólapra másolva",
   "searchFavorites": "Keresés a kedvencek között...",
@@ -105,5 +105,8 @@
   "convertingDocument": "Dokumentum konvertálása...",
   "analyzingAndTranslating": "Dokumentum elemzése és fordítása...",
   "conversionFailedTitle": "A dokumentumot nem sikerült konvertálni.",
-  "conversionFailedBody": "Kérjük, ellenőrizze, hogy a fájl nem jelszóval védett vagy sérült, és támogatott formátumú. Ezután próbálja meg újra."
+  "conversionFailedBody": "Kérjük, ellenőrizze, hogy a fájl nem jelszóval védett vagy sérült, és támogatott formátumú. Ezután próbálja meg újra.",
+  "tutorUnderstanding": "Megértés",
+  "tutorDecoding": "Dekódolás",
+  "tutorFocus": "Tanulási fókusz"
 }

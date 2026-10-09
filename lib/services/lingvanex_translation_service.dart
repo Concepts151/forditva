@@ -7,7 +7,7 @@ class LingvanexTranslationService {
   final String _baseUrl = 'https://api-b2b.backenster.com/b1/api/v3';
   final String _apiKey = dotenv.env['LINGVANEX_API_KEY']!;
 
-  /// Translates [text] (String or List<String>) from [fromLang] to [toLang].
+  /// Translates [text] (`String` or `List<String>`) from [fromLang] to [toLang].
   /// If [fromLang] is null or empty, the API auto-detects the source language.
   /// [translateMode]: 'plain' or 'html'.
   /// [enableTransliteration]: if true, includes transliteration fields in the response.

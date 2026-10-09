@@ -48,7 +48,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get documentMode => 'Dokumentum';
 
   @override
-  String get imageMode => 'Kép';
+  String get imageMode => 'Fájl';
 
   @override
   String get copyToClipboard => 'Vágólapra másolás';
@@ -338,4 +338,79 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get conversionFailedBody =>
       'Kérjük, ellenőrizze, hogy a fájl nem jelszóval védett vagy sérült, és támogatott formátumú. Ezután próbálja meg újra.';
+
+  @override
+  String languageMismatchBody(String detected, String selected) {
+    return 'This text is in $detected, not $selected.';
+  }
+
+  @override
+  String languageNotFoundBody(String selected) {
+    return 'No $selected text was found. Please check the source language.';
+  }
+
+  @override
+  String languageMismatchUse(String language) {
+    return 'Use $language';
+  }
+
+  @override
+  String get languageNameHu => 'Hungarian';
+
+  @override
+  String get languageNameDe => 'German';
+
+  @override
+  String get languageNameEn => 'English';
+
+  @override
+  String get languageNameNl => 'Dutch';
+
+  @override
+  String get languageNameFr => 'French';
+
+  @override
+  String get languageNameEs => 'Spanish';
+
+  @override
+  String get languageNameRu => 'Russian';
+
+  @override
+  String get languageNameIt => 'Italian';
+
+  @override
+  String get tutorUnderstanding => 'Megértés';
+
+  @override
+  String get tutorDecoding => 'Dekódolás';
+
+  @override
+  String get tutorFocus => 'Tanulási fókusz';
+
+  @override
+  String get tutorChooseSentences => 'Choose sentences';
+
+  @override
+  String tutorCharCount(int count, int max) {
+    return '$count / $max characters';
+  }
+
+  @override
+  String get tutorConsecutiveOnly => 'only consecutive sentences';
+
+  @override
+  String get tutorApplySelection => 'Apply selection';
+
+  @override
+  String get tutorLevel => 'Language level';
+
+  @override
+  String get tutorThinking => 'A good answer takes a moment...';
+
+  @override
+  String get tutorAnswerNow => 'Answer now';
+
+  @override
+  String get swipeToDeleteTip =>
+      'Tip: swipe an entry to the left to delete it.';
 }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart';
@@ -117,6 +118,51 @@ If nothing can be read, reply only with:
 ''';
   }
 
+  /// Languages the last [processImage] call found in the document, as
+  /// two-letter codes (e.g. ["HU", "DE"]); empty when Gemini did not report
+  /// them. Lets the Image page refuse a source language the document does
+  /// not contain without reading it again (Markus, 2026-10-09).
+  List<String> lastDocumentLanguages = const [];
+
+  /// Asked of every analysis so the document's languages come for free with
+  /// the result; [takeLanguagesLine] removes the line again before anything
+  /// else sees the reply, so the result format is unchanged.
+  static const _languagesInstruction = '''
+
+ADDITIONALLY, before everything else, output exactly one line:
+LANGUAGES: <codes>
+listing every language that makes up a meaningful part of the document's
+text, as comma-separated codes from: HU, DE, EN, NL, FR, ES, RU, IT.
+Ignore numbers, dates, codes, names and single foreign words. Write
+"LANGUAGES: UNKNOWN" if you cannot tell. Then continue with the output
+exactly as specified above.
+''';
+
+  static final _languagesLine = RegExp(
+    r'^[ \t]*LANGUAGES:[ \t]*([A-Za-z, ]*)[ \t]*\r?\n?',
+    multiLine: true,
+  );
+
+  /// Splits the LANGUAGES line off [reply]; returns the reply without it and
+  /// the supported codes it listed.
+  @visibleForTesting
+  static ({String text, List<String> languages}) takeLanguagesLine(
+    String reply,
+  ) {
+    final match = _languagesLine.firstMatch(reply);
+    if (match == null) return (text: reply, languages: const []);
+    const supported = ['HU', 'DE', 'EN', 'NL', 'FR', 'ES', 'RU', 'IT'];
+    final languages =
+        match
+            .group(1)!
+            .split(',')
+            .map((c) => c.trim().toUpperCase())
+            .where(supported.contains)
+            .toList();
+    final text = reply.replaceRange(match.start, match.end, '').trim();
+    return (text: text, languages: languages);
+  }
+
   Future<String> processImage({
     required File imageFile,
     required bool translate,
@@ -142,7 +188,11 @@ If nothing can be read, reply only with:
           'attached document. Ignore every other page completely.';
     }
 
-    return _callGemini(prompt, imageFile);
+    final split = takeLanguagesLine(
+      await _callGemini('$prompt$_languagesInstruction', imageFile),
+    );
+    lastDocumentLanguages = split.languages;
+    return split.text;
   }
 
   /// Answers a free-text question about an already-loaded image/PDF (Markus,
@@ -244,7 +294,11 @@ ${jsonEncode(originals)}
     TokenBalance.instance.spendFractional(
       geminiWiuCost(
         promptTokens: usage?['promptTokenCount'] as int? ?? 0,
-        outputTokens: usage?['candidatesTokenCount'] as int? ?? 0,
+        outputTokens: billableOutputTokens(
+          prompt: usage?['promptTokenCount'] as int? ?? 0,
+          candidates: usage?['candidatesTokenCount'] as int? ?? 0,
+          thoughts: usage?['thoughtsTokenCount'] as int?,
+        ),
       ),
     );
 

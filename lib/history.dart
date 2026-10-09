@@ -6,6 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'flutter_gen/gen_l10n/app_localizations.dart';
 import 'spacing.dart';
 import 'widgets/tutor_dialog.dart';
+import 'package:forditva/widgets/swipe_delete_tip.dart';
+
+/// Remembers that the "swipe left to delete" tip was seen on this list.
+const _swipeTipKey = 'swipe_tip_history';
 
 const Color navGreen = Color(0xFF436F4D);
 
@@ -25,7 +29,7 @@ class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
 
   @override
-  _HistoryPageState createState() => _HistoryPageState();
+  State<HistoryPage> createState() => _HistoryPageState();
 }
 
 class _HistoryPageState extends State<HistoryPage> {
@@ -54,6 +58,7 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Future<void> _deleteEntry(int id) async {
+    SwipeDeleteTip.markUsed(_swipeTipKey);
     await _db.translationDao.deleteEntry(id);
     _loadHistory();
     setState(() {});
@@ -92,6 +97,7 @@ class _HistoryPageState extends State<HistoryPage> {
               ),
             ),
           ),
+          const SwipeDeleteTip(prefKey: _swipeTipKey),
           Expanded(
             child: FutureBuilder<List<Translation>>(
               future: _translationsFuture,
@@ -161,14 +167,20 @@ class _HistoryPageState extends State<HistoryPage> {
                               ),
                             ],
                           ),
-                          child: Row(
+                          // Bulb + star sit in the top-right corner; only the
+                          // source text stops short of them, the translation
+                          // runs full width underneath (Markus, 2026-10-09).
+                          child: Stack(
+                            clipBehavior: Clip.none,
                             children: [
-                              // text
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      right: _hasHungarian(entry) ? 80 : 40,
+                                    ),
+                                    child: Text(
                                       entry.input,
                                       style: GoogleFonts.robotoCondensed(
                                         fontSize: 16,
@@ -178,52 +190,69 @@ class _HistoryPageState extends State<HistoryPage> {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      entry.output,
-                                      style: GoogleFonts.robotoCondensed(
-                                        fontSize: 14,
-                                        color: Colors.black,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    entry.output,
+                                    style: GoogleFonts.robotoCondensed(
+                                      fontSize: 14,
+                                      color: Colors.black,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                              Positioned(
+                                top: -8,
+                                right: -8,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_hasHungarian(entry))
+                                      IconButton(
+                                        visualDensity: VisualDensity.compact,
+                                        icon: Image.asset(
+                                          'assets/images/bulb.png',
+                                          width: 24,
+                                          height: 24,
+                                        ),
+                                        tooltip: 'Tutor',
+                                        onPressed:
+                                            () => showTutorExplanation(
+                                              context: context,
+                                              hungarianText: _hungarianOf(
+                                                entry,
+                                              ),
+                                              otherLangCode:
+                                                  entry.fromLang.toUpperCase() == 'HU'
+                                                      ? entry.toLang
+                                                      : entry.fromLang,
+                                            ),
                                       ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
+                                    IconButton(
+                                      visualDensity: VisualDensity.compact,
+                                      icon: Icon(
+                                        entry.isFavorite
+                                            ? Icons.star
+                                            : Icons.star_border,
+                                        color:
+                                            entry.isFavorite
+                                                ? gold
+                                                : Colors.grey,
+                                      ),
+                                      onPressed: () async {
+                                        await _db.translationDao
+                                            .toggleFavorite(
+                                              entry.id,
+                                              !entry.isFavorite,
+                                            );
+                                        _loadHistory();
+                                        setState(() {});
+                                      },
                                     ),
                                   ],
                                 ),
-                              ),
-                              if (_hasHungarian(entry))
-                                IconButton(
-                                  icon: Image.asset(
-                                    'assets/images/bulb.png',
-                                    width: 24,
-                                    height: 24,
-                                  ),
-                                  tooltip: 'Tutor',
-                                  onPressed:
-                                      () => showTutorExplanation(
-                                        context: context,
-                                        hungarianText: _hungarianOf(entry),
-                                        uiLang:
-                                            Localizations.localeOf(
-                                              context,
-                                            ).languageCode.toUpperCase(),
-                                      ),
-                                ),
-                              IconButton(
-                                icon: Icon(
-                                  entry.isFavorite
-                                      ? Icons.star
-                                      : Icons.star_border,
-                                  color: entry.isFavorite ? gold : Colors.grey,
-                                ),
-                                onPressed: () async {
-                                  await _db.translationDao.toggleFavorite(
-                                    entry.id,
-                                    !entry.isFavorite,
-                                  );
-                                  _loadHistory();
-                                  setState(() {});
-                                },
                               ),
                             ],
                           ),
