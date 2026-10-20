@@ -15,6 +15,7 @@ import 'package:forditva/services/gemini_tts_service.dart';
 import 'package:share_plus/share_plus.dart'; // your Gemini client
 import 'package:forditva/utils/utils.dart';
 import 'package:forditva/widgets/cropper.dart';
+import 'package:forditva/widgets/error_dialog.dart';
 import 'package:forditva/services/document_conversion_service.dart';
 import 'package:forditva/widgets/document_question_dialog.dart';
 import 'package:forditva/tutor/tutor_page.dart';
@@ -191,6 +192,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
       await _resultPlayer!.play(ap.DeviceFileSource(file.path));
     } catch (e) {
       debugPrint('Image TTS failed: $e');
+      if (mounted) showTtsError(context, e);
     }
   }
 

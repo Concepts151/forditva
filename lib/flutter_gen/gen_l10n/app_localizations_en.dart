@@ -177,6 +177,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ttsFailed => 'Speech playback failed';
 
   @override
+  String get readAloudUnavailable =>
+      'Read-aloud is not available at the moment.';
+
+  @override
+  String get readAloudBusy =>
+      'Read-aloud is busy right now. Please try again in a minute.';
+
+  @override
   String get recordingFailed => 'Recording failed.';
 
   @override

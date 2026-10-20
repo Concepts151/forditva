@@ -54,6 +54,8 @@
   "levelTip": "Tip: You can dynamically adjust your level directly inside the Tutor at any time.",
   "myCurrentLevel": "My current Level",
   "ttsFailed": "Speech playback failed",
+  "readAloudUnavailable": "Read-aloud is not available at the moment.",
+  "readAloudBusy": "Read-aloud is busy right now. Please try again in a minute.",
   "recordingFailed": "Recording failed.",
   "transcriptionFailed": "Transcription failed",
   "couldNotTranscribe": "Couldn't transcribe audio. Please try again.",

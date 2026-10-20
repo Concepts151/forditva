@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:firebase_ai/firebase_ai.dart' show FinishReason;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart';
 
+import 'ai/ai_models.dart';
+import 'ai/gemini_firebase.dart';
+import 'ai/text_ai.dart';
 import 'gemini_cost.dart';
 import 'token_balance.dart';
 
@@ -17,10 +19,8 @@ import 'token_balance.dart';
 class GeminiImageService {
   GeminiImageService();
 
-  String get _apiKey => dotenv.env['GEMINI_API_KEY']!;
-  static const _model = 'gemini-flash-latest';
-  String get _endpoint =>
-      'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent?key=$_apiKey';
+  /// Through Firebase AI Logic, like every Gemini call (no key in the app).
+  static const _model = AiModels.geminiFlash;
 
   static const Map<String, String> _langNames = {
     "EN": "English",
@@ -254,73 +254,45 @@ ${jsonEncode(originals)}
 
   /// [file] is the image/PDF to attach, or null for a text-only request.
   Future<String> _callGemini(String prompt, File? file) async {
-    final requestParts = <Map<String, dynamic>>[
-      {"text": prompt},
-    ];
-    if (file != null) {
-      final bytes = await file.readAsBytes();
-      requestParts.add({
-        "inline_data": {
-          "mime_type": lookupMimeType(file.path) ?? 'image/jpeg',
-          "data": base64Encode(bytes),
-        },
-      });
-    }
-
-    final response = await http.post(
-      Uri.parse(_endpoint),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        "contents": [
-          {"parts": requestParts},
-        ],
-        // Was 2048, which a multi-page PDF blows straight through: the
-        // model (2.5 flash) spends output budget on internal thinking
-        // first, sees almost nothing left for the answer, and bails out
-        // with "[]" — which the app then reported as "image not clear"
-        // (Markus, 2026-07-15, 9-page PDF; reproduced 1:1 with his file:
-        // 1201 thought tokens then a bare [] at 2048, full extraction at
-        // a higher cap).
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 32768},
-      }),
+    final reply = await geminiGenerate(
+      _model,
+      // Was 2048, which a multi-page PDF blows straight through: the
+      // model (2.5 flash) spends output budget on internal thinking
+      // first, sees almost nothing left for the answer, and bails out
+      // with "[]" — which the app then reported as "image not clear"
+      // (Markus, 2026-07-15, 9-page PDF; reproduced 1:1 with his file:
+      // 1201 thought tokens then a bare [] at 2048, full extraction at
+      // a higher cap).
+      TextAiRequest(user: prompt, temperature: 0.2, maxOutputTokens: 32768),
+      file:
+          file == null
+              ? null
+              : GeminiFile(
+                lookupMimeType(file.path) ?? 'image/jpeg',
+                await file.readAsBytes(),
+              ),
     );
 
-    if (response.statusCode != 200) {
-      throw Exception('Gemini error ${response.statusCode}: ${response.body}');
-    }
-
-    final data = jsonDecode(response.body);
-    final usage = data['usageMetadata'] as Map<String, dynamic>?;
+    final result = reply.result;
     TokenBalance.instance.spendFractional(
       geminiWiuCost(
-        promptTokens: usage?['promptTokenCount'] as int? ?? 0,
-        outputTokens: billableOutputTokens(
-          prompt: usage?['promptTokenCount'] as int? ?? 0,
-          candidates: usage?['candidatesTokenCount'] as int? ?? 0,
-          thoughts: usage?['thoughtsTokenCount'] as int?,
-        ),
+        promptTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
       ),
     );
 
-    final candidates = data['candidates'] as List?;
-    if (candidates == null || candidates.isEmpty) {
+    if (!reply.hasCandidates) {
       // Don't return '' here: the caller treats an empty string as "image
       // not clear", which points the user at their photo when the real
       // problem was the request (safety block, truncation, ...).
+      throw Exception('Gemini returned no candidates');
+    }
+    final text = result.text.trim();
+    if (text.isEmpty && reply.finishReason != FinishReason.stop) {
       throw Exception(
-        'Gemini returned no candidates '
-        '(finishReason unknown, promptFeedback: ${data['promptFeedback']})',
+        'Gemini returned no text (finishReason: ${reply.finishReason})',
       );
     }
-    final finishReason = candidates[0]['finishReason'] as String? ?? '';
-    final parts = candidates[0]['content']?['parts'] as List?;
-    final text =
-        (parts == null || parts.isEmpty)
-            ? ''
-            : (parts[0]['text'] as String? ?? '');
-    if (text.trim().isEmpty && finishReason != 'STOP') {
-      throw Exception('Gemini returned no text (finishReason: $finishReason)');
-    }
-    return text.trim();
+    return text;
   }
 }

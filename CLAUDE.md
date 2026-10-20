@@ -10,7 +10,9 @@ Forditva is a **Flutter** speech + text + image translation app. Core language
 pair is **Hungarian ⇄ German**; a third language is user-selectable
 (EN/NL/FR/IT/RU/ES). It is branded for the **wir-in-ungarn.hu** community. The
 client is **Markus Messemer** (communicates via Telegram; the user/developer
-here is **Kayode**, "Jordanz"). Markus's WordPress developer is **Shahin**.
+here is **Kayode**, "Jordanz"). Markus's web developer is **Alex** (Aliaksandr; headless WordPress + Next.js;
+replaced Shahin Alam, who built the prepaid code list). **Andy** is Markus's
+Linux admin and decides what runs on the servers (2026-10-12).
 
 Stack: Flutter/Dart, **Gemini** for translation + image OCR (raw REST,
 `gemini-flash-latest`), Google Cloud **STT** + **TTS**, `drift`/sqlite for
@@ -251,12 +253,14 @@ the short version:
   Play Integrity provider on Android, App Attest on iOS — via `main.dart`'s
   `_initFirebaseAppCheck()`. This proves a request comes from a genuine,
   unmodified app install with nothing embedded to extract.
-- **Backend (new, `conversion-service/`, code only, not deployed):** Node +
-  Express + LibreOffice headless in Docker. `/convert-to-pdf` requires a
-  valid App Check token (verified server-side via `firebase-admin`) and is
-  rate-limited (20 req/15min/IP). 4MB file size limit (Markus's number, "keep
-  conversion time, server load, and abuse risk under control"). Deletes the
-  original + converted files immediately after each response. See
+- **Backend (`conversion-service/`, code only, not deployed):** rewritten
+  2026-10-16 from Markus's FastAPI draft (Python + LibreOffice headless in
+  Docker), replacing Kayode's Node version. `POST /convert/to-pdf` (the app
+  still calls the old `/convert-to-pdf`; switch it when Andy deploys).
+  Firebase App Check token checked against Google's public JWKS (no
+  service account); optional test key only from 127.0.0.1 inside the
+  container. Limits (Markus, 2026-10-14): 15 MB upload, 30 MB PDF, 2
+  parallel, 90 s. Andy hosts it at `convert.wir-in-ungarn.hu`. See
   `conversion-service/README.md`.
 - **Cost:** no separate surcharge — converted files bill through the exact
   same `geminiWiuCost` (+30% margin) as any other PDF, by construction (they

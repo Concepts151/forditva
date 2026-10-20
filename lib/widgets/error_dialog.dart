@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../flutter_gen/gen_l10n/app_localizations.dart';
+import '../services/gemini_tts_service.dart';
 
 const Color _navGreen = Color(0xFF436F4D);
 
@@ -75,5 +76,21 @@ Future<void> showFriendlyError(
             ),
           ),
         ),
+  );
+}
+
+/// Tells the user why read-aloud failed, using the reason
+/// [GeminiTtsService] reports (Alex's function: switched off, busy, or a
+/// plain failure).
+Future<void> showTtsError(BuildContext context, Object error) {
+  final loc = AppLocalizations.of(context)!;
+  final failure = error is TtsException ? error.failure : TtsFailure.failed;
+  return showFriendlyError(
+    context,
+    message: switch (failure) {
+      TtsFailure.unavailable => loc.readAloudUnavailable,
+      TtsFailure.busy => loc.readAloudBusy,
+      TtsFailure.failed => loc.ttsFailed,
+    },
   );
 }

@@ -2,7 +2,7 @@ name: forditva
 description: "A new Flutter project."
 publish_to: "none"
 
-version: 1.0.1+71
+version: 1.0.1+72
 
 environment:
   sdk: ^3.7.2
@@ -18,7 +18,6 @@ dependencies:
   audio_waveforms: ^1.0.5
   just_audio: ^0.10.3
   record: ^5.0.0 # For audio recording
-  speech_to_text: ^7.0.0
   flutter_tts: ^4.2.2
   permission_handler: ^12.0.0
   flutter_svg: ^2.0.7
@@ -31,7 +30,6 @@ dependencies:
   provider: ^6.1.0
   path: ^1.9.0
   sqlite3_flutter_libs: ^0.5.18
-  google_generative_ai: ^0.4.7
   flutter_dotenv: ^5.1.0
   flutter_keyboard_visibility: ^6.0.0
   share_plus: ^10.0.1
@@ -46,8 +44,12 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   android_id: ^0.4.0
   pdfx: ^2.9.2
-  firebase_core: ^3.6.0
-  firebase_app_check: ^0.3.1+6
+  firebase_core: ^4.14.0
+  firebase_app_check: ^0.4.7
+  # Gemini through Firebase AI Logic (App Check), so no Gemini key ships
+  # in the app. 4.x: 5.0.0 was only a day old on 2026-10-16.
+  firebase_ai: ^4.0.0
+  cloud_functions: ^6.5.0
 
 dev_dependencies:
   flutter_test:

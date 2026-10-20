@@ -3,9 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:forditva/services/gemini_translation_service.dart';
-import 'package:forditva/services/google_speech_to_text_service.dart';
+import 'package:forditva/services/gemini_speech_service.dart';
 import 'package:forditva/services/history_store.dart';
 import 'package:forditva/widgets/amp_waveform.dart';
 import 'package:forditva/widgets/language_mismatch_dialog.dart';
@@ -81,11 +80,16 @@ class _EditTextModalState extends State<EditTextModal> {
   // avoiding a second microphone recorder that would starve it of audio.
   final List<double> _levels = [];
   StreamSubscription<Amplitude>? _ampSub;
-  // final String _sttTranscript = ''; // This variable is not used
-  final _sttService = GoogleSpeechToTextService(
-    dotenv.env['GOOGLE_STT_KEY']!,
-  ); // Make sure to pass your key!
+  final _speech = GeminiSpeechService();
   bool _isSttLoading = false;
+  // Whether the mic level ever reached speech in this recording. Silence is
+  // never sent to Gemini (see GeminiSpeechService.voiceLevel).
+  bool _heardSpeech = false;
+  // Stops the recording at GeminiSpeechService.maxDuration.
+  Timer? _limitTimer;
+  // The stop in progress, so the time limit and a tap on stop or confirm
+  // at the same moment share one transcription instead of running two.
+  Future<void>? _stopping;
 
   @override
   void initState() {
@@ -102,7 +106,8 @@ class _EditTextModalState extends State<EditTextModal> {
         .onAmplitudeChanged(const Duration(milliseconds: 90))
         .listen((amp) {
           if (!mounted || !_isRecording) return;
-          final norm = ((amp.current + 45) / 45).clamp(0.0, 1.0);
+          final norm = GeminiSpeechService.level(amp.current);
+          if (norm >= GeminiSpeechService.voiceLevel) _heardSpeech = true;
           setState(() {
             _levels.add(norm);
             if (_levels.length > 60) _levels.removeAt(0);
@@ -172,6 +177,7 @@ class _EditTextModalState extends State<EditTextModal> {
   @override
   void dispose() {
     _ampSub?.cancel();
+    _limitTimer?.cancel();
     _audioRecorder.dispose(); // Dispose of the audio recorder
     _controller.dispose();
     super.dispose();
@@ -181,6 +187,7 @@ class _EditTextModalState extends State<EditTextModal> {
     setState(() {
       _isRecording = true;
       _isSttLoading = false;
+      _heardSpeech = false;
       _levels.clear();
     });
     final dir = await getTemporaryDirectory();
@@ -195,49 +202,22 @@ class _EditTextModalState extends State<EditTextModal> {
       ),
       path: _audioPath!,
     );
+    _limitTimer?.cancel();
+    _limitTimer = Timer(GeminiSpeechService.maxDuration, () {
+      if (_isRecording) _onStopTap();
+    });
   }
 
-  Future<void> _onStopTap() async {
+  Future<void> _onStopTap() =>
+      _stopping ??= _stopAndTranscribe().whenComplete(() => _stopping = null);
+
+  Future<void> _stopAndTranscribe() async {
+    _limitTimer?.cancel();
     setState(() => _isSttLoading = true);
     await _audioRecorder.stop(); // stops the actual file recording
 
     final path = _audioPath;
-    if (path != null && File(path).existsSync()) {
-      debugPrint('DEBUG: Audio file length: ${File(path).lengthSync()} bytes');
-    }
-    if (path != null && File(path).existsSync()) {
-      String langCode;
-      switch (widget.fromLang) {
-        case Language.hungarian:
-          langCode = 'hu-HU';
-          break;
-        case Language.german:
-          langCode = 'de-DE';
-          break;
-        default:
-          langCode = 'en-US';
-      }
-      debugPrint('DEBUG: Using langCode: $langCode');
-
-      String? transcript = await _sttService.transcribe(
-        File(path),
-        languageCode: langCode,
-      );
-      debugPrint('DEBUG: Transcript from Google STT: "$transcript"');
-
-      setState(() {
-        _isRecording = false;
-        _isSttLoading = false;
-      });
-      if ((transcript?.trim().isNotEmpty ?? false)) {
-        // Lands at wherever the cursor was left, not always the end.
-        _insertAtCursor(transcript!.trim());
-
-        setState(() {}); // Refresh font size, etc.
-
-        debugPrint('Updated text: "${_controller.text}"');
-      }
-    } else {
+    if (path == null || !File(path).existsSync()) {
       setState(() {
         _isRecording = false;
         _isSttLoading = false;
@@ -249,7 +229,39 @@ class _EditTextModalState extends State<EditTextModal> {
           ),
         );
       }
+      return;
     }
+
+    // The language is passed to Gemini as such; before, only HU/DE were
+    // mapped, so a French or Spanish dictation was recognized as English.
+    var transcript = '';
+    try {
+      if (_heardSpeech) {
+        transcript = await _speech.transcribe(File(path), widget.fromLang);
+      }
+    } catch (e) {
+      debugPrint('Voice input failed: $e');
+    } finally {
+      try {
+        File(path).deleteSync();
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    setState(() {
+      _isRecording = false;
+      _isSttLoading = false;
+    });
+    if (transcript.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.couldNotTranscribe),
+        ),
+      );
+      return;
+    }
+    // Lands at wherever the cursor was left, not always the end.
+    _insertAtCursor(transcript);
+    setState(() {}); // Refresh font size, etc.
   }
 
   /// Trash: empty the whole text field (Markus: "throw everything to the
@@ -282,6 +294,7 @@ class _EditTextModalState extends State<EditTextModal> {
   /// Stop recording and discard the audio without transcribing (the X shown
   /// while recording).
   Future<void> _discardRecording() async {
+    _limitTimer?.cancel();
     await _audioRecorder.stop();
     if (mounted) {
       setState(() {

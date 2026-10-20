@@ -9,6 +9,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:forditva/document/document_translation_state.dart';
 import 'package:forditva/models/language_enum.dart';
 import 'package:forditva/services/gemini_tts_service.dart';
+import 'package:forditva/widgets/error_dialog.dart';
 import 'package:forditva/services/history_store.dart';
 import 'package:forditva/flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:forditva/widgets/copied_toast.dart';
@@ -135,9 +136,7 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
       await _ttsAudioPlayer!.play(ap.DeviceFileSource(file.path));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("TTS failed: $e")));
+        showTtsError(context, e);
         setState(() => _isSpeaking = false);
       }
     }

@@ -424,6 +424,18 @@ abstract class AppLocalizations {
   /// **'Speech playback failed'**
   String get ttsFailed;
 
+  /// No description provided for @readAloudUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-aloud is not available at the moment.'**
+  String get readAloudUnavailable;
+
+  /// No description provided for @readAloudBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-aloud is busy right now. Please try again in a minute.'**
+  String get readAloudBusy;
+
   /// No description provided for @recordingFailed.
   ///
   /// In en, this message translates to:

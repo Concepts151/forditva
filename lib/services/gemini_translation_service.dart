@@ -1,35 +1,10 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'ai/ai_router.dart';
+import 'translation_prompts.dart';
 
-import 'gemini_cost.dart';
-import 'token_balance.dart';
-
+/// Text-only translation, explanation and language detection. Which model
+/// answers each is set in [aiRoutes] ([AiTask.translate], [AiTask.explain],
+/// [AiTask.detectLanguage]); each call is billed at that model's price.
 class GeminiTranslator {
-  final GenerativeModel _model;
-
-  GeminiTranslator()
-    : _model = GenerativeModel(
-        // flash-lite is markedly faster and does little/no "thinking",
-        // which is what was adding latency to every translation.
-        model: 'gemini-flash-lite-latest',
-        apiKey: dotenv.env['GEMINI_API_KEY']!,
-      );
-
-  /// Deducts this response's real-cost-weighted WIU price from the balance.
-  void _recordUsage(GenerateContentResponse response) {
-    final usage = response.usageMetadata;
-    TokenBalance.instance.spendFractional(
-      geminiWiuCost(
-        promptTokens: usage?.promptTokenCount ?? 0,
-        outputTokens: billableOutputTokens(
-          prompt: usage?.promptTokenCount ?? 0,
-          candidates: usage?.candidatesTokenCount ?? 0,
-          total: usage?.totalTokenCount,
-        ),
-      ),
-    );
-  }
-
   static const Map<String, String> _uiLanguageNames = {
     'DE': 'German',
     'EN': 'English',
@@ -49,30 +24,16 @@ class GeminiTranslator {
     String uiLanguage = 'EN',
   }) async {
     if (!explain) {
-      // Dedicated stateless translation engine. Strict rules live in the
-      // systemInstruction (a hard boundary from the data), temperature 0 makes
-      // it deterministic, and the raw text is sent as the user message with no
-      // surrounding quotes — all to stop flash-lite "chatting" or adding quotes.
-      final translateModel = GenerativeModel(
-        model: 'gemini-flash-lite-latest',
-        apiKey: dotenv.env['GEMINI_API_KEY']!,
-        systemInstruction: Content.system('''
-You are a precise literal translation engine.
-Task: Translate the user's text from $fromLang to $toLang.
-
-Rules:
-- Translate exactly what is written. Do NOT omit any words, adjectives, or conversational elements present in the source text.
-- Do NOT add quotation marks, commentary, punctuation, or formatting.
-- Output ONLY the raw translation string.
-'''),
-        generationConfig: GenerationConfig(temperature: 0.0),
+      // temperature 0 makes the translation deterministic.
+      final result = await runAiTask(
+        AiTask.translate,
+        TextAiRequest(
+          system: translationSystemPrompt(fromLang, toLang),
+          user: translationUserMessage(inputText),
+          temperature: 0.0,
+        ),
       );
-
-      final response = await translateModel.generateContent([
-        Content.text(inputText),
-      ]);
-      _recordUsage(response);
-      return response.text?.trim() ?? '';
+      return stripTranslationTags(result.text);
     } else {
       // Explanation mode with level adaptation
       final explanationLanguage = _uiLanguageNames[uiLanguage] ?? uiLanguage;
@@ -127,11 +88,11 @@ Output format (strict JSON, no extra text, no markdown formatting inside the JSO
 }
 ''';
 
-      final response = await _model.generateContent([Content.text(prompt)]);
-      _recordUsage(response);
-      final text = response.text?.trim() ?? '';
-
-      return text;
+      final result = await runAiTask(
+        AiTask.explain,
+        TextAiRequest(user: prompt),
+      );
+      return result.text.trim();
     }
   }
 
@@ -149,16 +110,10 @@ Output format (strict JSON, no extra text, no markdown formatting inside the JSO
   }
 
   Future<String> detectLanguage(String inputText) async {
-    // flash-lite (the default _model) does little "thinking" and was
-    // misidentifying short/diacritic-heavy text — e.g. genuine Hungarian
-    // read as Portuguese or German (Markus, 2026-07-10). Language ID needs
-    // more care than a plain translation, so use the full model here even
-    // though it's slower; this call only runs once per image.
-    final detectModel = GenerativeModel(
-      model: 'gemini-flash-latest',
-      apiKey: dotenv.env['GEMINI_API_KEY']!,
-      generationConfig: GenerationConfig(temperature: 0.0),
-    );
+    // Routed to the full Flash model, not flash-lite: flash-lite does
+    // little "thinking" and was misidentifying short/diacritic-heavy text,
+    // e.g. genuine Hungarian read as Portuguese or German (Markus,
+    // 2026-07-10). Language ID needs more care than a plain translation.
     // Constrained answer set + an explicit "unsure" escape hatch. The old
     // open-ended prompt forced a guess, and on noisy OCR samples (numbers,
     // codes, mixed fragments) that guess skewed toward EN, producing false
@@ -173,8 +128,10 @@ Reply UNKNOWN if there are too few natural-language words to be sure, or if none
 
 $inputText
 ''';
-    final response = await detectModel.generateContent([Content.text(prompt)]);
-    _recordUsage(response);
-    return response.text?.trim().toUpperCase() ?? '';
+    final result = await runAiTask(
+      AiTask.detectLanguage,
+      TextAiRequest(user: prompt, temperature: 0.0),
+    );
+    return result.text.trim().toUpperCase();
   }
 }

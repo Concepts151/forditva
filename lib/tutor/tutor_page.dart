@@ -880,7 +880,7 @@ class _TutorPageState extends State<TutorPage> {
     );
   }
 
-  // Level slider (mockup: red ring, 01-99 track, value box).
+  // Level slider (mockup: Sprachlevel ring, 01-99 track, value box).
   Widget _levelBar() {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
@@ -888,22 +888,12 @@ class _TutorPageState extends State<TutorPage> {
         children: [
           Tooltip(
             message: AppLocalizations.of(context)!.tutorLevel,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: _navRed, width: 6),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                LevelPref.cefrFor(_dragLevel ?? _level),
-                style: GoogleFonts.robotoCondensed(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: _navRed,
-                ),
-              ),
+            // Markus's ring (2026-10-20), always without a number: the
+            // level is shown in the value box on the right.
+            child: Image.asset(
+              'assets/images/sprachlevel.png',
+              width: 56,
+              height: 56,
             ),
           ),
           const SizedBox(width: 8),

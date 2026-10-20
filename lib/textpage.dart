@@ -221,12 +221,19 @@ class _TextPageState extends State<TextPage> {
     if (_inputAudioCacheText == _translation && _inputAudioCacheFile != null) {
       file = _inputAudioCacheFile!;
     } else {
-      file = await _ttsService.synthesizeSpeech(
-        text: _translation,
-        voice: "onyx",
-        instructions: instructionForLang(_rightLanguage),
-        langCode: _rightLanguage.code,
-      );
+      try {
+        file = await _ttsService.synthesizeSpeech(
+          text: _translation,
+          voice: "onyx",
+          instructions: instructionForLang(_rightLanguage),
+          langCode: _rightLanguage.code,
+        );
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _isInputPlaying = false);
+        showTtsError(context, e);
+        return;
+      }
       _inputAudioCacheText = _translation;
       _inputAudioCacheFile = file;
     }
@@ -271,12 +278,19 @@ class _TextPageState extends State<TextPage> {
         _outputAudioCacheFile != null) {
       file = _outputAudioCacheFile!;
     } else {
-      file = await _ttsService.synthesizeSpeech(
-        text: _inputController.text,
-        voice: "onyx",
-        instructions: instructionForLang(_leftLanguage),
-        langCode: _leftLanguage.code,
-      );
+      try {
+        file = await _ttsService.synthesizeSpeech(
+          text: _inputController.text,
+          voice: "onyx",
+          instructions: instructionForLang(_leftLanguage),
+          langCode: _leftLanguage.code,
+        );
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _isOutputPlaying = false);
+        showTtsError(context, e);
+        return;
+      }
       _outputAudioCacheText = _inputController.text;
       _outputAudioCacheFile = file;
     }
@@ -357,11 +371,7 @@ class _TextPageState extends State<TextPage> {
 
       await _audioPlayer!.play(ap.DeviceFileSource(file.path));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('TTS failed: $e')));
-      }
+      if (mounted) showTtsError(context, e);
       setState(() => _isAudioPlaying = false);
       onDone();
     }

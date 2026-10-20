@@ -68,22 +68,29 @@ void main() async {
 /// iOS) so the document-conversion endpoint can verify requests come from a
 /// genuine, unmodified install of this app, with no bundled secret to
 /// extract (Markus, 2026-08: "properly secure solution", not a static API
-/// key). Non-fatal: firebase_options.dart is still a placeholder until a
-/// real Firebase project exists, so this silently no-ops instead of
-/// crashing startup until then.
+/// key). Non-fatal: if Firebase can't start (iOS is still a placeholder in
+/// firebase_options.dart), this logs and the app starts normally.
+///
+/// Play Integrity only passes for apps installed from Google Play, so
+/// debug builds use the debug provider: the first run prints a debug token
+/// in logcat, which must be registered in the Firebase console (App Check >
+/// Apps > Manage debug tokens) before that phone gets valid tokens.
 Future<void> _initFirebaseAppCheck() async {
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.playIntegrity,
-      appleProvider: AppleProvider.appAttest,
+      providerAndroid:
+          kDebugMode
+              ? const AndroidDebugProvider()
+              : const AndroidPlayIntegrityProvider(),
+      providerApple: const AppleAppAttestProvider(),
     );
   } catch (e) {
     debugPrint(
-      'Firebase App Check not active (expected until the real '
-      'Firebase project is configured): $e',
+      'Firebase App Check not active (expected on iOS until its '
+      'Firebase app is configured): $e',
     );
   }
 }
