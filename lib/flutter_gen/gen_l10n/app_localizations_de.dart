@@ -178,11 +178,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ttsFailed => 'Sprachwiedergabe fehlgeschlagen';
 
   @override
-  String get readAloudUnavailable => 'Vorlesen ist gerade nicht verfügbar.';
+  String get readAloudUnavailable =>
+      'Ich kann dir den Text gerade nicht vorlesen.';
 
   @override
   String get readAloudBusy =>
-      'Vorlesen ist gerade ausgelastet. Bitte versuche es in einer Minute noch einmal.';
+      'Das Vorlesen ist gerade ausgelastet. Versuch es bitte in einer Minute noch einmal.';
 
   @override
   String get recordingFailed => 'Aufnahme fehlgeschlagen.';
@@ -356,7 +357,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String languageNotFoundBody(String selected) {
-    return 'Kein Text auf $selected gefunden. Bitte prüfe die Ausgangssprache.';
+    return 'Ich habe keinen Text auf $selected gefunden. Prüfe bitte, ob du die richtige Ausgangssprache gewählt hast.';
   }
 
   @override
@@ -415,7 +416,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tutorLevel => 'Sprachlevel';
 
   @override
-  String get tutorThinking => 'Eine gute Antwort braucht einen Moment ...';
+  String get tutorThinking => 'Einen Moment, ich bereite deine Antwort vor ...';
 
   @override
   String get tutorAnswerNow => 'Jetzt antworten';

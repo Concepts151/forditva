@@ -177,11 +177,12 @@ class AppLocalizationsHu extends AppLocalizations {
   String get ttsFailed => 'A hanglejátszás sikertelen';
 
   @override
-  String get readAloudUnavailable => 'A felolvasás most nem érhető el.';
+  String get readAloudUnavailable =>
+      'Most nem tudom felolvasni neked a szöveget.';
 
   @override
   String get readAloudBusy =>
-      'A felolvasás most túlterhelt. Kérlek, próbáld újra egy perc múlva.';
+      'A felolvasás most túlterhelt. Próbáld újra egy perc múlva.';
 
   @override
   String get recordingFailed => 'A felvétel sikertelen.';
@@ -353,7 +354,7 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String languageNotFoundBody(String selected) {
-    return 'Nem található $selected szöveg. Kérlek, ellenőrizd a forrásnyelvet.';
+    return 'Nem találtam $selected nyelvű szöveget. Ellenőrizd, hogy a megfelelő forrásnyelvet választottad-e.';
   }
 
   @override
@@ -406,16 +407,16 @@ class AppLocalizationsHu extends AppLocalizations {
   String get tutorConsecutiveOnly => 'csak egymást követő mondatok';
 
   @override
-  String get tutorApplySelection => 'Kijelölés alkalmazása';
+  String get tutorApplySelection => 'Kijelölés megerősítése';
 
   @override
   String get tutorLevel => 'Nyelvi szint';
 
   @override
-  String get tutorThinking => 'Egy jó válaszhoz kell egy kis idő ...';
+  String get tutorThinking => 'Egy pillanat, készítem a válaszodat...';
 
   @override
-  String get tutorAnswerNow => 'Válasz most';
+  String get tutorAnswerNow => 'Válaszolj most';
 
   @override
   String get swipeToDeleteTip =>
