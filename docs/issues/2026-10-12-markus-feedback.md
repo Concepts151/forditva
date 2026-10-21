@@ -594,6 +594,67 @@ counts back), app signing fingerprint on upload day.
 
 ---
 
+## 14. DeepSeek through Alex's function (test builds only)
+
+**Alex (21 Oct):** callable `deepseekChat` deployed (europe-west1, App
+Check, fresh key from Markus). Contract:
+`~/Downloads/API-deepseekChat-for-Abdulsalam-21oct.md`.
+
+**Changed:** `lib/services/ai/deepseek_firebase.dart` (new) calls it;
+`ai_router.dart` tries DeepSeek first for translation and the Tutor
+(`deepseekTasks`) and falls back to the job's Gemini model on any error,
+charging WIU only for the model that answered. permission-denied (balance
+empty or switched off) turns DeepSeek off until the app restarts. Texts
+over 100,000 UTF-8 bytes go straight to Gemini; output capped at 3,700
+tokens; 70 s timeout. Only on in builds made with
+`--dart-define=DEEPSEEK=true`, until Markus confirms the privacy policy
+update. The old in-app DeepSeek key path is gone.
+
+**Tested on the Xiaomi (21 Oct):** 6 calls, all answered by DeepSeek, no
+fallback: translation 4.9 s (first call, cold start), Tutor 1.6 to 2.6 s
+(137 to 3,440 tokens in, 53 to 237 out); a repeated Tutor request hit
+DeepSeek's cache (768 of 913 input tokens cached).
+
+**Side effect:** with DeepSeek, Tutor thinking is always off, so "Answer
+now" saves almost nothing; an abandoned Tutor request still finishes and is
+charged (a Firebase call cannot be cancelled).
+
+---
+
+## 15. Untranslated German and Hungarian texts
+
+**Reported (21 Oct):** the Tutor's loading text "A good answer takes a
+moment..." stays English in German and Hungarian. 16 German and 21
+Hungarian texts fall back to English. Markus's rule for translations:
+always the informal version (du, not Sie; te in Hungarian). **Shipped
+21 Oct** (user's decision) with the texts below, sent to Markus for
+feedback; corrections go in afterwards. Changed from the first draft:
+"{language} használata" became "{language} nyelv használata".
+
+| Key | English | German (proposal) | Hungarian (proposal) |
+|---|---|---|---|
+| tutorThinking | A good answer takes a moment... | Eine gute Antwort braucht einen Moment ... | Egy jó válaszhoz kell egy kis idő ... |
+| tutorAnswerNow | Answer now | Jetzt antworten | Válasz most |
+| tutorChooseSentences | Choose sentences | (has: Sätze auswählen) | Mondatok kiválasztása |
+| tutorCharCount | {count} / {max} characters | (has) | {count} / {max} karakter |
+| tutorConsecutiveOnly | only consecutive sentences | (has) | csak egymást követő mondatok |
+| tutorApplySelection | Apply selection | (has) | Kijelölés alkalmazása |
+| tutorLevel | Language level | (has: Sprachlevel) | Nyelvi szint |
+| readAloudUnavailable | Read-aloud is not available at the moment. | Vorlesen ist gerade nicht verfügbar. | A felolvasás most nem érhető el. |
+| readAloudBusy | Read-aloud is busy right now. Please try again in a minute. | Vorlesen ist gerade ausgelastet. Bitte versuche es in einer Minute noch einmal. | A felolvasás most túlterhelt. Kérlek, próbáld újra egy perc múlva. |
+| languageMismatchBody | This text is in {detected}, not {selected}. | Dieser Text ist auf {detected}, nicht auf {selected}. | Ez a szöveg {detected}, nem {selected}. |
+| languageNotFoundBody | No {selected} text was found. Please check the source language. | Kein Text auf {selected} gefunden. Bitte prüfe die Ausgangssprache. | Nem található {selected} szöveg. Kérlek, ellenőrizd a forrásnyelvet. |
+| languageMismatchUse | Use {language} | {language} verwenden | {language} használata |
+| languageNameHu ... It | Hungarian, German, English, Dutch, French, Spanish, Russian, Italian | Ungarisch, Deutsch, Englisch, Niederländisch, Französisch, Spanisch, Russisch, Italienisch | magyar, német, angol, holland, francia, spanyol, orosz, olasz |
+| swipeToDeleteTip | Tip: swipe an entry to the left to delete it. | Tipp: Wische einen Eintrag nach links, um ihn zu löschen. | Tipp: húzz egy bejegyzést balra a törléséhez. |
+
+Grammar caveat: the language names are inserted into sentences. German
+"auf Ungarisch" works; Hungarian needs an adjective form for "Ez a szöveg
+magyar" but a case ending elsewhere, so Markus should check the two
+sentences with a name inside.
+
+---
+
 ## Update for Markus (draft, send when the round is done)
 
 1. **API keys off the phone.** (Rewrite once Alex's contract arrives.)

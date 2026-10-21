@@ -113,5 +113,21 @@
   "tutorCharCount": "{count} / {max} Zeichen",
   "tutorConsecutiveOnly": "nur aufeinanderfolgende Sätze",
   "tutorApplySelection": "Auswahl übernehmen",
-  "tutorLevel": "Sprachlevel"
+  "tutorLevel": "Sprachlevel",
+  "readAloudUnavailable": "Vorlesen ist gerade nicht verfügbar.",
+  "readAloudBusy": "Vorlesen ist gerade ausgelastet. Bitte versuche es in einer Minute noch einmal.",
+  "languageMismatchBody": "Dieser Text ist auf {detected}, nicht auf {selected}.",
+  "languageNotFoundBody": "Kein Text auf {selected} gefunden. Bitte prüfe die Ausgangssprache.",
+  "languageMismatchUse": "{language} verwenden",
+  "languageNameHu": "Ungarisch",
+  "languageNameDe": "Deutsch",
+  "languageNameEn": "Englisch",
+  "languageNameNl": "Niederländisch",
+  "languageNameFr": "Französisch",
+  "languageNameEs": "Spanisch",
+  "languageNameRu": "Russisch",
+  "languageNameIt": "Italienisch",
+  "tutorThinking": "Eine gute Antwort braucht einen Moment ...",
+  "tutorAnswerNow": "Jetzt antworten",
+  "swipeToDeleteTip": "Tipp: Wische einen Eintrag nach links, um ihn zu löschen."
 }

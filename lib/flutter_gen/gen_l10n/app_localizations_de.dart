@@ -178,12 +178,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ttsFailed => 'Sprachwiedergabe fehlgeschlagen';
 
   @override
-  String get readAloudUnavailable =>
-      'Read-aloud is not available at the moment.';
+  String get readAloudUnavailable => 'Vorlesen ist gerade nicht verfügbar.';
 
   @override
   String get readAloudBusy =>
-      'Read-aloud is busy right now. Please try again in a minute.';
+      'Vorlesen ist gerade ausgelastet. Bitte versuche es in einer Minute noch einmal.';
 
   @override
   String get recordingFailed => 'Aufnahme fehlgeschlagen.';
@@ -352,42 +351,42 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String languageMismatchBody(String detected, String selected) {
-    return 'This text is in $detected, not $selected.';
+    return 'Dieser Text ist auf $detected, nicht auf $selected.';
   }
 
   @override
   String languageNotFoundBody(String selected) {
-    return 'No $selected text was found. Please check the source language.';
+    return 'Kein Text auf $selected gefunden. Bitte prüfe die Ausgangssprache.';
   }
 
   @override
   String languageMismatchUse(String language) {
-    return 'Use $language';
+    return '$language verwenden';
   }
 
   @override
-  String get languageNameHu => 'Hungarian';
+  String get languageNameHu => 'Ungarisch';
 
   @override
-  String get languageNameDe => 'German';
+  String get languageNameDe => 'Deutsch';
 
   @override
-  String get languageNameEn => 'English';
+  String get languageNameEn => 'Englisch';
 
   @override
-  String get languageNameNl => 'Dutch';
+  String get languageNameNl => 'Niederländisch';
 
   @override
-  String get languageNameFr => 'French';
+  String get languageNameFr => 'Französisch';
 
   @override
-  String get languageNameEs => 'Spanish';
+  String get languageNameEs => 'Spanisch';
 
   @override
-  String get languageNameRu => 'Russian';
+  String get languageNameRu => 'Russisch';
 
   @override
-  String get languageNameIt => 'Italian';
+  String get languageNameIt => 'Italienisch';
 
   @override
   String get tutorUnderstanding => 'Verstehen';
@@ -416,12 +415,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tutorLevel => 'Sprachlevel';
 
   @override
-  String get tutorThinking => 'A good answer takes a moment...';
+  String get tutorThinking => 'Eine gute Antwort braucht einen Moment ...';
 
   @override
-  String get tutorAnswerNow => 'Answer now';
+  String get tutorAnswerNow => 'Jetzt antworten';
 
   @override
   String get swipeToDeleteTip =>
-      'Tip: swipe an entry to the left to delete it.';
+      'Tipp: Wische einen Eintrag nach links, um ihn zu löschen.';
 }

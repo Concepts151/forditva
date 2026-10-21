@@ -177,12 +177,11 @@ class AppLocalizationsHu extends AppLocalizations {
   String get ttsFailed => 'A hanglejátszás sikertelen';
 
   @override
-  String get readAloudUnavailable =>
-      'Read-aloud is not available at the moment.';
+  String get readAloudUnavailable => 'A felolvasás most nem érhető el.';
 
   @override
   String get readAloudBusy =>
-      'Read-aloud is busy right now. Please try again in a minute.';
+      'A felolvasás most túlterhelt. Kérlek, próbáld újra egy perc múlva.';
 
   @override
   String get recordingFailed => 'A felvétel sikertelen.';
@@ -349,42 +348,42 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String languageMismatchBody(String detected, String selected) {
-    return 'This text is in $detected, not $selected.';
+    return 'Ez a szöveg $detected, nem $selected.';
   }
 
   @override
   String languageNotFoundBody(String selected) {
-    return 'No $selected text was found. Please check the source language.';
+    return 'Nem található $selected szöveg. Kérlek, ellenőrizd a forrásnyelvet.';
   }
 
   @override
   String languageMismatchUse(String language) {
-    return 'Use $language';
+    return '$language nyelv használata';
   }
 
   @override
-  String get languageNameHu => 'Hungarian';
+  String get languageNameHu => 'magyar';
 
   @override
-  String get languageNameDe => 'German';
+  String get languageNameDe => 'német';
 
   @override
-  String get languageNameEn => 'English';
+  String get languageNameEn => 'angol';
 
   @override
-  String get languageNameNl => 'Dutch';
+  String get languageNameNl => 'holland';
 
   @override
-  String get languageNameFr => 'French';
+  String get languageNameFr => 'francia';
 
   @override
-  String get languageNameEs => 'Spanish';
+  String get languageNameEs => 'spanyol';
 
   @override
-  String get languageNameRu => 'Russian';
+  String get languageNameRu => 'orosz';
 
   @override
-  String get languageNameIt => 'Italian';
+  String get languageNameIt => 'olasz';
 
   @override
   String get tutorUnderstanding => 'Megértés';
@@ -396,29 +395,29 @@ class AppLocalizationsHu extends AppLocalizations {
   String get tutorFocus => 'Tanulási fókusz';
 
   @override
-  String get tutorChooseSentences => 'Choose sentences';
+  String get tutorChooseSentences => 'Mondatok kiválasztása';
 
   @override
   String tutorCharCount(int count, int max) {
-    return '$count / $max characters';
+    return '$count / $max karakter';
   }
 
   @override
-  String get tutorConsecutiveOnly => 'only consecutive sentences';
+  String get tutorConsecutiveOnly => 'csak egymást követő mondatok';
 
   @override
-  String get tutorApplySelection => 'Apply selection';
+  String get tutorApplySelection => 'Kijelölés alkalmazása';
 
   @override
-  String get tutorLevel => 'Language level';
+  String get tutorLevel => 'Nyelvi szint';
 
   @override
-  String get tutorThinking => 'A good answer takes a moment...';
+  String get tutorThinking => 'Egy jó válaszhoz kell egy kis idő ...';
 
   @override
-  String get tutorAnswerNow => 'Answer now';
+  String get tutorAnswerNow => 'Válasz most';
 
   @override
   String get swipeToDeleteTip =>
-      'Tip: swipe an entry to the left to delete it.';
+      'Tipp: húzz egy bejegyzést balra a törléséhez.';
 }
