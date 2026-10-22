@@ -56,8 +56,8 @@ class TextAiResult {
 
 /// Sends [request] to [model] and returns the reply. Pure Dart (no Flutter),
 /// so the comparison tools in tool/ can use it. The app itself sends Gemini
-/// requests through Firebase AI Logic (gemini_firebase.dart) and uses this
-/// only for DeepSeek. Throws on any HTTP error.
+/// requests through Firebase AI Logic (gemini_firebase.dart) and does not
+/// call this. Throws on any HTTP error.
 Future<TextAiResult> generateText(
   AiModel model,
   TextAiRequest request, {

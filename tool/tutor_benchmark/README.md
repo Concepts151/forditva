@@ -1,5 +1,10 @@
 # Tutor and translation benchmark: Gemini vs DeepSeek
 
+> **Do not run this on Markus's texts any more (22 October 2026).** Markus
+> decided all AI in Forditva runs in the EU only. This tool calls DeepSeek
+> (China) and the Gemini Developer API (no EU location), and the app no
+> longer has a DeepSeek path. It is kept as a record of the comparison.
+
 A small program outside the app that runs Markus's controlled comparison
 (`DEVELOPER_HANDOFF_EN.md`, 12 October 2026). It does not touch the app,
 WIU charging or the Token Server.

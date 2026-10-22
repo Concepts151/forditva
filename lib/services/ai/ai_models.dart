@@ -39,6 +39,8 @@ class AiModel {
 ///
 /// DeepSeek entries use the peak price from api-docs.deepseek.com
 /// (2026-10-12); off-peak is half, so charging peak never undercharges.
+/// Only the comparison tools in tool/ use them: the app runs all AI in the
+/// EU (Markus, 2026-10-22) and has no DeepSeek path.
 class AiModels {
   static const geminiFlashLite = AiModel(
     provider: AiProvider.gemini,

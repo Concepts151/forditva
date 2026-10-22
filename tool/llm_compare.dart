@@ -1,6 +1,8 @@
 // Compares models on the Tutor and on plain translation, using the app's own
 // prompts, JSON checks and price table (Markus, 2026-10-12: test DeepSeek
 // against Gemini on 10 examples before changing anything).
+// Do not run it on Markus's texts any more: since 2026-10-22 all AI must
+// run in the EU, and this calls DeepSeek and the Gemini Developer API.
 //
 // Run from the repo root:
 //   dart run tool/llm_compare.dart [examples.txt] [--lang DE] [--level 27]
