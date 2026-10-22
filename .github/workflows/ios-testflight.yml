@@ -1,16 +1,12 @@
 name: iOS TestFlight
 
+# Manual only until Markus provides the App Store Connect API key and the
+# iOS Firebase app exists (2026-10-22); without the APP_STORE_CONNECT_*
+# secrets every push to main would fail. To run on push again, add back:
+#   push: { branches: [main], paths: ['lib/**', 'ios/**', 'pubspec.yaml',
+#           'pubspec.lock', '.github/workflows/ios-testflight.yml'] }
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'lib/**'
-      - 'ios/**'
-      - 'pubspec.yaml'
-      - 'pubspec.lock'
-      - '.github/workflows/ios-testflight.yml'
 
 concurrency:
   group: ios-testflight-${{ github.ref }}
