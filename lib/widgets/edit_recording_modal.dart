@@ -7,6 +7,7 @@ import 'package:forditva/services/gemini_translation_service.dart';
 import 'package:forditva/services/gemini_speech_service.dart';
 import 'package:forditva/services/history_store.dart';
 import 'package:forditva/widgets/amp_waveform.dart';
+import 'package:forditva/widgets/error_dialog.dart';
 import 'package:forditva/widgets/language_mismatch_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
@@ -312,8 +313,15 @@ class _EditTextModalState extends State<EditTextModal> {
     if (_isRecording) {
       await _onStopTap();
     }
-    setState(() => _loading = true);
     final inputText = _controller.text.trim();
+    // Everything deleted: clear both panels without a language check,
+    // translation or history entry.
+    if (inputText.isEmpty) {
+      widget.onEdited(edited: '', translated: '');
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _loading = true);
     var from = widget.fromLang;
     var to = widget.toLang;
     final detected = await detectSupportedLanguageCode(
@@ -336,11 +344,24 @@ class _EditTextModalState extends State<EditTextModal> {
       from = newFrom;
       setState(() => _loading = true);
     }
-    final translated = await widget.gemini.translate(
-      inputText,
-      from.code,
-      to.code,
-    );
+    final String translated;
+    try {
+      translated = await widget.gemini.translate(
+        inputText,
+        from.code,
+        to.code,
+      );
+    } catch (e) {
+      // No connection, or an answer the Firebase SDK cannot read (an empty
+      // candidate throws "Unhandled format for Content"). Keep the panel and
+      // its text open instead of spinning forever.
+      debugPrint('Edit panel translation failed: $e');
+      if (!mounted) return;
+      setState(() => _loading = false);
+      await showFriendlyError(context);
+      return;
+    }
+    if (!mounted) return;
     setState(() => _loading = false);
     unawaited(
       HistoryStore.save(

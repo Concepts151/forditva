@@ -19,6 +19,7 @@ bottom can be sent once the round is done.
 | 11 | Translation | Natural instead of literal plain translation; a dropped last line found in testing | done (20 Oct), tested on the Xiaomi |
 | 12 | Tutor | Markus's "Sprachlevel" ring, always without a number | done (20 Oct), not yet seen on screen |
 | 13 | Release | Play Console access granted; app has production access | keys removed from the bundled `.env`; AAB next |
+| 16 | AI / privacy | Markus (22 Oct, via Alex): all AI in the EU only; DeepSeek out of every build, Gemini to Vertex AI with an EU location | DeepSeek removed from the app (22 Oct); Vertex switch waits for Alex's location |
 
 ---
 
@@ -588,6 +589,15 @@ the unused `chatgpt_service.dart` and `lingvanex_translation_service.dart`.
 **To revoke (Markus):** OpenAI, Lingvanex, the three commented-out keys,
 and the old Google key once this build is live.
 
+**Upload key reset (21 Oct):** Kayode's upload key (July) is lost, so a
+new one was created (`.deploy/upload-keystore.jks`, alias `upload`,
+SHA-256 `F5:2C:45:91:9F:D7:C1:BC:1A:2B:C4:A8:7C:83:86:09:F8:B7:B1:36:6E:4D:26:90:9B:98:D0:AE:34:E6:7C:CE`).
+"Request reset" was greyed out for the developer account; Markus
+requested it. Google: valid from **23 Oct 2026, 20:03**; no upload before
+then. Play app signing key (Google's, for Firebase App Check): SHA-256
+`03:FD:44:FE:8D:EE:0D:02:D2:54:BB:B1:26:EA:94:4D:50:9D:5E:7D:39:8E:08:23:D6:9E:18:BC:FF:D5:42:E9`,
+SHA-1 `1C:D8:EE:15:F5:A0:BE:32:F6:D5:F7:16:45:28:80:C0:F9:E5:62:5D`.
+
 **Alex (doc, 20 Oct):** read-aloud results, old key can go after release,
 DeepSeek function request (`deepseek-flash`, no `response_format`, token
 counts back), app signing fingerprint on upload day.
@@ -652,6 +662,47 @@ Grammar caveat: the language names are inserted into sentences. German
 "auf Ungarisch" works; Hungarian needs an adjective form for "Ez a szöveg
 magyar" but a case ending elsewhere, so Markus should check the two
 sentences with a name inside.
+
+---
+
+## 16. All AI in the EU (Markus, via Alex, 22 Oct)
+
+**Decision:** every AI call must run in the EU. DeepSeek stays off in
+every build, test builds too; translation and the Tutor stay on Gemini.
+Gemini moves from the Gemini Developer API (globally pooled, no location)
+to the Vertex AI Gemini API with an EU location; App Check stays on. Alex
+enables Vertex AI in the Firebase project and picks the location.
+Read-aloud moves to Google's EU endpoint on his server, no app change.
+
+**Done (22 Oct):** DeepSeek removed from the app:
+`deepseek_firebase.dart` and its test deleted, `runAiTask` is Gemini-only.
+No CI or Play build ever set `DEEPSEEK=true`; only the local debug build
+on the Xiaomi called it, and it gets replaced. The DeepSeek price entries
+and REST path stay for the comparison tools in `tool/` only. Code is in
+git (`747e1ef`) if Markus ever wants it back.
+
+**Sent to Alex:** our models. `gemini-3.5-flash-lite` for translation,
+Text-page explain and voice input; `gemini-3.8-flash` for the Tutor,
+language check, photos and PDFs. No Live API.
+
+**Next, when Alex gives the location:** `gemini_firebase.dart` switches
+from `FirebaseAI.googleAI()` to `FirebaseAI.agentPlatform(location: ...)`
+(firebase_ai 4.0 defaults that to "global", so the location must be set),
+and `ai_models.dart` pins the versioned model names instead of the
+`-latest` aliases. Then a full test on the Xiaomi before the AAB.
+
+**Also found while testing (22 Oct):**
+- Edit panel: tapping the check on an empty field sent the empty text to
+  Gemini, whose empty answer crashed the Firebase SDK parser ("Unhandled
+  format for Content: {}") and left the panel spinning. Now an empty field
+  clears both panels with no AI call, history entry or read-aloud
+  (`edit_recording_modal.dart`, `_playSoundWithOpenAI` skips empty text),
+  and any failed translation in the panel shows the error popup and keeps
+  the text.
+- Read-aloud slow: 2.9 to 19.3 s per call today (77 to 339 bytes), no
+  errors; 0.6 to 0.95 s on 20 Oct. Phone network fine (65 ms to the
+  function host), Gemini voice input normal (4.4 s). Asked Alex whether
+  `synthesizeSpeech` changed.
 
 ---
 

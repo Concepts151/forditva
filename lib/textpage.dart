@@ -324,6 +324,11 @@ class _TextPageState extends State<TextPage> {
     VoidCallback onStart,
     VoidCallback onDone,
   ) async {
+    // Nothing to read (the edit panel was emptied): no read-aloud call.
+    if (text.trim().isEmpty) {
+      onDone();
+      return;
+    }
     try {
       _audioPlayer ??= ap.AudioPlayer();
       await _audioPlayer!.stop();
