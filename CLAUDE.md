@@ -85,14 +85,18 @@ machine; the CI workflows bump it to 4g (Jetifier OOMs at 1536m on the runner).
   `FORDITVA_DEBUG_KEYSTORE` to use it on CI. The APK workflow **fails** if the
   built APK's signer != repo variable `ANDROID_SIGNING_SHA256`. Do not let a
   runner-generated key ship: Play Protect blocks it and testers can't update.
-- **Play upload key** (the .aab only): generated 2026-07-23, alias `upload`,
-  SHA-256 `1F:51:05:AD:A2:19:B5:E1:...:8F:75`. Lives in **`.deploy/`**
+- **Play upload key** (the .aab only): **reset 2026-10-21** (Kayode's July
+  key `1F:51:...:8F:75` was lost), alias `upload`, SHA-256
+  `F5:2C:45:91:9F:D7:C1:BC:1A:2B:C4:A8:7C:83:86:09:F8:B7:B1:36:6E:4D:26:90:9B:98:D0:AE:34:E6:7C:CE`,
+  valid from 2026-10-23 20:03. Lives in **`.deploy/`**
   (gitignored: `upload-keystore.jks`, `upload-keystore-password.txt`,
   `PLAY_SIGNING.md`) AND as GitHub secrets `ANDROID_UPLOAD_KEYSTORE`(base64) /
   `_KEYSTORE_PASSWORD` / `_KEY_ALIAS` / `_KEY_PASSWORD`. `build.gradle.kts`
   signs release with it only when `FORDITVA_UPLOAD_KEYSTORE` is set (the AAB
   job); otherwise release still uses the debug key. **`.deploy/` is not in git —
   back it up off-machine. Losing the upload key needs a Play support reset.**
+- **Play app signing key** (Google's; Play re-signs the AAB with it, and
+  Firebase App Check needs it): SHA-256 `03:FD:44:FE:...:D5:42:E9`.
 - iOS signing is fully automated in `ios-testflight.yml` via the App Store
   Connect API key (GitHub secrets `APP_STORE_CONNECT_*`, `APPLE_TEAM_ID`,
   `IOS_BUNDLE_ID`). iOS bundle id: `hu.wirinungarn.forditva3`.

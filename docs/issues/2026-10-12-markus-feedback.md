@@ -732,12 +732,9 @@ Integrity API to the Cloud project. He enforces App Check for AI Logic
 before 2 Nov; after that, sideloaded APKs lose AI, so testers install from
 Play.
 
-Play app signing keys (Play Console > App signing, 23 Oct):
-- In use: `03:FD:44:FE:8D:EE:0D:02:D2:54:BB:B1:26:EA:94:4D:50:9D:5E:7D:39:8E:08:23:D6:9E:18:BC:FF:D5:42:E9`
-- Previous (first used 27 Jul 2026, marked "Quantum-ready (beta)"):
-  `F5:2C:45:91:9F:D7:C1:BC:1A:2B:C4:A8:7C:83:86:09:F8:B7:B1:36:6E:4D:26:90:9B:98:D0:AE:34:E6:7C:CE`
-Upload key (ours): `1F:51:...:8F:75`. Alex registers both signing keys in
-Firebase; Play signs new installs with the one in use.
+Play app signing key for Firebase: `03:FD:...:42:E9` (see item 13). The
+AAB's own signer is our upload key `F5:2C:...:7C:CE` ("CN=Forditva
+Upload"), which does not go into Firebase.
 
 **Capacity problem on "eu" (23 Oct, 15:30 to 15:50 WAT, from the Mac):**
 3.5 Flash-Lite 10/10 OK (avg 1.5 s); 3.8 Flash 1/10 OK (7 timeouts at
@@ -749,6 +746,18 @@ our project today. The language check runs on 3.8 Flash before every
 translation, so every translation waits on it. Evening rerun (21:44 WAT): 3.8 Flash 10/10, avg 2.0 s, so it is
 peak-hour capacity, not a permanent fault. Sent to Alex as a docx
 (`Forditva-open-points-for-Alex-2026-10-23.docx`).
+
+**Play (23 Oct, 23:22):** 75 (1.0.1) is live on Internal testing (178
+countries). It first went to Open testing by mistake; removed before
+review. Version 75 had to come from the bundle library, since Play never
+accepts a version code twice. The bundle list also shows 67 (7 Aug) and
+66 (27 Jul) as "Active": check the open and closed testing tracks before
+App Check is enforced.
+
+**Play Integrity (23 Oct, 23:39):** Markus linked forditva-151
+(851863893438) in Play Console; app licensing, application integrity and
+device integrity on, daily limit 10,000. Alex told to enforce App Check
+once Markus runs the Play build and Firebase shows verified requests.
 
 **Done in +75 (23 Oct):**
 - Language check back on Flash-Lite: 32/34 short samples right (only "OK"
