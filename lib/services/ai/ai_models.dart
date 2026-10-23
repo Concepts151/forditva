@@ -33,9 +33,11 @@ class AiModel {
 /// The models the routes in ai_router.dart can choose from.
 ///
 /// Gemini entries keep the Gemini 2.5 Flash prices behind [geminiWiuCost]
-/// ($0.30 / $2.50), so charges stay exactly as before. Google now serves
-/// 3.8 Flash ($0.75 / $3.75) for the -latest alias; changing that charge is
-/// Markus's decision (asked 2026-10-12).
+/// ($0.30 / $2.50), so charges stay exactly as before. 3.8 Flash costs
+/// $0.75 / $3.75; changing that charge is Markus's decision (asked
+/// 2026-10-12). The IDs are pinned versions, not the -latest aliases: the
+/// app runs on Vertex AI in the EU (Markus, 2026-10-22), and the model
+/// should only change when we change it.
 ///
 /// DeepSeek entries use the peak price from api-docs.deepseek.com
 /// (2026-10-12); off-peak is half, so charging peak never undercharges.
@@ -44,7 +46,7 @@ class AiModel {
 class AiModels {
   static const geminiFlashLite = AiModel(
     provider: AiProvider.gemini,
-    id: 'gemini-flash-lite-latest',
+    id: 'gemini-3.5-flash-lite',
     inputPerM: 0.30,
     outputPerM: 2.50,
     thinkingControl: false,
@@ -52,7 +54,7 @@ class AiModels {
 
   static const geminiFlash = AiModel(
     provider: AiProvider.gemini,
-    id: 'gemini-flash-latest',
+    id: 'gemini-3.8-flash',
     inputPerM: 0.30,
     outputPerM: 2.50,
   );
