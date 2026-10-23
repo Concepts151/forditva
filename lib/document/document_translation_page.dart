@@ -1044,7 +1044,9 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
           fit: BoxFit.cover,
         ),
       ),
-      padding: const EdgeInsets.all(10),
+      // Bottom 5, like the input card above: with the icon row's own
+      // 8 below, both cards keep their icons 13 from the bottom edge.
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 5),
       child: Column(
         children: [
           Expanded(
@@ -1081,80 +1083,95 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                       ),
                     ),
           ),
-          Row(
-            children: [
-              IconButton(
-                icon: Image.asset(
-                  'assets/png24/black/b_copy.png',
-                  width: iconSize,
+          // Same spacing as the input card's icon row: plain icons, 8 in
+          // from the left and bottom, 20 apart. These were IconButtons,
+          // whose own padding and minimum size sat them higher and wider
+          // apart than the icons above (Markus).
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 8),
+            child: Row(
+              // Bottoms aligned: the share icon is 40 tall, and centring
+              // lifted the smaller icons above the 8 bottom inset.
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    if (_translatedText.isNotEmpty) {
+                      Clipboard.setData(ClipboardData(text: _translatedText));
+                      showCopiedToast(
+                        context,
+                        AppLocalizations.of(context)!.copiedToClipboard,
+                      );
+                    }
+                  },
+                  child: Image.asset(
+                    'assets/png24/black/b_copy.png',
+                    width: iconSize,
+                  ),
                 ),
-                onPressed: () {
-                  if (_translatedText.isNotEmpty) {
-                    Clipboard.setData(ClipboardData(text: _translatedText));
-                    showCopiedToast(
-                      context,
-                      AppLocalizations.of(context)!.copiedToClipboard,
-                    );
-                  }
-                },
-              ),
-              IconButton(
-                icon: Image.asset('assets/png24/black/b_share.png', width: 40),
-                onPressed: () {
-                  if (_translatedText.isNotEmpty) {
-                    Share.share(_translatedText);
-                  }
-                },
-              ),
-              IconButton(
-                icon: Image.asset(
-                  'assets/png24/black/b_fullscreen.png',
-                  width: iconSize,
+                const SizedBox(width: 20),
+                GestureDetector(
+                  onTap: () {
+                    if (_translatedText.isNotEmpty) {
+                      Share.share(_translatedText);
+                    }
+                  },
+                  child: Image.asset(
+                    'assets/png24/black/b_share.png',
+                    width: 40,
+                  ),
                 ),
-                onPressed: () {
-                  if (_translatedText.isNotEmpty) {
-                    // 👇 Unfocus the input to prevent cursor from reappearing later
-                    FocusScope.of(context).unfocus();
+                const SizedBox(width: 20),
+                GestureDetector(
+                  onTap: () {
+                    if (_translatedText.isNotEmpty) {
+                      // 👇 Unfocus the input to prevent cursor from reappearing later
+                      FocusScope.of(context).unfocus();
 
-                    showDialog(
-                      context: context,
-                      builder: (_) => LandscapeZoomModal(text: _translatedText),
-                    );
-                  }
-                },
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () async {
-                  if (_isSpeaking) {
-                    await _stopSpeaking();
-                  } else if (_translatedText.isNotEmpty) {
-                    await _speak();
-                  }
-                },
-                child:
-                    _isSpeaking
-                        // Same stop-square asset the conversation page uses
-                        // (Markus, 2026-07-12: only icons from his asset
-                        // folder), tinted black since w_stop.png is white and
-                        // was made for the dark conversation-page card.
-                        ? ColorFiltered(
-                          colorFilter: const ColorFilter.mode(
-                            Colors.black,
-                            BlendMode.srcIn,
-                          ),
-                          child: Image.asset(
-                            'assets/images/w_stop.png',
+                      showDialog(
+                        context: context,
+                        builder: (_) => LandscapeZoomModal(text: _translatedText),
+                      );
+                    }
+                  },
+                  child: Image.asset(
+                    'assets/png24/black/b_fullscreen.png',
+                    width: iconSize,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () async {
+                    if (_isSpeaking) {
+                      await _stopSpeaking();
+                    } else if (_translatedText.isNotEmpty) {
+                      await _speak();
+                    }
+                  },
+                  child:
+                      _isSpeaking
+                          // Same stop-square asset the conversation page uses
+                          // (Markus, 2026-07-12: only icons from his asset
+                          // folder), tinted black since w_stop.png is white and
+                          // was made for the dark conversation-page card.
+                          ? ColorFiltered(
+                            colorFilter: const ColorFilter.mode(
+                              Colors.black,
+                              BlendMode.srcIn,
+                            ),
+                            child: Image.asset(
+                              'assets/images/w_stop.png',
+                              width: iconSize,
+                              height: iconSize,
+                            ),
+                          )
+                          : Image.asset(
+                            'assets/png24/black/b_speaker.png',
                             width: iconSize,
-                            height: iconSize,
                           ),
-                        )
-                        : Image.asset(
-                          'assets/png24/black/b_speaker.png',
-                          width: iconSize,
-                        ),
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
