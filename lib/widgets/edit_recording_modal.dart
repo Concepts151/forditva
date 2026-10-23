@@ -8,6 +8,7 @@ import 'package:forditva/services/gemini_speech_service.dart';
 import 'package:forditva/services/history_store.dart';
 import 'package:forditva/widgets/amp_waveform.dart';
 import 'package:forditva/widgets/error_dialog.dart';
+import 'package:forditva/utils/utils.dart';
 import 'package:forditva/widgets/language_mismatch_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
@@ -490,15 +491,9 @@ class _EditTextModalState extends State<EditTextModal> {
                             Expanded(
                               child:
                                   _isSttLoading
-                                      ? const Center(
-                                        child: SizedBox(
-                                          width: 32,
-                                          height: 32,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                      )
+                                      // The app's grid loader, as on the
+                                      // Text and Image pages.
+                                      ? const Center(child: GifLoader(size: 40))
                                       : _isRecording
                                       ? Row(
                                         mainAxisAlignment:
@@ -539,7 +534,7 @@ class _EditTextModalState extends State<EditTextModal> {
                   Positioned.fill(
                     child: Container(
                       color: Colors.white60,
-                      child: const Center(child: CircularProgressIndicator()),
+                      child: const Center(child: GifLoader(size: 80)),
                     ),
                   ),
               ],
