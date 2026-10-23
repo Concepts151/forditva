@@ -189,7 +189,14 @@ exactly as specified above.
     }
 
     final split = takeLanguagesLine(
-      await _callGemini('$prompt$_languagesInstruction', imageFile),
+      await _callGemini(
+        '$prompt$_languagesInstruction',
+        imageFile,
+        // Thinking off: reading and translating a page needs none, and a
+        // 4-row spreadsheet took 33 s with 2,472 thinking tokens, all
+        // charged to the user (2026-10-23).
+        thinking: false,
+      ),
     );
     lastDocumentLanguages = split.languages;
     return split.text;
@@ -242,7 +249,7 @@ STRICT OUTPUT FORMAT: return ONLY a JSON array of strings, one translation per i
 Segments:
 ${jsonEncode(originals)}
 ''';
-    var text = await _callGemini(prompt, null);
+    var text = await _callGemini(prompt, null, thinking: false);
     final fence = RegExp(r'^```[a-zA-Z]*\s*([\s\S]*?)\s*```$').firstMatch(text);
     if (fence != null) text = fence.group(1)!.trim();
     final decoded = jsonDecode(text);
@@ -253,7 +260,13 @@ ${jsonEncode(originals)}
   }
 
   /// [file] is the image/PDF to attach, or null for a text-only request.
-  Future<String> _callGemini(String prompt, File? file) async {
+  /// [thinking] stays on for questions about a document, where reasoning
+  /// over its content helps the answer.
+  Future<String> _callGemini(
+    String prompt,
+    File? file, {
+    bool thinking = true,
+  }) async {
     final reply = await geminiGenerate(
       _model,
       // Was 2048, which a multi-page PDF blows straight through: the
@@ -263,7 +276,12 @@ ${jsonEncode(originals)}
       // (Markus, 2026-07-15, 9-page PDF; reproduced 1:1 with his file:
       // 1201 thought tokens then a bare [] at 2048, full extraction at
       // a higher cap).
-      TextAiRequest(user: prompt, temperature: 0.2, maxOutputTokens: 32768),
+      TextAiRequest(
+        user: prompt,
+        temperature: 0.2,
+        maxOutputTokens: 32768,
+        thinking: thinking,
+      ),
       file:
           file == null
               ? null
