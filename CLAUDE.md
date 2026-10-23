@@ -238,10 +238,11 @@ design discussion and Markus's decisions are in the 2026-08 Telegram export;
 the short version:
 
 - **Client side (this repo, done):** `lib/image_page.dart`'s file picker now
-  accepts doc/docx/xls/xlsx/odt/ods/txt. Non-image/PDF files go through
+  accepts doc/docx/xls/xlsx/odt/ods. Non-image/PDF files go through
   `lib/services/document_conversion_service.dart` (`DocumentConversionService.
-  convertToPdf`), which POSTs to `CONVERSION_API_BASE_URL/convert-to-pdf`
-  (`.env`, dormant/blank until the domain exists) with a Firebase App Check
+  convertToPdf`), which POSTs to
+  `https://convert.wir-in-ungarn.hu/convert/to-pdf` (constant in the code;
+  `CONVERSION_API_BASE_URL` in `.env` overrides it) with a Firebase App Check
   token, then the result flows into the same `PdfPageSelectorDialog` +
   `_processImage` path a directly-uploaded PDF uses. Conversion failure shows
   a dedicated dialog (`conversionFailedTitle`/`Body`), and `_statusText`
@@ -253,10 +254,10 @@ the short version:
   Play Integrity provider on Android, App Attest on iOS — via `main.dart`'s
   `_initFirebaseAppCheck()`. This proves a request comes from a genuine,
   unmodified app install with nothing embedded to extract.
-- **Backend (`conversion-service/`, code only, not deployed):** rewritten
+- **Backend (`conversion-service/`, deployed by Andy 2026-10-23):** rewritten
   2026-10-16 from Markus's FastAPI draft (Python + LibreOffice headless in
-  Docker), replacing Kayode's Node version. `POST /convert/to-pdf` (the app
-  still calls the old `/convert-to-pdf`; switch it when Andy deploys).
+  Docker), replacing Kayode's Node version. `POST /convert/to-pdf`. Andy's
+  proxy adds a rate limit (3 quick requests, then 429) and a 16 MiB body cap.
   Firebase App Check token checked against Google's public JWKS (no
   service account); optional test key only from 127.0.0.1 inside the
   container. Limits (Markus, 2026-10-14): 15 MB upload, 30 MB PDF, 2
@@ -270,28 +271,10 @@ the short version:
   is unrelated to this endpoint's auth, App Check protects the conversion
   server from abuse, it does not make WIU spend server-authoritative.
 
-**BLOCKED before this can actually run:**
-1. **A real Firebase project.** `lib/firebase_options.dart` is a placeholder
-   (`REPLACE_ME` values) — App Check silently no-ops until real ones are in.
-   Needs: create the project, register the Android app
-   (`hu.wirinungarn.forditva`) and iOS app (`hu.wirinungarn.forditva3`),
-   enable App Check with Play Integrity (Android) + App Attest (iOS)
-   providers, generate a service account for the backend
-   (`GOOGLE_APPLICATION_CREDENTIALS`). Needs a Google account with rights to
-   create Firebase/GCP projects — ask Markus whose account this should live
-   under, same question as Play Console.
-2. **Hosting/domain from Andy** — message already sent (2026-08), asking for
-   a subdomain (Markus's preference `convert.wir-in-ungarn.hu`) and port on
-   the same server as `wiu.hu`/`wir-verify`. Once assigned: set
-   `CONVERSION_API_BASE_URL` in `.env` (+ the GitHub `DOTENV` secret) and
-   deploy `conversion-service/`.
-3. **German/Hungarian for two remaining strings** — Markus said he'd send
-   these "together with other UI texts": the conversion-failure dialog
-   (`conversionFailedTitle`/`Body`) and the two progress states
-   (`convertingDocument`/`analyzingAndTranslating`). English ships now;
-   DE/HU currently fall back to English automatically (flutter gen-l10n
-   default behavior) until he sends them — do not write these myself, per
-   the standing translation rule below.
+**Status (2026-10-23):** the Firebase project (`forditva-151`), Andy's
+deployment and Markus's DE/HU strings are all in place, so the feature is
+live from v1.0.1+74. Tested from the Mac with an App Check debug token:
+DOCX, XLSX, ODT, ODS and DOC all convert.
 
 ## Open / blocked tasks (from the 17-22 Jul Telegram export)
 

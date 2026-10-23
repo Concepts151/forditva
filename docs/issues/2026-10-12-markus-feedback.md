@@ -19,7 +19,8 @@ bottom can be sent once the round is done.
 | 11 | Translation | Natural instead of literal plain translation; a dropped last line found in testing | done (20 Oct), tested on the Xiaomi |
 | 12 | Tutor | Markus's "Sprachlevel" ring, always without a number | done (20 Oct), not yet seen on screen |
 | 13 | Release | Play Console access granted; app has production access | keys removed from the bundled `.env`; AAB next |
-| 16 | AI / privacy | Markus (22 Oct, via Alex): all AI in the EU only; DeepSeek out of every build, Gemini to Vertex AI with an EU location | DeepSeek removed from the app (22 Oct); Vertex switch waits for Alex's location |
+| 16 | AI / privacy | Markus (22 Oct, via Alex): all AI in the EU only; DeepSeek out of every build, Gemini to Vertex AI with an EU location | done (23 Oct): DeepSeek out, Gemini on Vertex AI "eu", tested on the phone; in +73 |
+| 17 | Documents | Andy deployed the conversion server (23 Oct) | app switched to it; DOCX/XLSX/ODT/ODS/DOC tested from the Mac; in +74 |
 
 ---
 
@@ -702,7 +703,54 @@ and `ai_models.dart` pins the versioned model names instead of the
 - Read-aloud slow: 2.9 to 19.3 s per call today (77 to 339 bytes), no
   errors; 0.6 to 0.95 s on 20 Oct. Phone network fine (65 ms to the
   function host), Gemini voice input normal (4.4 s). Asked Alex whether
-  `synthesizeSpeech` changed.
+  `synthesizeSpeech` changed. Update 23 Oct: it was the MTN mobile
+  connection; on office Wi-Fi read-aloud takes 0.55 to 2.0 s.
+
+**Done (23 Oct, +73):** Alex enabled Vertex AI and chose "eu".
+`gemini_firebase.dart` calls `FirebaseAI.agentPlatform(location: 'eu')`;
+`ai_models.dart` pins `gemini-3.5-flash-lite` and `gemini-3.8-flash`.
+Every feature answered 200 through
+`firebasevertexai.googleapis.com/v1beta/projects/forditva-151/locations/eu/...`
+on the Xiaomi: language check, translation, voice input (3.2 s), Tutor
+(Decoder 22.9 s with 1,401 thinking tokens; Learning focus with "Answer
+now" 14.5 s), photo (6.0 s check + 7.8 s translation). PDF not tested.
+Alex moved read-aloud to Google's EU endpoint and deleted `deepseekChat`.
+Also in +73:
+- Language check runs with thinking off: it took ~4.5 s before every
+  translation, now 0 to 32 thinking tokens.
+- Text page: the result card's icons use the input card's spacing
+  (Markus).
+- Edit panel shows the app's grid loader instead of the blue spinner.
+
+Occasional slow calls on "eu" even on good Wi-Fi: Flash-Lite 18.7 s for
+289 tokens in / 11 out, 3.8 Flash 28.2 s for 123 in / 1 out. Watch for
+it; "europe-west4" is Alex's fallback location.
+
+**Release day for Alex:** send him the Play app signing SHA-256 (Play
+Console > App integrity) after the first upload, and link the Play
+Integrity API to the Cloud project. He enforces App Check for AI Logic
+before 2 Nov; after that, sideloaded APKs lose AI, so testers install from
+Play.
+
+---
+
+## 17. Conversion server live (Andy, 23 Oct)
+
+Andy deployed `conversion-service/` at
+`https://convert.wir-in-ungarn.hu/convert/to-pdf` (HTTPS, port 8000 closed,
+401 without a token, 429 after 3 quick requests, 413 over 16 MiB, 27 tests
+passed). The app now uses that URL by default (it was blank in `.env`, so
+the Office formats were hidden on the Image page) and the new path
+`/convert/to-pdf`, and waits 100 s instead of 60 s, since the server allows
+LibreOffice 90 s.
+
+Tested from the Mac with an App Check token from the phone's debug secret
+(23 Oct): DOCX 3.3 s, XLSX 3.0 s, ODT 2.0 s, ODS 2.3 s, all 200 with
+correct Hungarian and German accents in the PDF. The fifth request (DOC)
+in the same burst got 429, as Andy's limit intends; a minute later DOC
+converted in 2.3 s. No token and a bad token both got 401; an HTML file
+renamed to .docx got 400 ("File content does not match its format").
+Still to do: the same from the app on the phone.
 
 ---
 
