@@ -110,10 +110,12 @@ Output format (strict JSON, no extra text, no markdown formatting inside the JSO
   }
 
   Future<String> detectLanguage(String inputText) async {
-    // Routed to the full Flash model, not flash-lite: flash-lite does
-    // little "thinking" and was misidentifying short/diacritic-heavy text,
-    // e.g. genuine Hungarian read as Portuguese or German (Markus,
-    // 2026-07-10). Language ID needs more care than a plain translation.
+    // Runs on Flash-Lite again (2026-10-23). In July the older Flash-Lite
+    // misread short Hungarian as Portuguese or German (Markus, 2026-07-10),
+    // so the check moved to Flash. On the fixed answer list below, 3.5
+    // Flash-Lite got 32 of 34 short HU/DE/EN/... samples right, 3.8 Flash
+    // (thinking off) 29 of 31; and 3.8 Flash on "eu" ran out of capacity
+    // at European peak hours, hanging every translation behind this check.
     // Constrained answer set + an explicit "unsure" escape hatch. The old
     // open-ended prompt forced a guess, and on noisy OCR samples (numbers,
     // codes, mixed fragments) that guess skewed toward EN, producing false
@@ -130,8 +132,8 @@ $inputText
 ''';
     final result = await runAiTask(
       AiTask.detectLanguage,
-      // Thinking off: the answer is one code, and with thinking on the check
-      // took ~4.5 s before every translation (Wi-Fi, 2026-10-23).
+      // Thinking off: the answer is one code. Flash-Lite ignores the
+      // setting; it stays for when the route points at a thinking model.
       TextAiRequest(user: prompt, temperature: 0.0, thinking: false),
     );
     return result.text.trim().toUpperCase();

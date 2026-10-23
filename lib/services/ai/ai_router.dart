@@ -33,7 +33,7 @@ enum AiTask {
 const Map<AiTask, AiModel> aiRoutes = {
   AiTask.translate: AiModels.geminiFlashLite,
   AiTask.explain: AiModels.geminiFlashLite,
-  AiTask.detectLanguage: AiModels.geminiFlash,
+  AiTask.detectLanguage: AiModels.geminiFlashLite,
   AiTask.tutor: AiModels.geminiFlash,
   AiTask.tutorSentences: AiModels.geminiFlash,
 };
