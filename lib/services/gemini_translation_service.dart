@@ -130,7 +130,9 @@ $inputText
 ''';
     final result = await runAiTask(
       AiTask.detectLanguage,
-      TextAiRequest(user: prompt, temperature: 0.0),
+      // Thinking off: the answer is one code, and with thinking on the check
+      // took ~4.5 s before every translation (Wi-Fi, 2026-10-23).
+      TextAiRequest(user: prompt, temperature: 0.0, thinking: false),
     );
     return result.text.trim().toUpperCase();
   }
