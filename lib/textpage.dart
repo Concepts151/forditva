@@ -344,8 +344,8 @@ class _TextPageState extends State<TextPage> {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("TTS failed: ${file.path}")));
+          setState(() => _isAudioPlaying = false);
         }
-        setState(() => _isAudioPlaying = false);
         onDone();
         return;
       }
@@ -376,8 +376,12 @@ class _TextPageState extends State<TextPage> {
 
       await _audioPlayer!.play(ap.DeviceFileSource(file.path));
     } catch (e) {
-      if (mounted) showTtsError(context, e);
-      setState(() => _isAudioPlaying = false);
+      // The page may be gone by now: leaving it during the voice download
+      // disposes the player, and play() then throws.
+      if (mounted) {
+        showTtsError(context, e);
+        setState(() => _isAudioPlaying = false);
+      }
       onDone();
     }
   }
@@ -390,6 +394,7 @@ class _TextPageState extends State<TextPage> {
       _isAudioLoadingInput = true;
     });
     await _playInputSound(); // handles file and plays
+    if (!mounted) return;
     setState(() {
       _isAudioLoadingInput = false;
       _isInputPlaying = false; // will also be set in the listener
@@ -404,6 +409,7 @@ class _TextPageState extends State<TextPage> {
       _isAudioLoadingOutput = true;
     });
     await _playOutputSound();
+    if (!mounted) return;
     setState(() {
       _isAudioLoadingOutput = false;
       _isOutputPlaying = false; // will also be set in the listener

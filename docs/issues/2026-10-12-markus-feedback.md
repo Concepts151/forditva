@@ -732,6 +732,33 @@ Integrity API to the Cloud project. He enforces App Check for AI Logic
 before 2 Nov; after that, sideloaded APKs lose AI, so testers install from
 Play.
 
+Play app signing keys (Play Console > App signing, 23 Oct):
+- In use: `03:FD:44:FE:8D:EE:0D:02:D2:54:BB:B1:26:EA:94:4D:50:9D:5E:7D:39:8E:08:23:D6:9E:18:BC:FF:D5:42:E9`
+- Previous (first used 27 Jul 2026, marked "Quantum-ready (beta)"):
+  `F5:2C:45:91:9F:D7:C1:BC:1A:2B:C4:A8:7C:83:86:09:F8:B7:B1:36:6E:4D:26:90:9B:98:D0:AE:34:E6:7C:CE`
+Upload key (ours): `1F:51:...:8F:75`. Alex registers both signing keys in
+Firebase; Play signs new installs with the one in use.
+
+**Capacity problem on "eu" (23 Oct, 15:30 to 15:50 WAT, from the Mac):**
+3.5 Flash-Lite 10/10 OK (avg 1.5 s); 3.8 Flash 1/10 OK (7 timeouts at
+90 s, 2x 429 "Resource exhausted"); 3.5 Flash also timed out. Every
+regional EU location (europe-west1/3/4/8/9, north1, central2,
+southwest1) answers 404 "not found or your project does not have access"
+for every model, even gemini-2.5-flash, so there is no EU fallback for
+our project today. The language check runs on 3.8 Flash before every
+translation, so every translation waits on it. Evening rerun (21:44 WAT): 3.8 Flash 10/10, avg 2.0 s, so it is
+peak-hour capacity, not a permanent fault. Sent to Alex as a docx
+(`Forditva-open-points-for-Alex-2026-10-23.docx`).
+
+**Done in +75 (23 Oct):**
+- Language check back on Flash-Lite: 32/34 short samples right (only "OK"
+  read as EN), against 29/31 for 3.8 Flash with thinking off; about 1 s.
+- Photo/PDF/Office translation with thinking off (the 4-row XLSX: 2,472
+  thinking tokens and 33 s before, none after). "Ask about this document"
+  keeps thinking.
+- Conversation page: leaving the page while read-aloud loads no longer
+  throws "setState() called after dispose()".
+
 ---
 
 ## 17. Conversion server live (Andy, 23 Oct)
