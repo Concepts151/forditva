@@ -10,6 +10,7 @@ import 'package:forditva/widgets/amp_waveform.dart';
 import 'package:forditva/widgets/error_dialog.dart';
 import 'package:forditva/utils/utils.dart';
 import 'package:forditva/widgets/language_mismatch_dialog.dart';
+import 'package:forditva/widgets/mic_permission.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -186,6 +187,7 @@ class _EditTextModalState extends State<EditTextModal> {
   }
 
   Future<void> _onMicTap() async {
+    if (!await ensureMicPermission(context, _audioRecorder)) return;
     setState(() {
       _isRecording = true;
       _isSttLoading = false;

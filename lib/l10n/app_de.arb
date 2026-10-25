@@ -57,6 +57,7 @@
   "recordingFailed": "Aufnahme fehlgeschlagen.",
   "transcriptionFailed": "Transkription fehlgeschlagen",
   "couldNotTranscribe": "Audio konnte nicht transkribiert werden. Bitte versuche es erneut.",
+  "microphonePermissionNeeded": "Forditva braucht das Mikrofon für die Spracheingabe. Bitte erlaube es in den Einstellungen.",
   "pleaseMakeRecording": "Bitte nimm etwas auf",
   "wrongLanguage": "Falsche Sprache",
   "wrongLanguageBody": "Bitte gib die richtige Sprache ein.",

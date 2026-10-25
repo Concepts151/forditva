@@ -57,6 +57,7 @@
   "recordingFailed": "A felvétel sikertelen.",
   "transcriptionFailed": "Az átírás sikertelen",
   "couldNotTranscribe": "Nem sikerült átírni a hangot. Próbáld újra.",
+  "microphonePermissionNeeded": "A hangbevitelhez a Forditvának szüksége van a mikrofonra. Kérlek, engedélyezd a Beállításokban.",
   "pleaseMakeRecording": "Kérjük, készíts egy felvételt",
   "wrongLanguage": "Rossz nyelv",
   "wrongLanguageBody": "Kérjük, a megfelelő nyelvet add meg.",

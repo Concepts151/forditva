@@ -195,6 +195,10 @@ class AppLocalizationsHu extends AppLocalizations {
       'Nem sikerült átírni a hangot. Próbáld újra.';
 
   @override
+  String get microphonePermissionNeeded =>
+      'A hangbevitelhez a Forditvának szüksége van a mikrofonra. Kérlek, engedélyezd a Beállításokban.';
+
+  @override
   String get pleaseMakeRecording => 'Kérjük, készíts egy felvételt';
 
   @override

@@ -195,6 +195,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t transcribe audio. Please try again.';
 
   @override
+  String get microphonePermissionNeeded =>
+      'Forditva needs the microphone for voice input. Please allow it in Settings.';
+
+  @override
   String get pleaseMakeRecording => 'Please make a recording';
 
   @override

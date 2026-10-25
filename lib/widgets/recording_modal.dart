@@ -8,6 +8,7 @@ import 'package:record/record.dart';
 import '../flutter_gen/gen_l10n/app_localizations.dart';
 import '../models/language_enum.dart';
 import '../services/gemini_speech_service.dart';
+import 'mic_permission.dart';
 
 /// Central recording panel shown when the user taps the mic on a
 /// conversation card.
@@ -114,6 +115,10 @@ class _RecordingModalState extends State<RecordingModal> {
     });
 
     final recorder = _recorder ??= AudioRecorder();
+    if (!await ensureMicPermission(context, recorder)) {
+      widget.onCancel?.call();
+      return;
+    }
     // record 5.x hands out one single-subscription amplitude stream per
     // recorder, so subscribe once and reuse it across retries.
     _ampSub ??= recorder

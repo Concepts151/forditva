@@ -454,6 +454,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t transcribe audio. Please try again.'**
   String get couldNotTranscribe;
 
+  /// No description provided for @microphonePermissionNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Forditva needs the microphone for voice input. Please allow it in Settings.'**
+  String get microphonePermissionNeeded;
+
   /// No description provided for @pleaseMakeRecording.
   ///
   /// In en, this message translates to:

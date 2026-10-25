@@ -59,6 +59,7 @@
   "recordingFailed": "Recording failed.",
   "transcriptionFailed": "Transcription failed",
   "couldNotTranscribe": "Couldn't transcribe audio. Please try again.",
+  "microphonePermissionNeeded": "Forditva needs the microphone for voice input. Please allow it in Settings.",
   "pleaseMakeRecording": "Please make a recording",
   "wrongLanguage": "Wrong Language",
   "wrongLanguageBody": "Please select or enter the correct language.",
