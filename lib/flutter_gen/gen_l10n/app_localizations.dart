@@ -454,6 +454,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t transcribe audio. Please try again.'**
   String get couldNotTranscribe;
 
+  /// Under the loaded PDF's file name: the pages translated, e.g. 1-3,5. Tapping the PDF picks other pages.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Page {pages}} other{Pages {pages}}}'**
+  String pdfPagesLabel(int count, String pages);
+
   /// No description provided for @microphonePermissionNeeded.
   ///
   /// In en, this message translates to:

@@ -195,6 +195,17 @@ class AppLocalizationsHu extends AppLocalizations {
       'Nem sikerült átírni a hangot. Próbáld újra.';
 
   @override
+  String pdfPagesLabel(int count, String pages) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Oldalak: $pages',
+      one: 'Oldal: $pages',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get microphonePermissionNeeded =>
       'A hangbevitelhez a Forditvának szüksége van a mikrofonra. Kérlek, engedélyezd a Beállításokban.';
 

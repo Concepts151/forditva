@@ -57,6 +57,7 @@
   "recordingFailed": "Aufnahme fehlgeschlagen.",
   "transcriptionFailed": "Transkription fehlgeschlagen",
   "couldNotTranscribe": "Audio konnte nicht transkribiert werden. Bitte versuche es erneut.",
+  "pdfPagesLabel": "{count, plural, =1{Seite {pages}} other{Seiten {pages}}}",
   "microphonePermissionNeeded": "Forditva braucht das Mikrofon für die Spracheingabe. Bitte erlaube es in den Einstellungen.",
   "pleaseMakeRecording": "Bitte nimm etwas auf",
   "wrongLanguage": "Falsche Sprache",

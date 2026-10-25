@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,14 +7,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'package:forditva/document/document_translation_page.dart'
-    show LandscapeZoomModal;
 import 'package:forditva/services/gemini_image_service.dart';
 import 'package:forditva/widgets/wiu_gate.dart';
 import 'package:forditva/services/gemini_translation_service.dart';
 import 'package:forditva/services/gemini_tts_service.dart';
 import 'package:share_plus/share_plus.dart'; // your Gemini client
 import 'package:forditva/utils/utils.dart';
+import 'package:forditva/widgets/document_reader.dart';
 import 'package:forditva/widgets/cropper.dart';
 import 'package:forditva/widgets/error_dialog.dart';
 import 'package:forditva/services/document_conversion_service.dart';
@@ -179,11 +179,24 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     );
   }
 
+  /// Read-aloud state for the speaker icon: the app's loader while the
+  /// voice is generated (seconds for a long text), then Markus's pause icon
+  /// while it plays (tap stops). It had no feedback at all before (Markus,
+  /// 2026-10-25).
+  bool _isPreparingSpeech = false;
+  bool _isSpeaking = false;
+  StreamSubscription<ap.PlayerState>? _resultPlayerSub;
+
   Future<void> _speakResult() async {
     final text = _speakableText();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isPreparingSpeech) return;
+    setState(() => _isPreparingSpeech = true);
     try {
       _resultPlayer ??= ap.AudioPlayer();
+      _resultPlayerSub ??= _resultPlayer!.onPlayerStateChanged.listen((state) {
+        if (!mounted) return;
+        setState(() => _isSpeaking = state == ap.PlayerState.playing);
+      });
       await _resultPlayer!.stop();
       final file = await _ttsService.synthesizeSpeech(
         text: text,
@@ -193,7 +206,14 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     } catch (e) {
       debugPrint('Image TTS failed: $e');
       if (mounted) showTtsError(context, e);
+    } finally {
+      if (mounted) setState(() => _isPreparingSpeech = false);
     }
+  }
+
+  Future<void> _stopResultSpeech() async {
+    await _resultPlayer?.stop();
+    if (mounted) setState(() => _isSpeaking = false);
   }
 
   /// Opens the "ask a question about this document" modal (Markus,
@@ -526,6 +546,8 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     ThirdLanguagePref.notifier.removeListener(_onThirdLanguageChanged);
     _scrollController.dispose();
     hasHungarianText.dispose();
+    _resultPlayerSub?.cancel();
+    _resultPlayer?.dispose();
     super.dispose();
   }
 
@@ -576,10 +598,57 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     return null;
   }
 
+  /// The result as shown in the lower panel: translation pairs, an HTML
+  /// explanation, or the fallback text. [panelH] sizes the HTML and fallback
+  /// text, [zoom] is the pinch zoom. Shared with the full-screen reader.
+  Widget _resultBody(double panelH, double zoom) {
+    final res = _resultText.isNotEmpty ? _resultText : _placeholderText;
+    final htmlStr = stripHtmlCodeFence(res);
+    final salvagedJson = _isJsonArray(res) ? res : _extractJsonArray(res);
+    if (salvagedJson != null) {
+      return formattedJsonResult(
+        salvagedJson,
+        panelH,
+        onlyTranslated: _laActive, // Hide original if LA is active
+        zoom: zoom,
+      );
+    } else if (_isHtmlDoc(htmlStr)) {
+      return Html(
+        data: htmlStr,
+        style: {
+          "body": Style(
+            fontSize: FontSize(calculateFontSizes(res, panelH) * zoom),
+            // Tighter than the library's 1.2 default, paired with the
+            // smaller font above (Markus, 2026-07-27: "spacing between the
+            // lines are really big").
+            lineHeight: LineHeight.number(0.95),
+            fontFamily: GoogleFonts.robotoCondensed().fontFamily,
+          ),
+        },
+      );
+    }
+    // Non-empty but neither valid JSON nor HTML: Gemini broke its own
+    // strict-output format (Markus, 2026-07-10: raw reasoning text leaked
+    // into the result). Never show that raw text — fall back to a clean
+    // message, same as an unclear image. Empty/placeholder text still
+    // renders as before.
+    final shown =
+        res.isEmpty ? res : AppLocalizations.of(context)!.imageNotClearBody;
+    return Text(
+      shown,
+      style: GoogleFonts.robotoCondensed(
+        fontSize: calculateFontSizes(shown, panelH) * zoom,
+        letterSpacing: -0.3,
+      ),
+    );
+  }
+
+
   Widget formattedJsonResult(
     String jsonStr,
     double panelH, {
     bool onlyTranslated = false,
+    double zoom = 1.0,
   }) {
     final items = robustJsonArrayExtractor(jsonStr);
 
@@ -604,14 +673,16 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!onlyTranslated && orig.isNotEmpty)
+                  // Text already in the target language comes back
+                  // unchanged; show it once, not twice.
+                  if (!onlyTranslated && orig.isNotEmpty && orig != trans)
                     Text(
                       orig,
                       style: GoogleFonts.robotoCondensed(
                         // Was a flat 24.0, oversized for body text; also
                         // never actually adjustable, _zoomLevel had no
                         // gesture wired to it. Both fixed here.
-                        fontSize: 17.0 * _zoomLevel,
+                        fontSize: 17.0 * zoom,
                         height: 1.15,
                         fontWeight: FontWeight.w500,
                         color: navRed,
@@ -623,7 +694,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                       child: Text(
                         trans,
                         style: GoogleFonts.robotoCondensed(
-                          fontSize: 17.0 * _zoomLevel,
+                          fontSize: 17.0 * zoom,
                           height: 1.15,
                           fontWeight: FontWeight.w500,
                           color: navGreen,
@@ -1152,6 +1223,48 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
 
   /// Turns a sorted list of page numbers into a compact spec for the Gemini
   /// prompt, collapsing runs into ranges: [1,2,3,5] -> "1-3,5".
+  /// The page numbers in a spec from [_pagesToSpec]: "1-3,5" -> {1,2,3,5}.
+  Set<int> _specToPages(String? spec) {
+    final pages = <int>{};
+    for (final part in (spec ?? '').split(',')) {
+      final ends = part.split('-').map((e) => int.tryParse(e.trim())).toList();
+      if (ends.isEmpty || ends.any((e) => e == null)) continue;
+      final first = ends.first!, last = ends.last!;
+      for (var p = first; p <= last; p++) {
+        pages.add(p);
+      }
+    }
+    return pages;
+  }
+
+  /// Reopens the page picker for the PDF that is already loaded, with the
+  /// pages translated last time ticked, so other pages can be translated
+  /// without loading the file again (Markus, 2026-10-25). The same pages
+  /// with a result on screen change nothing; cancel changes nothing.
+  Future<void> _reselectPdfPages() async {
+    final file = _imageFile;
+    if (file == null || !_isPdf || _isProcessing) return;
+    final selected = await showDialog<List<int>?>(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => PdfPageSelectorDialog(
+            file: file,
+            initialSelection: _specToPages(_pdfPageSpec),
+          ),
+    );
+    if (!mounted || selected == null || selected.isEmpty) return;
+    final spec = _pagesToSpec(selected);
+    if (spec == _pdfPageSpec && _resultText.isNotEmpty) return;
+    setState(() {
+      _pdfPageSpec = spec;
+      _resultText = '';
+      _translateResultCache = null;
+      _interpretResultCache = null;
+    });
+    await _processImage(imageFile: file);
+  }
+
   String _pagesToSpec(List<int> pages) {
     final parts = <String>[];
     var start = pages.first;
@@ -1254,7 +1367,14 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                         // show, so display the filename
                                         // instead of failing an Image.file
                                         // decode.
-                                        ? Center(
+                                        // Tapping a PDF reopens the page
+                                        // picker for the same file (Markus,
+                                        // 2026-10-25).
+                                        ? GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap:
+                                              _isPdf ? _reselectPdfPages : null,
+                                          child: Center(
                                           child: Column(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
@@ -1288,7 +1408,27 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                                       ),
                                                 ),
                                               ),
+                                              if (_isPdf &&
+                                                  _pdfPageSpec != null) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  )!.pdfPagesLabel(
+                                                    _specToPages(
+                                                      _pdfPageSpec,
+                                                    ).length,
+                                                    _pdfPageSpec!,
+                                                  ),
+                                                  style:
+                                                      GoogleFonts.robotoCondensed(
+                                                        fontSize: 16,
+                                                        color: navGreen,
+                                                      ),
+                                                ),
+                                              ],
                                             ],
+                                          ),
                                           ),
                                         )
                                         : (_croppedImageFile ?? _imageFile) !=
@@ -1598,87 +1738,9 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                       thumbVisibility: true,
                                       child: SingleChildScrollView(
                                         controller: _scrollController,
-                                        child: Builder(
-                                          builder: (_) {
-                                            final panelH =
-                                                panelConstraints.maxHeight;
-                                            final res =
-                                                _resultText.isNotEmpty
-                                                    ? _resultText
-                                                    : _placeholderText;
-                                            final htmlStr = stripHtmlCodeFence(
-                                              res,
-                                            );
-                                            final salvagedJson =
-                                                _isJsonArray(res)
-                                                    ? res
-                                                    : _extractJsonArray(res);
-                                            if (salvagedJson != null) {
-                                              return formattedJsonResult(
-                                                salvagedJson,
-                                                panelH,
-                                                onlyTranslated:
-                                                    _laActive, // Hide original if LA is active
-                                              );
-                                            } else if (_isHtmlDoc(htmlStr)) {
-                                              return Html(
-                                                data: htmlStr,
-                                                style: {
-                                                  "body": Style(
-                                                    fontSize: FontSize(
-                                                      calculateFontSizes(
-                                                            res,
-                                                            panelH,
-                                                          ) *
-                                                          _zoomLevel,
-                                                    ),
-                                                    // Tighter than the
-                                                    // library's 1.2 default,
-                                                    // paired with the smaller
-                                                    // font above (Markus,
-                                                    // 2026-07-27: "spacing
-                                                    // between the lines are
-                                                    // really big").
-                                                    lineHeight:
-                                                        LineHeight.number(0.95),
-                                                    fontFamily:
-                                                        GoogleFonts.robotoCondensed()
-                                                            .fontFamily,
-                                                  ),
-                                                },
-                                              );
-                                            } else {
-                                              // Non-empty but neither valid
-                                              // JSON nor HTML: Gemini broke its
-                                              // own strict-output format
-                                              // (Markus, 2026-07-10: raw
-                                              // reasoning text leaked into the
-                                              // result). Never show that raw
-                                              // text — fall back to a clean
-                                              // message, same as an unclear
-                                              // image. Empty/placeholder text
-                                              // still renders as before.
-                                              final shown =
-                                                  res.isEmpty
-                                                      ? res
-                                                      : AppLocalizations.of(
-                                                        context,
-                                                      )!.imageNotClearBody;
-                                              return Text(
-                                                shown,
-                                                style:
-                                                    GoogleFonts.robotoCondensed(
-                                                      fontSize:
-                                                          calculateFontSizes(
-                                                            shown,
-                                                            panelH,
-                                                          ) *
-                                                          _zoomLevel,
-                                                      letterSpacing: -0.3,
-                                                    ),
-                                              );
-                                            }
-                                          },
+                                        child: _resultBody(
+                                          panelConstraints.maxHeight,
+                                          _zoomLevel,
                                         ),
                                       ),
                                     ),
@@ -1742,20 +1804,25 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                       ),
                                     ),
                                     SizedBox(width: iconSize * 0.5),
-                                    // Fullscreen: was only toggling a flag
-                                    // nothing read (Markus, 2026-07-10: "the
-                                    // zoom button is not working"). Now opens
-                                    // the same landscape zoom view used on
-                                    // the conversation cards.
+                                    // Fullscreen: an upright reader with the
+                                    // result laid out as in the panel. The
+                                    // landscape zoom view of the
+                                    // conversation cards ran a whole
+                                    // document together sideways
+                                    // (2026-10-25).
                                     GestureDetector(
                                       onTap: () {
-                                        final zoomText = _speakableText();
-                                        if (zoomText.isEmpty) return;
+                                        if (_resultText.isEmpty) return;
                                         showDialog(
                                           context: context,
                                           builder:
-                                              (_) => LandscapeZoomModal(
-                                                text: zoomText,
+                                              (_) => DocumentReader(
+                                                builder:
+                                                    (zoom, height) =>
+                                                        _resultBody(
+                                                          height,
+                                                          zoom,
+                                                        ),
                                               ),
                                         );
                                       },
@@ -1842,12 +1909,22 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                     // Speaker — read the translated result
                                     // aloud. Last icon in the row.
                                     GestureDetector(
-                                      onTap: _speakResult,
-                                      child: Image.asset(
-                                        'assets/png24/black/b_speaker.png',
-                                        width: iconSize,
-                                        height: iconSize,
-                                      ),
+                                      onTap:
+                                          _isPreparingSpeech
+                                              ? null
+                                              : _isSpeaking
+                                              ? _stopResultSpeech
+                                              : _speakResult,
+                                      child:
+                                          _isPreparingSpeech
+                                              ? GifLoader(size: iconSize)
+                                              : Image.asset(
+                                                _isSpeaking
+                                                    ? 'assets/png24/black/b_pause.png'
+                                                    : 'assets/png24/black/b_speaker.png',
+                                                width: iconSize,
+                                                height: iconSize,
+                                              ),
                                     ),
                                   ],
                                 ),

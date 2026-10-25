@@ -196,6 +196,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Audio konnte nicht transkribiert werden. Bitte versuche es erneut.';
 
   @override
+  String pdfPagesLabel(int count, String pages) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Seiten $pages',
+      one: 'Seite $pages',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get microphonePermissionNeeded =>
       'Forditva braucht das Mikrofon für die Spracheingabe. Bitte erlaube es in den Einstellungen.';
 
