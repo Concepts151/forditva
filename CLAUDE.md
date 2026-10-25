@@ -10,7 +10,9 @@ Forditva is a **Flutter** speech + text + image translation app. Core language
 pair is **Hungarian ⇄ German**; a third language is user-selectable
 (EN/NL/FR/IT/RU/ES). It is branded for the **wir-in-ungarn.hu** community. The
 client is **Markus Messemer** (communicates via Telegram; the user/developer
-here is **Kayode**, "Jordanz"). Markus's WordPress developer is **Shahin**.
+here is **Kayode**, "Jordanz"). Markus's web developer is **Alex** (Aliaksandr; headless WordPress + Next.js;
+replaced Shahin Alam, who built the prepaid code list). **Andy** is Markus's
+Linux admin and decides what runs on the servers (2026-10-12).
 
 Stack: Flutter/Dart, **Gemini** for translation + image OCR (raw REST,
 `gemini-flash-latest`), Google Cloud **STT** + **TTS**, `drift`/sqlite for
@@ -67,6 +69,14 @@ machine; the CI workflows bump it to 4g (Jetifier OOMs at 1536m on the runner).
 
 ## Signing keys
 
+- **2026-10-02: new sideload key.** Kayode (and his key below) became
+  unreachable, so tester APKs from v1.0.1+70 on are signed with
+  `.deploy/forditva-sideload.jks`, SHA-256
+  `32:B6:75:A1:F3:A7:4E:7E:AC:4C:82:61:05:BF:94:1F:87:C3:ED:C8:28:40:96:2E:4F:CF:AD:3D:F3:65:74:F9`.
+  Build with `FORDITVA_DEBUG_KEYSTORE="$PWD/.deploy/forditva-sideload.jks"`;
+  details and backup notes in `.deploy/SIDELOAD_SIGNING.md`. Testers had to
+  uninstall the old build once (losing local WIU balance). The notes below
+  describe the old setup.
 - **Debug/sideload key** (all APKs Markus installs): SHA-256
   `037e7f9488a7920ad7961494f89c697207f1b71a72ae9b12e8f76a7e2530401c`. The
   release build type signs with the *debug* key so testers can install updates
@@ -75,14 +85,18 @@ machine; the CI workflows bump it to 4g (Jetifier OOMs at 1536m on the runner).
   `FORDITVA_DEBUG_KEYSTORE` to use it on CI. The APK workflow **fails** if the
   built APK's signer != repo variable `ANDROID_SIGNING_SHA256`. Do not let a
   runner-generated key ship: Play Protect blocks it and testers can't update.
-- **Play upload key** (the .aab only): generated 2026-07-23, alias `upload`,
-  SHA-256 `1F:51:05:AD:A2:19:B5:E1:...:8F:75`. Lives in **`.deploy/`**
+- **Play upload key** (the .aab only): **reset 2026-10-21** (Kayode's July
+  key `1F:51:...:8F:75` was lost), alias `upload`, SHA-256
+  `F5:2C:45:91:9F:D7:C1:BC:1A:2B:C4:A8:7C:83:86:09:F8:B7:B1:36:6E:4D:26:90:9B:98:D0:AE:34:E6:7C:CE`,
+  valid from 2026-10-23 20:03. Lives in **`.deploy/`**
   (gitignored: `upload-keystore.jks`, `upload-keystore-password.txt`,
   `PLAY_SIGNING.md`) AND as GitHub secrets `ANDROID_UPLOAD_KEYSTORE`(base64) /
   `_KEYSTORE_PASSWORD` / `_KEY_ALIAS` / `_KEY_PASSWORD`. `build.gradle.kts`
   signs release with it only when `FORDITVA_UPLOAD_KEYSTORE` is set (the AAB
   job); otherwise release still uses the debug key. **`.deploy/` is not in git —
   back it up off-machine. Losing the upload key needs a Play support reset.**
+- **Play app signing key** (Google's; Play re-signs the AAB with it, and
+  Firebase App Check needs it): SHA-256 `03:FD:44:FE:...:D5:42:E9`.
 - iOS signing is fully automated in `ios-testflight.yml` via the App Store
   Connect API key (GitHub secrets `APP_STORE_CONNECT_*`, `APPLE_TEAM_ID`,
   `IOS_BUNDLE_ID`). iOS bundle id: `hu.wirinungarn.forditva3`.
@@ -228,10 +242,11 @@ design discussion and Markus's decisions are in the 2026-08 Telegram export;
 the short version:
 
 - **Client side (this repo, done):** `lib/image_page.dart`'s file picker now
-  accepts doc/docx/xls/xlsx/odt/ods/txt. Non-image/PDF files go through
+  accepts doc/docx/xls/xlsx/odt/ods. Non-image/PDF files go through
   `lib/services/document_conversion_service.dart` (`DocumentConversionService.
-  convertToPdf`), which POSTs to `CONVERSION_API_BASE_URL/convert-to-pdf`
-  (`.env`, dormant/blank until the domain exists) with a Firebase App Check
+  convertToPdf`), which POSTs to
+  `https://convert.wir-in-ungarn.hu/convert/to-pdf` (constant in the code;
+  `CONVERSION_API_BASE_URL` in `.env` overrides it) with a Firebase App Check
   token, then the result flows into the same `PdfPageSelectorDialog` +
   `_processImage` path a directly-uploaded PDF uses. Conversion failure shows
   a dedicated dialog (`conversionFailedTitle`/`Body`), and `_statusText`
@@ -243,12 +258,14 @@ the short version:
   Play Integrity provider on Android, App Attest on iOS — via `main.dart`'s
   `_initFirebaseAppCheck()`. This proves a request comes from a genuine,
   unmodified app install with nothing embedded to extract.
-- **Backend (new, `conversion-service/`, code only, not deployed):** Node +
-  Express + LibreOffice headless in Docker. `/convert-to-pdf` requires a
-  valid App Check token (verified server-side via `firebase-admin`) and is
-  rate-limited (20 req/15min/IP). 4MB file size limit (Markus's number, "keep
-  conversion time, server load, and abuse risk under control"). Deletes the
-  original + converted files immediately after each response. See
+- **Backend (`conversion-service/`, deployed by Andy 2026-10-23):** rewritten
+  2026-10-16 from Markus's FastAPI draft (Python + LibreOffice headless in
+  Docker), replacing Kayode's Node version. `POST /convert/to-pdf`. Andy's
+  proxy adds a rate limit (3 quick requests, then 429) and a 16 MiB body cap.
+  Firebase App Check token checked against Google's public JWKS (no
+  service account); optional test key only from 127.0.0.1 inside the
+  container. Limits (Markus, 2026-10-14): 15 MB upload, 30 MB PDF, 2
+  parallel, 90 s. Andy hosts it at `convert.wir-in-ungarn.hu`. See
   `conversion-service/README.md`.
 - **Cost:** no separate surcharge — converted files bill through the exact
   same `geminiWiuCost` (+30% margin) as any other PDF, by construction (they
@@ -258,30 +275,15 @@ the short version:
   is unrelated to this endpoint's auth, App Check protects the conversion
   server from abuse, it does not make WIU spend server-authoritative.
 
-**BLOCKED before this can actually run:**
-1. **A real Firebase project.** `lib/firebase_options.dart` is a placeholder
-   (`REPLACE_ME` values) — App Check silently no-ops until real ones are in.
-   Needs: create the project, register the Android app
-   (`hu.wirinungarn.forditva`) and iOS app (`hu.wirinungarn.forditva3`),
-   enable App Check with Play Integrity (Android) + App Attest (iOS)
-   providers, generate a service account for the backend
-   (`GOOGLE_APPLICATION_CREDENTIALS`). Needs a Google account with rights to
-   create Firebase/GCP projects — ask Markus whose account this should live
-   under, same question as Play Console.
-2. **Hosting/domain from Andy** — message already sent (2026-08), asking for
-   a subdomain (Markus's preference `convert.wir-in-ungarn.hu`) and port on
-   the same server as `wiu.hu`/`wir-verify`. Once assigned: set
-   `CONVERSION_API_BASE_URL` in `.env` (+ the GitHub `DOTENV` secret) and
-   deploy `conversion-service/`.
-3. **German/Hungarian for two remaining strings** — Markus said he'd send
-   these "together with other UI texts": the conversion-failure dialog
-   (`conversionFailedTitle`/`Body`) and the two progress states
-   (`convertingDocument`/`analyzingAndTranslating`). English ships now;
-   DE/HU currently fall back to English automatically (flutter gen-l10n
-   default behavior) until he sends them — do not write these myself, per
-   the standing translation rule below.
+**Status (2026-10-23):** the Firebase project (`forditva-151`), Andy's
+deployment and Markus's DE/HU strings are all in place, so the feature is
+live from v1.0.1+74. Tested from the Mac with an App Check debug token:
+DOCX, XLSX, ODT, ODS and DOC all convert.
 
 ## Open / blocked tasks (from the 17-22 Jul Telegram export)
+
+- **Issue lists live in `docs/issues/`**, one file per feedback round (latest:
+  `2026-09-29-markus-demo-video.md`). Keep details there, not here.
 
 - **Forditva → Play Store: BLOCKED on Markus.** He must open the Play Console
   ($25, Personal account, identity verification ~1-2 days), add Kayode's Google

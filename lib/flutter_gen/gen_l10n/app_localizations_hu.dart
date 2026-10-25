@@ -48,7 +48,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get documentMode => 'Dokumentum';
 
   @override
-  String get imageMode => 'Kép';
+  String get imageMode => 'Fájl';
 
   @override
   String get copyToClipboard => 'Vágólapra másolás';
@@ -177,6 +177,14 @@ class AppLocalizationsHu extends AppLocalizations {
   String get ttsFailed => 'A hanglejátszás sikertelen';
 
   @override
+  String get readAloudUnavailable =>
+      'Most nem tudom felolvasni neked a szöveget.';
+
+  @override
+  String get readAloudBusy =>
+      'A felolvasás most túlterhelt. Próbáld újra egy perc múlva.';
+
+  @override
   String get recordingFailed => 'A felvétel sikertelen.';
 
   @override
@@ -185,6 +193,21 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get couldNotTranscribe =>
       'Nem sikerült átírni a hangot. Próbáld újra.';
+
+  @override
+  String pdfPagesLabel(int count, String pages) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Oldalak: $pages',
+      one: 'Oldal: $pages',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get microphonePermissionNeeded =>
+      'A hangbevitelhez a Forditvának szüksége van a mikrofonra. Kérlek, engedélyezd a Beállításokban.';
 
   @override
   String get pleaseMakeRecording => 'Kérjük, készíts egy felvételt';
@@ -338,4 +361,79 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get conversionFailedBody =>
       'Kérjük, ellenőrizze, hogy a fájl nem jelszóval védett vagy sérült, és támogatott formátumú. Ezután próbálja meg újra.';
+
+  @override
+  String languageMismatchBody(String detected, String selected) {
+    return 'Ez a szöveg $detected, nem $selected.';
+  }
+
+  @override
+  String languageNotFoundBody(String selected) {
+    return 'Nem találtam $selected nyelvű szöveget. Ellenőrizd, hogy a megfelelő forrásnyelvet választottad-e.';
+  }
+
+  @override
+  String languageMismatchUse(String language) {
+    return '$language nyelv használata';
+  }
+
+  @override
+  String get languageNameHu => 'magyar';
+
+  @override
+  String get languageNameDe => 'német';
+
+  @override
+  String get languageNameEn => 'angol';
+
+  @override
+  String get languageNameNl => 'holland';
+
+  @override
+  String get languageNameFr => 'francia';
+
+  @override
+  String get languageNameEs => 'spanyol';
+
+  @override
+  String get languageNameRu => 'orosz';
+
+  @override
+  String get languageNameIt => 'olasz';
+
+  @override
+  String get tutorUnderstanding => 'Megértés';
+
+  @override
+  String get tutorDecoding => 'Dekódolás';
+
+  @override
+  String get tutorFocus => 'Tanulási fókusz';
+
+  @override
+  String get tutorChooseSentences => 'Mondatok kiválasztása';
+
+  @override
+  String tutorCharCount(int count, int max) {
+    return '$count / $max karakter';
+  }
+
+  @override
+  String get tutorConsecutiveOnly => 'csak egymást követő mondatok';
+
+  @override
+  String get tutorApplySelection => 'Kijelölés megerősítése';
+
+  @override
+  String get tutorLevel => 'Nyelvi szint';
+
+  @override
+  String get tutorThinking => 'Egy pillanat, készítem a válaszodat...';
+
+  @override
+  String get tutorAnswerNow => 'Válaszolj most';
+
+  @override
+  String get swipeToDeleteTip =>
+      'Tipp: húzz egy bejegyzést balra a törléséhez.';
 }

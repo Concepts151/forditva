@@ -45,10 +45,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outputPlaceholder => 'Translation will appear here.';
 
   @override
-  String get documentMode => 'Document';
+  String get documentMode => 'Text';
 
   @override
-  String get imageMode => 'Image';
+  String get imageMode => 'File';
 
   @override
   String get copyToClipboard => 'Copy to clipboard';
@@ -177,6 +177,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ttsFailed => 'Speech playback failed';
 
   @override
+  String get readAloudUnavailable =>
+      'Read-aloud is not available at the moment.';
+
+  @override
+  String get readAloudBusy =>
+      'Read-aloud is busy right now. Please try again in a minute.';
+
+  @override
   String get recordingFailed => 'Recording failed.';
 
   @override
@@ -185,6 +193,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get couldNotTranscribe =>
       'Couldn\'t transcribe audio. Please try again.';
+
+  @override
+  String pdfPagesLabel(int count, String pages) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Pages $pages',
+      one: 'Page $pages',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get microphonePermissionNeeded =>
+      'Forditva needs the microphone for voice input. Please allow it in Settings.';
 
   @override
   String get pleaseMakeRecording => 'Please make a recording';
@@ -324,7 +347,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get uploadAreaUploadFile =>
-      'Upload an image or document (PDF, Word, Excel, OpenDocument, or text file)';
+      'Upload an image or document (PDF or text file)';
 
   @override
   String get convertingDocument => 'Converting document...';
@@ -338,4 +361,79 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get conversionFailedBody =>
       'Please make sure the file is not password-protected, corrupted, or in an unsupported format, then try again.';
+
+  @override
+  String languageMismatchBody(String detected, String selected) {
+    return 'This text is in $detected, not $selected.';
+  }
+
+  @override
+  String languageNotFoundBody(String selected) {
+    return 'No $selected text was found. Please check the source language.';
+  }
+
+  @override
+  String languageMismatchUse(String language) {
+    return 'Use $language';
+  }
+
+  @override
+  String get languageNameHu => 'Hungarian';
+
+  @override
+  String get languageNameDe => 'German';
+
+  @override
+  String get languageNameEn => 'English';
+
+  @override
+  String get languageNameNl => 'Dutch';
+
+  @override
+  String get languageNameFr => 'French';
+
+  @override
+  String get languageNameEs => 'Spanish';
+
+  @override
+  String get languageNameRu => 'Russian';
+
+  @override
+  String get languageNameIt => 'Italian';
+
+  @override
+  String get tutorUnderstanding => 'Understanding';
+
+  @override
+  String get tutorDecoding => 'Decoding';
+
+  @override
+  String get tutorFocus => 'Learning Focus';
+
+  @override
+  String get tutorChooseSentences => 'Choose sentences';
+
+  @override
+  String tutorCharCount(int count, int max) {
+    return '$count / $max characters';
+  }
+
+  @override
+  String get tutorConsecutiveOnly => 'only consecutive sentences';
+
+  @override
+  String get tutorApplySelection => 'Apply selection';
+
+  @override
+  String get tutorLevel => 'Language level';
+
+  @override
+  String get tutorThinking => 'A good answer takes a moment...';
+
+  @override
+  String get tutorAnswerNow => 'Answer now';
+
+  @override
+  String get swipeToDeleteTip =>
+      'Tip: swipe an entry to the left to delete it.';
 }

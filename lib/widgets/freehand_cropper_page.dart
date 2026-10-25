@@ -38,7 +38,6 @@ class _FreehandCropperPageState extends State<FreehandCropperPage> {
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final size = constraints.biggest.shortestSide;
           return Container(
             width: double.infinity,
             height: double.infinity,

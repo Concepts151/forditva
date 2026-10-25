@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -19,11 +21,13 @@ import 'history.dart';
 import 'image_page.dart';
 import 'learning_list.dart';
 import 'profile_settings_page.dart';
+import 'services/history_store.dart';
 import 'services/level_pref.dart';
 import 'services/third_language_pref.dart';
 import 'services/token_balance.dart';
 import 'spacing.dart';
 import 'textpage.dart';
+import 'tutor/tutor_page.dart';
 
 // Colors and constants
 const Color navRed = Color(0xFFCD2A3E);
@@ -43,8 +47,12 @@ void main() async {
   await _initFirebaseAppCheck();
   await ThirdLanguagePref.load();
   await LevelPref.load();
+  await HistoryStore.load();
   await TokenBalance.instance.load();
-  await TokenBalance.instance.grantWelcomeIfFirstRun();
+  // Not awaited: on a first Android launch this waits on the welcome-grant
+  // server check (10s timeout), which kept the app on a blank screen. The
+  // balance is a ValueNotifier, so the UI picks up the grant when it lands.
+  unawaited(TokenBalance.instance.grantWelcomeIfFirstRun());
   runApp(
     MultiProvider(
       providers: [
@@ -60,21 +68,30 @@ void main() async {
 /// iOS) so the document-conversion endpoint can verify requests come from a
 /// genuine, unmodified install of this app, with no bundled secret to
 /// extract (Markus, 2026-08: "properly secure solution", not a static API
-/// key). Non-fatal: firebase_options.dart is still a placeholder until a
-/// real Firebase project exists, so this silently no-ops instead of
-/// crashing startup until then.
+/// key). Non-fatal: if Firebase can't start (iOS is still a placeholder in
+/// firebase_options.dart), this logs and the app starts normally.
+///
+/// Play Integrity only passes for apps installed from Google Play, so
+/// debug builds use the debug provider: the first run prints a debug token
+/// in logcat, which must be registered in the Firebase console (App Check >
+/// Apps > Manage debug tokens) before that phone gets valid tokens.
 Future<void> _initFirebaseAppCheck() async {
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.playIntegrity,
-      appleProvider: AppleProvider.appAttest,
+      providerAndroid:
+          kDebugMode
+              ? const AndroidDebugProvider()
+              : const AndroidPlayIntegrityProvider(),
+      providerApple: const AppleAppAttestProvider(),
     );
   } catch (e) {
-    debugPrint('Firebase App Check not active (expected until the real '
-        'Firebase project is configured): $e');
+    debugPrint(
+      'Firebase App Check not active (expected on iOS until its '
+      'Firebase app is configured): $e',
+    );
   }
 }
 
@@ -161,10 +178,15 @@ class SplashScreenRedirect extends StatefulWidget {
 }
 
 class _SplashScreenRedirectState extends State<SplashScreenRedirect> {
+  // Startup work is done before runApp, so this is only how long the logos
+  // stay visible.
+  static const _minSplashDuration = Duration(seconds: 1);
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(_minSplashDuration, () {
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => MainScreen(onLocaleChanged: widget.onLocaleChanged),
@@ -186,22 +208,30 @@ class MainScreen extends StatefulWidget {
   const MainScreen({super.key, required this.onLocaleChanged});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
   int _currentPage = 1;
 
+  // Anything that opens the Tutor (bulb, History, Favorites, Tutor history)
+  // sets TutorLauncher.request; switch to the Tutor page when it does.
   @override
   void initState() {
     super.initState();
-    // The page GlobalKeys have no currentState during the first build, so the
-    // Tutor bulb initially binds to the disabled notifier and never lights up.
-    // Rebuild once after the first frame so it binds to the active page's
-    // hasHungarianText notifier and reacts to Hungarian text appearing.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() {});
-    });
+    TutorLauncher.request.addListener(_showTutorPage);
+  }
+
+  @override
+  void dispose() {
+    TutorLauncher.request.removeListener(_showTutorPage);
+    super.dispose();
+  }
+
+  void _showTutorPage() {
+    if (TutorLauncher.request.value != null && mounted) {
+      setState(() => _currentPage = 7);
+    }
   }
 
   // Lets the nav bar's bulb button reach into each page's state to open the
@@ -224,6 +254,7 @@ class _MainScreenState extends State<MainScreen> {
     HistoryPage(), // 4: History (was placeholder)
     DocumentPlaceholderPage(key: _documentPageKey), // 5: Document
     ImagePlaceholderPage(key: _imagePageKey), // 6: Image
+    const TutorPage(), // 7: Tutor (Markus, 2026-10-09)
   ];
 
   dynamic get _activePageState {
@@ -250,6 +281,15 @@ class _MainScreenState extends State<MainScreen> {
   ValueListenable<bool> get _bulbEnabledListenable {
     final state = _activePageState;
     if (state != null) return state.hasHungarianText as ValueListenable<bool>;
+    // Only the current page is mounted, and it is created in this same build
+    // (app start or a page switch), so its GlobalKey has no State yet. Rebuild
+    // after the frame so the bulb binds to that page's notifier; otherwise it
+    // stayed grey on a freshly opened Document/Image page with Hungarian text.
+    if (_currentPage == 1 || _currentPage == 5 || _currentPage == 6) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    }
     return _disabled;
   }
 
@@ -267,6 +307,8 @@ class _MainScreenState extends State<MainScreen> {
         return AppLocalizations.of(context)!.documentMode;
       case 6:
         return AppLocalizations.of(context)!.imageMode;
+      case 7:
+        return 'Tutor';
       default:
         return '';
     }
@@ -276,33 +318,54 @@ class _MainScreenState extends State<MainScreen> {
   // calculation below always accounts for the longest one regardless of
   // which page/language is currently showing.
   static const List<String> _allPageNames = [
-    'Conversation', 'Document', 'Image', 'Learning List', 'Favorites', 'History',
-    'Gespräch', 'Dokument', 'Bild', 'Lernliste', 'Favoriten', 'Verlauf',
-    'Beszélgetés', 'Dokumentum', 'Kép', 'Tanulási lista', 'Kedvencek', 'Előzmények',
+    'Conversation',
+    'Text',
+    'File',
+    'Learning List',
+    'Favorites',
+    'History',
+    'Gespräch',
+    'Dokument',
+    'Datei',
+    'Lernliste',
+    'Favoriten',
+    'Verlauf',
+    'Beszélgetés',
+    'Dokumentum',
+    'Fájl',
+    'Tanulási lista',
+    'Kedvencek',
+    'Előzmények',
+    'Tutor',
   ];
 
-  /// The largest size (from a fixed tier list) at which every possible
-  /// nav-bar label still fits on one line within [maxWidth], so every label
-  /// renders at the same size instead of auto-shrinking individually.
-  double _navLabelFontSize(double maxWidth) {
-    const tiers = [24.0, 22.0, 20.0, 18.0, 16.0, 14.0];
-    for (final size in tiers) {
+  /// One size for every nav-bar label (Markus, 2026-07-11: all labels the
+  /// same size), now as large as the longest single WORD allows (Markus,
+  /// 2026-10-09: maximum size for "Conversation" / "Beszélgetés"). Two-word
+  /// labels ("Tanulási lista") wrap onto two lines at that size, so the
+  /// size is also capped to fit two lines in [maxHeight].
+  double _navLabelFontSize(double maxWidth, double maxHeight) {
+    final maxForTwoLines = (maxHeight / (2 * _navLabelLineHeight)).floor();
+    for (var size = 34; size >= 12; size--) {
+      if (size > maxForTwoLines) continue;
       final style = GoogleFonts.robotoCondensed(
         fontWeight: FontWeight.w500,
-        fontSize: size,
+        fontSize: size.toDouble(),
       );
-      final fitsAll = _allPageNames.every((name) {
+      final fitsAll = _allPageNames.expand((n) => n.split(' ')).every((word) {
         final painter = TextPainter(
-          text: TextSpan(text: name, style: style),
+          text: TextSpan(text: word, style: style),
           maxLines: 1,
           textDirection: TextDirection.ltr,
         )..layout(maxWidth: double.infinity);
         return painter.width <= maxWidth;
       });
-      if (fitsAll) return size;
+      if (fitsAll) return size.toDouble();
     }
-    return tiers.last;
+    return 12;
   }
+
+  static const _navLabelLineHeight = 1.0;
 
   @override
   Widget build(BuildContext context) {
@@ -348,16 +411,28 @@ class _MainScreenState extends State<MainScreen> {
           Spacing.sm + MediaQuery.of(context).viewPadding.bottom,
         ),
         child: Container(
-          // antiAliasWithSaveLayer composites the rounded-corner children
-          // cleanly against the border; the plain antiAlias clip was
-          // leaving a hairline red fringe bleeding past the black border
-          // at the left corner.
-          clipBehavior: Clip.antiAliasWithSaveLayer,
+          // The outline is painted ON TOP of the clipped coloured sections
+          // (foregroundDecoration). Drawn underneath, the sections' anti-
+          // aliased edges covered it and it looked uneven, worst at the
+          // rounded ends (Markus, 2026-10-09, fixed version in Photoshop:
+          // even outline plus a soft shadow).
           decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 4,
+                offset: Offset(0, 1.5),
+              ),
+            ],
+          ),
+          foregroundDecoration: BoxDecoration(
             borderRadius: BorderRadius.circular(32),
             border: Border.all(color: Colors.black, width: 2),
           ),
-          child: SizedBox(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: SizedBox(
             height: navBarHeight,
             child: Row(
               children: [
@@ -431,10 +506,11 @@ class _MainScreenState extends State<MainScreen> {
                         () => setState(() {
                           if (_currentPage == 1) {
                             _currentPage = 5;
-                          } else if (_currentPage == 5)
+                          } else if (_currentPage == 5) {
                             _currentPage = 6;
-                          else
+                          } else {
                             _currentPage = 1;
+                          }
                         }),
                     child: Container(
                       color: Colors.white,
@@ -451,12 +527,15 @@ class _MainScreenState extends State<MainScreen> {
                           builder: (context, constraints) {
                             return Text(
                               _getPageName(_currentPage),
-                              maxLines: 1,
+                              maxLines: 2,
+                              textAlign: TextAlign.center,
                               style: GoogleFonts.robotoCondensed(
                                 fontWeight: FontWeight.w500,
                                 fontSize: _navLabelFontSize(
                                   constraints.maxWidth,
+                                  navBarHeight - 6,
                                 ),
+                                height: _navLabelLineHeight,
                                 color: Colors.black,
                               ),
                             );
@@ -477,8 +556,7 @@ class _MainScreenState extends State<MainScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         GestureDetector(
-                          onTap:
-                              () => setState(() => _currentPage = 2),
+                          onTap: () => setState(() => _currentPage = 2),
                           child: Image.asset(
                             'assets/png24/white/w_learninglist.png',
                             width: iconSize,
@@ -487,8 +565,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap:
-                              () => setState(() => _currentPage = 3),
+                          onTap: () => setState(() => _currentPage = 3),
                           child: Image.asset(
                             'assets/png24/white/w_favorit.png',
                             width: iconSize,
@@ -497,8 +574,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap:
-                              () => setState(() => _currentPage = 4),
+                          onTap: () => setState(() => _currentPage = 4),
                           child: Image.asset(
                             'assets/png24/white/w_history.png',
                             width: iconSize,
@@ -513,9 +589,9 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
           ),
+          ),
         ),
       ),
     );
   }
 }
-

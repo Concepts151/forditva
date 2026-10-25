@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
+import 'package:firebase_ai/firebase_ai.dart' show FinishReason;
+import 'package:flutter/foundation.dart';
 import 'package:mime/mime.dart';
 
+import 'ai/ai_models.dart';
+import 'ai/gemini_firebase.dart';
+import 'ai/text_ai.dart';
 import 'gemini_cost.dart';
 import 'token_balance.dart';
 
@@ -16,10 +19,8 @@ import 'token_balance.dart';
 class GeminiImageService {
   GeminiImageService();
 
-  String get _apiKey => dotenv.env['GEMINI_API_KEY']!;
-  static const _model = 'gemini-flash-latest';
-  String get _endpoint =>
-      'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent?key=$_apiKey';
+  /// Through Firebase AI Logic, like every Gemini call (no key in the app).
+  static const _model = AiModels.geminiFlash;
 
   static const Map<String, String> _langNames = {
     "EN": "English",
@@ -43,6 +44,12 @@ class GeminiImageService {
     "IT": "DD/MM/YYYY",
   };
 
+  /// Translates the whole document. It used to extract only the source
+  /// language's segments, so an English booklet with Hungarian dish names,
+  /// read as Hungarian, came back as 17 dish names and nothing else
+  /// (Markus, 2026-10-25: "it should give me the whole text"). Now every
+  /// segment is translated, and text already in the target language is
+  /// copied as is.
   String _buildTranslationPrompt(String fromLang, String toLang) {
     final fromLangName = _langNames[fromLang] ?? fromLang;
     final toLangName = _langNames[toLang] ?? toLang;
@@ -51,15 +58,16 @@ class GeminiImageService {
     return '''
 You are an AI assistant for image translation & document interpretation.
 
-Attached is an image or PDF document containing $fromLangName text. The target language is $toLangName.
+Attached is an image or PDF document. Its text is mostly $fromLangName, but it may contain other languages too. The target language is $toLangName.
 
 Your task:
-- Extract only fully visible $fromLangName text segments. Skip any partially visible, cut-off, or incomplete text.
+- Extract ALL fully visible text in reading order: headings, paragraphs, list items, table cells and captions. Skip any partially visible, cut-off, or incomplete text.
+- Keep each heading, paragraph, list item or table cell as one segment. Do not split text into single words and do not pick out key terms.
 - If the document has multiple pages, process all of them in order.
 - If a segment is not clearly legible, set both "o" and "t" fields to "{unsafe}".
-- Translate each clearly legible segment individually into $toLangName.
+- Translate every segment into $toLangName, whatever language it is written in. If a segment is already in $toLangName, copy it unchanged into "t".
 - Convert any dates into $targetDateFormat.
-- Do not add any explanations, summaries, or instructions.
+- Do not shorten, summarise or leave out any text. Do not add any explanations, summaries, or instructions.
 
 STRICT OUTPUT FORMAT:
 Return the result ONLY as valid JSON array, exactly like this:
@@ -117,6 +125,51 @@ If nothing can be read, reply only with:
 ''';
   }
 
+  /// Languages the last [processImage] call found in the document, as
+  /// two-letter codes (e.g. ["HU", "DE"]); empty when Gemini did not report
+  /// them. Lets the Image page refuse a source language the document does
+  /// not contain without reading it again (Markus, 2026-10-09).
+  List<String> lastDocumentLanguages = const [];
+
+  /// Asked of every analysis so the document's languages come for free with
+  /// the result; [takeLanguagesLine] removes the line again before anything
+  /// else sees the reply, so the result format is unchanged.
+  static const _languagesInstruction = '''
+
+ADDITIONALLY, before everything else, output exactly one line:
+LANGUAGES: <codes>
+listing every language that makes up a meaningful part of the document's
+text, as comma-separated codes from: HU, DE, EN, NL, FR, ES, RU, IT.
+Ignore numbers, dates, codes, names and single foreign words. Write
+"LANGUAGES: UNKNOWN" if you cannot tell. Then continue with the output
+exactly as specified above.
+''';
+
+  static final _languagesLine = RegExp(
+    r'^[ \t]*LANGUAGES:[ \t]*([A-Za-z, ]*)[ \t]*\r?\n?',
+    multiLine: true,
+  );
+
+  /// Splits the LANGUAGES line off [reply]; returns the reply without it and
+  /// the supported codes it listed.
+  @visibleForTesting
+  static ({String text, List<String> languages}) takeLanguagesLine(
+    String reply,
+  ) {
+    final match = _languagesLine.firstMatch(reply);
+    if (match == null) return (text: reply, languages: const []);
+    const supported = ['HU', 'DE', 'EN', 'NL', 'FR', 'ES', 'RU', 'IT'];
+    final languages =
+        match
+            .group(1)!
+            .split(',')
+            .map((c) => c.trim().toUpperCase())
+            .where(supported.contains)
+            .toList();
+    final text = reply.replaceRange(match.start, match.end, '').trim();
+    return (text: text, languages: languages);
+  }
+
   Future<String> processImage({
     required File imageFile,
     required bool translate,
@@ -142,7 +195,18 @@ If nothing can be read, reply only with:
           'attached document. Ignore every other page completely.';
     }
 
-    return _callGemini(prompt, imageFile);
+    final split = takeLanguagesLine(
+      await _callGemini(
+        '$prompt$_languagesInstruction',
+        imageFile,
+        // Thinking off: reading and translating a page needs none, and a
+        // 4-row spreadsheet took 33 s with 2,472 thinking tokens, all
+        // charged to the user (2026-10-23).
+        thinking: false,
+      ),
+    );
+    lastDocumentLanguages = split.languages;
+    return split.text;
   }
 
   /// Answers a free-text question about an already-loaded image/PDF (Markus,
@@ -165,68 +229,95 @@ If nothing can be read, reply only with:
     return _callGemini(prompt, documentFile);
   }
 
-  Future<String> _callGemini(String prompt, File file) async {
-    final bytes = await file.readAsBytes();
-    final base64Data = base64Encode(bytes);
-    final mimeType = lookupMimeType(file.path) ?? 'image/jpeg';
+  /// Translates text segments already extracted from an image into another
+  /// target language, without sending the image again (Markus, video of
+  /// 2026-09-29: switching the target language re-read the whole image, "the
+  /// text was already here"). Returns one translation per entry of
+  /// [originals], in order. Billed like any other Gemini call, but only for
+  /// the text, so it is much cheaper and faster than [processImage].
+  Future<List<String>> retranslateSegments({
+    required List<String> originals,
+    required String fromLangCode,
+    required String toLangCode,
+  }) async {
+    final fromLangName = _langNames[fromLangCode] ?? fromLangCode;
+    final toLangName = _langNames[toLangCode] ?? toLangCode;
+    final targetDateFormat = _dateFormats[toLangCode] ?? "YYYY-MM-DD";
+    final prompt = '''
+You are a translator. Below is a JSON array of $fromLangName text segments taken from a document.
 
-    final response = await http.post(
-      Uri.parse(_endpoint),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        "contents": [
-          {
-            "parts": [
-              {"text": prompt},
-              {
-                "inline_data": {"mime_type": mimeType, "data": base64Data},
-              },
-            ],
-          },
-        ],
-        // Was 2048, which a multi-page PDF blows straight through: the
-        // model (2.5 flash) spends output budget on internal thinking
-        // first, sees almost nothing left for the answer, and bails out
-        // with "[]" — which the app then reported as "image not clear"
-        // (Markus, 2026-07-15, 9-page PDF; reproduced 1:1 with his file:
-        // 1201 thought tokens then a bare [] at 2048, full extraction at
-        // a higher cap).
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 32768},
-      }),
+Translate each segment individually into $toLangName.
+- Keep the same number of entries, in the same order.
+- Convert any dates into $targetDateFormat.
+- Do not add explanations.
+
+STRICT OUTPUT FORMAT: return ONLY a JSON array of strings, one translation per input segment, with nothing before or after it.
+
+Segments:
+${jsonEncode(originals)}
+''';
+    var text = await _callGemini(prompt, null, thinking: false);
+    final fence = RegExp(r'^```[a-zA-Z]*\s*([\s\S]*?)\s*```$').firstMatch(text);
+    if (fence != null) text = fence.group(1)!.trim();
+    final decoded = jsonDecode(text);
+    if (decoded is! List || decoded.length != originals.length) {
+      throw const FormatException('Re-translation did not match the segments');
+    }
+    return decoded.map((e) => e.toString()).toList();
+  }
+
+  /// [file] is the image/PDF to attach, or null for a text-only request.
+  /// [thinking] stays on for questions about a document, where reasoning
+  /// over its content helps the answer.
+  Future<String> _callGemini(
+    String prompt,
+    File? file, {
+    bool thinking = true,
+  }) async {
+    final reply = await geminiGenerate(
+      _model,
+      // Was 2048, which a multi-page PDF blows straight through: the
+      // model (2.5 flash) spends output budget on internal thinking
+      // first, sees almost nothing left for the answer, and bails out
+      // with "[]" — which the app then reported as "image not clear"
+      // (Markus, 2026-07-15, 9-page PDF; reproduced 1:1 with his file:
+      // 1201 thought tokens then a bare [] at 2048, full extraction at
+      // a higher cap).
+      TextAiRequest(
+        user: prompt,
+        temperature: 0.2,
+        maxOutputTokens: 32768,
+        thinking: thinking,
+      ),
+      file:
+          file == null
+              ? null
+              : GeminiFile(
+                lookupMimeType(file.path) ?? 'image/jpeg',
+                await file.readAsBytes(),
+              ),
     );
 
-    if (response.statusCode != 200) {
-      throw Exception('Gemini error ${response.statusCode}: ${response.body}');
-    }
-
-    final data = jsonDecode(response.body);
-    final usage = data['usageMetadata'] as Map<String, dynamic>?;
+    final result = reply.result;
     TokenBalance.instance.spendFractional(
       geminiWiuCost(
-        promptTokens: usage?['promptTokenCount'] as int? ?? 0,
-        outputTokens: usage?['candidatesTokenCount'] as int? ?? 0,
+        promptTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
       ),
     );
 
-    final candidates = data['candidates'] as List?;
-    if (candidates == null || candidates.isEmpty) {
+    if (!reply.hasCandidates) {
       // Don't return '' here: the caller treats an empty string as "image
       // not clear", which points the user at their photo when the real
       // problem was the request (safety block, truncation, ...).
+      throw Exception('Gemini returned no candidates');
+    }
+    final text = result.text.trim();
+    if (text.isEmpty && reply.finishReason != FinishReason.stop) {
       throw Exception(
-        'Gemini returned no candidates '
-        '(finishReason unknown, promptFeedback: ${data['promptFeedback']})',
+        'Gemini returned no text (finishReason: ${reply.finishReason})',
       );
     }
-    final finishReason = candidates[0]['finishReason'] as String? ?? '';
-    final parts = candidates[0]['content']?['parts'] as List?;
-    final text =
-        (parts == null || parts.isEmpty)
-            ? ''
-            : (parts[0]['text'] as String? ?? '');
-    if (text.trim().isEmpty && finishReason != 'STOP') {
-      throw Exception('Gemini returned no text (finishReason: $finishReason)');
-    }
-    return text.trim();
+    return text;
   }
 }

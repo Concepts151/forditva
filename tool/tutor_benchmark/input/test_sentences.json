@@ -1,0 +1,76 @@
+{
+  "target_language": "de",
+  "note": "Reference translations and focus notes are for human review only; do not send them to either model.",
+  "cases": [
+    {
+      "id": "T01",
+      "focus": "Simple present, postposition, indefinite object",
+      "hu": "A kislány az ablak mellett olvas egy könyvet.",
+      "reference_de": "Das kleine Mädchen liest neben dem Fenster ein Buch.",
+      "review_points": "Postposition mellett; indefinite object egy könyvet; present-tense verb."
+    },
+    {
+      "id": "T02",
+      "focus": "Definite vs. indefinite conjugation, verbal prefix",
+      "hu": "A boltban veszek egy kenyeret, aztán hazaviszem a friss kenyeret.",
+      "reference_de": "Im Geschäft kaufe ich ein Brot und bringe das frische Brot anschließend nach Hause.",
+      "review_points": "veszek (indefinite) vs. hazaviszem (definite); accusative; haza- prefix."
+    },
+    {
+      "id": "T03",
+      "focus": "Numerals, accusative, past tense",
+      "hu": "Tegnap a piacon két kiló almát vettem, de a szilvát otthon felejtettem.",
+      "reference_de": "Gestern habe ich auf dem Markt zwei Kilo Äpfel gekauft, aber die Pflaumen zu Hause vergessen.",
+      "review_points": "Noun remains singular after két kiló; almát vs. a szilvát; past tense."
+    },
+    {
+      "id": "T04",
+      "focus": "Possessive plural + dative, relative clause",
+      "hu": "A barátaimnak holnap elküldöm a fényképeket, amelyeket a Balatonnál készítettem.",
+      "reference_de": "Morgen schicke ich meinen Freunden die Fotos, die ich am Balaton gemacht habe.",
+      "review_points": "barátaimnak (friend + plural + my + dative), definite verb, relative amelyeket, -nál."
+    },
+    {
+      "id": "T05",
+      "focus": "Separated verbal prefix, embedded question",
+      "hu": "Nem tudom, mikor érkezik meg a vonat, ezért inkább megvárom az állomáson.",
+      "reference_de": "Ich weiß nicht, wann der Zug ankommt, deshalb warte ich lieber am Bahnhof auf ihn.",
+      "review_points": "érkezik meg separated prefix; megvárom definite form and implicit referent; subordinate clause."
+    },
+    {
+      "id": "T06",
+      "focus": "Conditional clause, instrumental assimilation, directions",
+      "hu": "Ha holnap nem esik az eső, a gyerekekkel biciklivel megyünk a közeli faluba.",
+      "reference_de": "Wenn es morgen nicht regnet, fahren wir mit den Kindern mit dem Fahrrad ins nahe gelegene Dorf.",
+      "review_points": "Ha + indicative, -val/-vel assimilation in gyerekekkel and biciklivel, -ba direction."
+    },
+    {
+      "id": "T07",
+      "focus": "Subjunctive/imperative, separated prefix, clause structure",
+      "hu": "A tanár azt kérte, hogy olvassuk el a szöveget, mielőtt válaszolunk a kérdésekre.",
+      "reference_de": "Der Lehrer bat darum, dass wir den Text lesen, bevor wir die Fragen beantworten.",
+      "review_points": "olvassuk el: definite subjunctive/imperative form with separated prefix; kérdésekre; subordinate clauses."
+    },
+    {
+      "id": "T08",
+      "focus": "Idiom, concessive clause, predicative suffix",
+      "hu": "Bár fáradt voltam, mégis részt vettem a megbeszélésen, mert fontosnak tartottam a témát.",
+      "reference_de": "Obwohl ich müde war, nahm ich dennoch an der Besprechung teil, weil ich das Thema für wichtig hielt.",
+      "review_points": "részt vettem idiom must remain morphologically transparent in direct; fontosnak tartottam; concessive bár/mégis."
+    },
+    {
+      "id": "T09",
+      "focus": "Conditional, purpose clause, possessed plural object",
+      "hu": "Ha több időm lenne, szívesen megtanulnék magyarul beszélni, hogy könnyebben megértsem a szomszédaimat.",
+      "reference_de": "Wenn ich mehr Zeit hätte, würde ich gerne Ungarisch sprechen lernen, damit ich meine Nachbarn leichter verstehe.",
+      "review_points": "Conditional lenne / megtanulnék; purpose clause megértsem; szomszédaimat plural possessive accusative."
+    },
+    {
+      "id": "T10",
+      "focus": "Focus and contrast, indirect question, future verb construction",
+      "hu": "A polgármester szerint nem az a kérdés, mennyibe kerül a felújítás, hanem az, hogy ki fogja elvégezni a munkát.",
+      "reference_de": "Nach Ansicht des Bürgermeisters ist nicht die Frage, wie viel die Renovierung kostet, sondern wer die Arbeit erledigen wird.",
+      "review_points": "nem ... hanem contrast; mennyibe kerül idiom; fogja elvégezni future definite form, subject ki."
+    }
+  ]
+}

@@ -165,7 +165,6 @@ class _ImageCropperPageState extends State<ImageCropperPage> {
       // Still loading image
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    final double boxSize = 350;
     final screenW = MediaQuery.of(context).size.width;
     final double sidePadding = 6.0;
     final double cropBoxWidth = screenW - 2 * sidePadding;
@@ -286,7 +285,7 @@ class _ImageCropperPageState extends State<ImageCropperPage> {
                   });
                 }
 
-                if (croppedFile != null && mounted) {
+                if (croppedFile != null && context.mounted) {
                   Navigator.of(context).pop(croppedFile); // Return cropped file
                 }
               },
@@ -359,7 +358,7 @@ class _FreehandPainter extends CustomPainter {
 
     final paint =
         Paint()
-          ..color = Colors.red.withOpacity(0.7) // Semi-transparent red line
+          ..color = Colors.red.withValues(alpha: 0.7) // Semi-transparent red line
           ..strokeWidth = 3.5
           ..style = PaintingStyle.stroke;
 

@@ -1,0 +1,969 @@
+{
+  "run_count": 120,
+  "model_aliases": [
+    "gemini",
+    "deepseek"
+  ],
+  "runs": [
+    {
+      "run_id": "T01-gemini-level_focus-L05",
+      "case_id": "T01",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-gemini-level_focus-L30",
+      "case_id": "T01",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-gemini-level_focus-L60",
+      "case_id": "T01",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-gemini-level_focus-L90",
+      "case_id": "T01",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-gemini-decoder",
+      "case_id": "T01",
+      "provider": "gemini",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-gemini-structured_analysis",
+      "case_id": "T01",
+      "provider": "gemini",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-deepseek-level_focus-L05",
+      "case_id": "T01",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-deepseek-level_focus-L30",
+      "case_id": "T01",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-deepseek-level_focus-L60",
+      "case_id": "T01",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-deepseek-level_focus-L90",
+      "case_id": "T01",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-deepseek-decoder",
+      "case_id": "T01",
+      "provider": "deepseek",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T01-deepseek-structured_analysis",
+      "case_id": "T01",
+      "provider": "deepseek",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-gemini-level_focus-L05",
+      "case_id": "T02",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-gemini-level_focus-L30",
+      "case_id": "T02",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-gemini-level_focus-L60",
+      "case_id": "T02",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-gemini-level_focus-L90",
+      "case_id": "T02",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-gemini-decoder",
+      "case_id": "T02",
+      "provider": "gemini",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-gemini-structured_analysis",
+      "case_id": "T02",
+      "provider": "gemini",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-deepseek-level_focus-L05",
+      "case_id": "T02",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-deepseek-level_focus-L30",
+      "case_id": "T02",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-deepseek-level_focus-L60",
+      "case_id": "T02",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-deepseek-level_focus-L90",
+      "case_id": "T02",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-deepseek-decoder",
+      "case_id": "T02",
+      "provider": "deepseek",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T02-deepseek-structured_analysis",
+      "case_id": "T02",
+      "provider": "deepseek",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-gemini-level_focus-L05",
+      "case_id": "T03",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-gemini-level_focus-L30",
+      "case_id": "T03",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-gemini-level_focus-L60",
+      "case_id": "T03",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-gemini-level_focus-L90",
+      "case_id": "T03",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-gemini-decoder",
+      "case_id": "T03",
+      "provider": "gemini",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-gemini-structured_analysis",
+      "case_id": "T03",
+      "provider": "gemini",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-deepseek-level_focus-L05",
+      "case_id": "T03",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-deepseek-level_focus-L30",
+      "case_id": "T03",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-deepseek-level_focus-L60",
+      "case_id": "T03",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-deepseek-level_focus-L90",
+      "case_id": "T03",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-deepseek-decoder",
+      "case_id": "T03",
+      "provider": "deepseek",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T03-deepseek-structured_analysis",
+      "case_id": "T03",
+      "provider": "deepseek",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-gemini-level_focus-L05",
+      "case_id": "T04",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-gemini-level_focus-L30",
+      "case_id": "T04",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-gemini-level_focus-L60",
+      "case_id": "T04",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-gemini-level_focus-L90",
+      "case_id": "T04",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-gemini-decoder",
+      "case_id": "T04",
+      "provider": "gemini",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-gemini-structured_analysis",
+      "case_id": "T04",
+      "provider": "gemini",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-deepseek-level_focus-L05",
+      "case_id": "T04",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-deepseek-level_focus-L30",
+      "case_id": "T04",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-deepseek-level_focus-L60",
+      "case_id": "T04",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-deepseek-level_focus-L90",
+      "case_id": "T04",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-deepseek-decoder",
+      "case_id": "T04",
+      "provider": "deepseek",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T04-deepseek-structured_analysis",
+      "case_id": "T04",
+      "provider": "deepseek",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-gemini-level_focus-L05",
+      "case_id": "T05",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-gemini-level_focus-L30",
+      "case_id": "T05",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-gemini-level_focus-L60",
+      "case_id": "T05",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-gemini-level_focus-L90",
+      "case_id": "T05",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-gemini-decoder",
+      "case_id": "T05",
+      "provider": "gemini",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-gemini-structured_analysis",
+      "case_id": "T05",
+      "provider": "gemini",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-deepseek-level_focus-L05",
+      "case_id": "T05",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-deepseek-level_focus-L30",
+      "case_id": "T05",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-deepseek-level_focus-L60",
+      "case_id": "T05",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-deepseek-level_focus-L90",
+      "case_id": "T05",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-deepseek-decoder",
+      "case_id": "T05",
+      "provider": "deepseek",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T05-deepseek-structured_analysis",
+      "case_id": "T05",
+      "provider": "deepseek",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-gemini-level_focus-L05",
+      "case_id": "T06",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-gemini-level_focus-L30",
+      "case_id": "T06",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-gemini-level_focus-L60",
+      "case_id": "T06",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-gemini-level_focus-L90",
+      "case_id": "T06",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-gemini-decoder",
+      "case_id": "T06",
+      "provider": "gemini",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-gemini-structured_analysis",
+      "case_id": "T06",
+      "provider": "gemini",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-deepseek-level_focus-L05",
+      "case_id": "T06",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-deepseek-level_focus-L30",
+      "case_id": "T06",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-deepseek-level_focus-L60",
+      "case_id": "T06",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-deepseek-level_focus-L90",
+      "case_id": "T06",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-deepseek-decoder",
+      "case_id": "T06",
+      "provider": "deepseek",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T06-deepseek-structured_analysis",
+      "case_id": "T06",
+      "provider": "deepseek",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-gemini-level_focus-L05",
+      "case_id": "T07",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-gemini-level_focus-L30",
+      "case_id": "T07",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-gemini-level_focus-L60",
+      "case_id": "T07",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-gemini-level_focus-L90",
+      "case_id": "T07",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-gemini-decoder",
+      "case_id": "T07",
+      "provider": "gemini",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-gemini-structured_analysis",
+      "case_id": "T07",
+      "provider": "gemini",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-deepseek-level_focus-L05",
+      "case_id": "T07",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-deepseek-level_focus-L30",
+      "case_id": "T07",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-deepseek-level_focus-L60",
+      "case_id": "T07",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-deepseek-level_focus-L90",
+      "case_id": "T07",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-deepseek-decoder",
+      "case_id": "T07",
+      "provider": "deepseek",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T07-deepseek-structured_analysis",
+      "case_id": "T07",
+      "provider": "deepseek",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-gemini-level_focus-L05",
+      "case_id": "T08",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-gemini-level_focus-L30",
+      "case_id": "T08",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-gemini-level_focus-L60",
+      "case_id": "T08",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-gemini-level_focus-L90",
+      "case_id": "T08",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-gemini-decoder",
+      "case_id": "T08",
+      "provider": "gemini",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-gemini-structured_analysis",
+      "case_id": "T08",
+      "provider": "gemini",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-deepseek-level_focus-L05",
+      "case_id": "T08",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-deepseek-level_focus-L30",
+      "case_id": "T08",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-deepseek-level_focus-L60",
+      "case_id": "T08",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-deepseek-level_focus-L90",
+      "case_id": "T08",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-deepseek-decoder",
+      "case_id": "T08",
+      "provider": "deepseek",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T08-deepseek-structured_analysis",
+      "case_id": "T08",
+      "provider": "deepseek",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-gemini-level_focus-L05",
+      "case_id": "T09",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-gemini-level_focus-L30",
+      "case_id": "T09",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-gemini-level_focus-L60",
+      "case_id": "T09",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-gemini-level_focus-L90",
+      "case_id": "T09",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-gemini-decoder",
+      "case_id": "T09",
+      "provider": "gemini",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-gemini-structured_analysis",
+      "case_id": "T09",
+      "provider": "gemini",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-deepseek-level_focus-L05",
+      "case_id": "T09",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-deepseek-level_focus-L30",
+      "case_id": "T09",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-deepseek-level_focus-L60",
+      "case_id": "T09",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-deepseek-level_focus-L90",
+      "case_id": "T09",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-deepseek-decoder",
+      "case_id": "T09",
+      "provider": "deepseek",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T09-deepseek-structured_analysis",
+      "case_id": "T09",
+      "provider": "deepseek",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-gemini-level_focus-L05",
+      "case_id": "T10",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-gemini-level_focus-L30",
+      "case_id": "T10",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-gemini-level_focus-L60",
+      "case_id": "T10",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-gemini-level_focus-L90",
+      "case_id": "T10",
+      "provider": "gemini",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-gemini-decoder",
+      "case_id": "T10",
+      "provider": "gemini",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-gemini-structured_analysis",
+      "case_id": "T10",
+      "provider": "gemini",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-deepseek-level_focus-L05",
+      "case_id": "T10",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 5,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-deepseek-level_focus-L30",
+      "case_id": "T10",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 30,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-deepseek-level_focus-L60",
+      "case_id": "T10",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 60,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-deepseek-level_focus-L90",
+      "case_id": "T10",
+      "provider": "deepseek",
+      "mode": "level_focus",
+      "level": 90,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-deepseek-decoder",
+      "case_id": "T10",
+      "provider": "deepseek",
+      "mode": "decoder",
+      "level": null,
+      "target_language": "de"
+    },
+    {
+      "run_id": "T10-deepseek-structured_analysis",
+      "case_id": "T10",
+      "provider": "deepseek",
+      "mode": "structured_analysis",
+      "level": null,
+      "target_language": "de"
+    }
+  ]
+}

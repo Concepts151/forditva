@@ -175,13 +175,13 @@ abstract class AppLocalizations {
   /// No description provided for @documentMode.
   ///
   /// In en, this message translates to:
-  /// **'Document'**
+  /// **'Text'**
   String get documentMode;
 
   /// No description provided for @imageMode.
   ///
   /// In en, this message translates to:
-  /// **'Image'**
+  /// **'File'**
   String get imageMode;
 
   /// No description provided for @copyToClipboard.
@@ -424,6 +424,18 @@ abstract class AppLocalizations {
   /// **'Speech playback failed'**
   String get ttsFailed;
 
+  /// No description provided for @readAloudUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-aloud is not available at the moment.'**
+  String get readAloudUnavailable;
+
+  /// No description provided for @readAloudBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-aloud is busy right now. Please try again in a minute.'**
+  String get readAloudBusy;
+
   /// No description provided for @recordingFailed.
   ///
   /// In en, this message translates to:
@@ -441,6 +453,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t transcribe audio. Please try again.'**
   String get couldNotTranscribe;
+
+  /// Under the loaded PDF's file name: the pages translated, e.g. 1-3,5. Tapping the PDF picks other pages.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Page {pages}} other{Pages {pages}}}'**
+  String pdfPagesLabel(int count, String pages);
+
+  /// No description provided for @microphonePermissionNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Forditva needs the microphone for voice input. Please allow it in Settings.'**
+  String get microphonePermissionNeeded;
 
   /// No description provided for @pleaseMakeRecording.
   ///
@@ -679,7 +703,7 @@ abstract class AppLocalizations {
   /// No description provided for @uploadAreaUploadFile.
   ///
   /// In en, this message translates to:
-  /// **'Upload an image or document (PDF, Word, Excel, OpenDocument, or text file)'**
+  /// **'Upload an image or document (PDF or text file)'**
   String get uploadAreaUploadFile;
 
   /// No description provided for @convertingDocument.
@@ -705,6 +729,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please make sure the file is not password-protected, corrupted, or in an unsupported format, then try again.'**
   String get conversionFailedBody;
+
+  /// No description provided for @languageMismatchBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This text is in {detected}, not {selected}.'**
+  String languageMismatchBody(String detected, String selected);
+
+  /// No description provided for @languageNotFoundBody.
+  ///
+  /// In en, this message translates to:
+  /// **'No {selected} text was found. Please check the source language.'**
+  String languageNotFoundBody(String selected);
+
+  /// No description provided for @languageMismatchUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {language}'**
+  String languageMismatchUse(String language);
+
+  /// No description provided for @languageNameHu.
+  ///
+  /// In en, this message translates to:
+  /// **'Hungarian'**
+  String get languageNameHu;
+
+  /// No description provided for @languageNameDe.
+  ///
+  /// In en, this message translates to:
+  /// **'German'**
+  String get languageNameDe;
+
+  /// No description provided for @languageNameEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageNameEn;
+
+  /// No description provided for @languageNameNl.
+  ///
+  /// In en, this message translates to:
+  /// **'Dutch'**
+  String get languageNameNl;
+
+  /// No description provided for @languageNameFr.
+  ///
+  /// In en, this message translates to:
+  /// **'French'**
+  String get languageNameFr;
+
+  /// No description provided for @languageNameEs.
+  ///
+  /// In en, this message translates to:
+  /// **'Spanish'**
+  String get languageNameEs;
+
+  /// No description provided for @languageNameRu.
+  ///
+  /// In en, this message translates to:
+  /// **'Russian'**
+  String get languageNameRu;
+
+  /// No description provided for @languageNameIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Italian'**
+  String get languageNameIt;
+
+  /// No description provided for @tutorUnderstanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Understanding'**
+  String get tutorUnderstanding;
+
+  /// No description provided for @tutorDecoding.
+  ///
+  /// In en, this message translates to:
+  /// **'Decoding'**
+  String get tutorDecoding;
+
+  /// No description provided for @tutorFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Learning Focus'**
+  String get tutorFocus;
+
+  /// No description provided for @tutorChooseSentences.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose sentences'**
+  String get tutorChooseSentences;
+
+  /// No description provided for @tutorCharCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} / {max} characters'**
+  String tutorCharCount(int count, int max);
+
+  /// No description provided for @tutorConsecutiveOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'only consecutive sentences'**
+  String get tutorConsecutiveOnly;
+
+  /// No description provided for @tutorApplySelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply selection'**
+  String get tutorApplySelection;
+
+  /// No description provided for @tutorLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language level'**
+  String get tutorLevel;
+
+  /// No description provided for @tutorThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'A good answer takes a moment...'**
+  String get tutorThinking;
+
+  /// No description provided for @tutorAnswerNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer now'**
+  String get tutorAnswerNow;
+
+  /// No description provided for @swipeToDeleteTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tip: swipe an entry to the left to delete it.'**
+  String get swipeToDeleteTip;
 }
 
 class _AppLocalizationsDelegate

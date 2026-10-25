@@ -9,9 +9,11 @@ class LevelPref {
 
   static int get level => _level;
 
-  static String get cefr {
-    if (_level <= 33) return 'A1';
-    if (_level <= 66) return 'A2';
+  static String get cefr => cefrFor(_level);
+
+  static String cefrFor(int level) {
+    if (level <= 33) return 'A1';
+    if (level <= 66) return 'A2';
     return 'B1';
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:forditva/document/document_translation_page.dart'
     show LandscapeZoomModal;
 import 'package:forditva/models/language_enum.dart';
+import 'package:forditva/utils/utils.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 const double _cardHorizontalPadding = 16.0;
@@ -136,7 +137,12 @@ class TranslationCard extends StatelessWidget {
         inverted
             ? 'assets/png24/white/w_speaker.png'
             : 'assets/png24/black/b_speaker.png';
-    final stopIcon = 'assets/images/w_stop.png';
+    // Markus's pause icon (tap stops): the old w_stop.png square was
+    // thinner and smaller than the icons beside it (Markus, 2026-10-25).
+    final stopIcon =
+        inverted
+            ? 'assets/png24/white/w_pause.png'
+            : 'assets/png24/black/b_pause.png';
     final micIcon =
         isRecording
             ? 'assets/images/stoprec.png'
@@ -240,9 +246,18 @@ class TranslationCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   GestureDetector(
-                    onTap: isAudioPlaying ? onStop : onPlay,
+                    onTap:
+                        isAudioLoading
+                            ? null
+                            : isAudioPlaying
+                            ? onStop
+                            : onPlay,
                     child:
-                        isAudioPlaying
+                        // The app's loader while the voice is generated;
+                        // a long text takes seconds (Markus, 2026-10-25).
+                        isAudioLoading
+                            ? GifLoader(size: iconSize)
+                            : isAudioPlaying
                             ? Image.asset(
                               stopIcon,
                               width: iconSize,

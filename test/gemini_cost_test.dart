@@ -25,4 +25,28 @@ void main() {
       );
     });
   });
+
+  group('billableOutputTokens', () {
+    test('adds thinking tokens to the visible answer', () {
+      expect(
+        billableOutputTokens(prompt: 3500, candidates: 230, thoughts: 3600),
+        3830,
+      );
+    });
+
+    test('derives thinking from the total when only that is known', () {
+      expect(
+        billableOutputTokens(prompt: 1000, candidates: 200, total: 1700),
+        700,
+      );
+    });
+
+    test('falls back to the visible answer without thinking data', () {
+      expect(billableOutputTokens(prompt: 1000, candidates: 200), 200);
+      expect(
+        billableOutputTokens(prompt: 1000, candidates: 200, total: 1200),
+        200,
+      );
+    });
+  });
 }

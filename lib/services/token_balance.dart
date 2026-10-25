@@ -41,8 +41,10 @@ class TokenBalance {
   static const welcomeGrant = 100;
 
   /// Below this, the UI nudges the user to top up soon without blocking yet
-  /// (Markus, 2026-07-10: warn under 200 WIUs).
-  static const lowBalanceThreshold = 200;
+  /// (Markus, 2026-07-10: warn under 200 WIUs; 2026-10-09: lowered to 50,
+  /// since 200 was above the 100 WIU welcome grant and every new user saw
+  /// the warning from the start).
+  static const lowBalanceThreshold = 50;
 
   /// Current balance in WIUs. Listen to rebuild the status bar on change.
   final ValueNotifier<int> value = ValueNotifier<int>(0);
