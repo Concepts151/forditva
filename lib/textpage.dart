@@ -221,6 +221,9 @@ class _TextPageState extends State<TextPage> {
     if (_inputAudioCacheText == _translation && _inputAudioCacheFile != null) {
       file = _inputAudioCacheFile!;
     } else {
+      // Loader on the speaker while the voice is generated (Markus,
+      // 2026-10-25: a long text takes seconds with no reaction).
+      setState(() => _isAudioLoadingInput = true);
       try {
         file = await _ttsService.synthesizeSpeech(
           text: _translation,
@@ -230,12 +233,17 @@ class _TextPageState extends State<TextPage> {
         );
       } catch (e) {
         if (!mounted) return;
-        setState(() => _isInputPlaying = false);
+        setState(() {
+          _isInputPlaying = false;
+          _isAudioLoadingInput = false;
+        });
         showTtsError(context, e);
         return;
       }
       _inputAudioCacheText = _translation;
       _inputAudioCacheFile = file;
+      if (!mounted) return;
+      setState(() => _isAudioLoadingInput = false);
     }
 
     late final StreamSubscription sub;
@@ -278,6 +286,9 @@ class _TextPageState extends State<TextPage> {
         _outputAudioCacheFile != null) {
       file = _outputAudioCacheFile!;
     } else {
+      // Loader on the speaker while the voice is generated (Markus,
+      // 2026-10-25: a long text takes seconds with no reaction).
+      setState(() => _isAudioLoadingOutput = true);
       try {
         file = await _ttsService.synthesizeSpeech(
           text: _inputController.text,
@@ -287,12 +298,17 @@ class _TextPageState extends State<TextPage> {
         );
       } catch (e) {
         if (!mounted) return;
-        setState(() => _isOutputPlaying = false);
+        setState(() {
+          _isOutputPlaying = false;
+          _isAudioLoadingOutput = false;
+        });
         showTtsError(context, e);
         return;
       }
       _outputAudioCacheText = _inputController.text;
       _outputAudioCacheFile = file;
+      if (!mounted) return;
+      setState(() => _isAudioLoadingOutput = false);
     }
 
     late final StreamSubscription sub;

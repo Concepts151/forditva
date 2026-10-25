@@ -96,8 +96,15 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
   }
 
   bool _isSpeaking = false;
+
+  /// True while the voice is being generated: a long text takes 5 to 6 s
+  /// before it plays, and the speaker icon gave no sign of the tap
+  /// (Markus, 2026-10-25). The icon shows the app's loader meanwhile.
+  bool _isPreparingSpeech = false;
+
   Future<void> _speak() async {
-    if (_translatedText.isEmpty) return;
+    if (_translatedText.isEmpty || _isPreparingSpeech) return;
+    setState(() => _isPreparingSpeech = true);
 
     try {
       final instructions = instructionForLang(_leftLang);
@@ -139,6 +146,8 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
         showTtsError(context, e);
         setState(() => _isSpeaking = false);
       }
+    } finally {
+      if (mounted) setState(() => _isPreparingSpeech = false);
     }
   }
 
@@ -1142,6 +1151,7 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                 const Spacer(),
                 GestureDetector(
                   onTap: () async {
+                    if (_isPreparingSpeech) return;
                     if (_isSpeaking) {
                       await _stopSpeaking();
                     } else if (_translatedText.isNotEmpty) {
@@ -1149,21 +1159,16 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                     }
                   },
                   child:
-                      _isSpeaking
-                          // Same stop-square asset the conversation page uses
-                          // (Markus, 2026-07-12: only icons from his asset
-                          // folder), tinted black since w_stop.png is white and
-                          // was made for the dark conversation-page card.
-                          ? ColorFiltered(
-                            colorFilter: const ColorFilter.mode(
-                              Colors.black,
-                              BlendMode.srcIn,
-                            ),
-                            child: Image.asset(
-                              'assets/images/w_stop.png',
-                              width: iconSize,
-                              height: iconSize,
-                            ),
+                      _isPreparingSpeech
+                          ? GifLoader(size: iconSize)
+                          : _isSpeaking
+                          // Markus's pause icon, tap stops. The old
+                          // w_stop.png square was thinner and smaller than
+                          // the icons beside it (Markus, 2026-10-25).
+                          ? Image.asset(
+                            'assets/png24/black/b_pause.png',
+                            width: iconSize,
+                            height: iconSize,
                           )
                           : Image.asset(
                             'assets/png24/black/b_speaker.png',
