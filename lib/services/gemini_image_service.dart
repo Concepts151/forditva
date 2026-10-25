@@ -44,6 +44,12 @@ class GeminiImageService {
     "IT": "DD/MM/YYYY",
   };
 
+  /// Translates the whole document. It used to extract only the source
+  /// language's segments, so an English booklet with Hungarian dish names,
+  /// read as Hungarian, came back as 17 dish names and nothing else
+  /// (Markus, 2026-10-25: "it should give me the whole text"). Now every
+  /// segment is translated, and text already in the target language is
+  /// copied as is.
   String _buildTranslationPrompt(String fromLang, String toLang) {
     final fromLangName = _langNames[fromLang] ?? fromLang;
     final toLangName = _langNames[toLang] ?? toLang;
@@ -52,15 +58,16 @@ class GeminiImageService {
     return '''
 You are an AI assistant for image translation & document interpretation.
 
-Attached is an image or PDF document containing $fromLangName text. The target language is $toLangName.
+Attached is an image or PDF document. Its text is mostly $fromLangName, but it may contain other languages too. The target language is $toLangName.
 
 Your task:
-- Extract only fully visible $fromLangName text segments. Skip any partially visible, cut-off, or incomplete text.
+- Extract ALL fully visible text in reading order: headings, paragraphs, list items, table cells and captions. Skip any partially visible, cut-off, or incomplete text.
+- Keep each heading, paragraph, list item or table cell as one segment. Do not split text into single words and do not pick out key terms.
 - If the document has multiple pages, process all of them in order.
 - If a segment is not clearly legible, set both "o" and "t" fields to "{unsafe}".
-- Translate each clearly legible segment individually into $toLangName.
+- Translate every segment into $toLangName, whatever language it is written in. If a segment is already in $toLangName, copy it unchanged into "t".
 - Convert any dates into $targetDateFormat.
-- Do not add any explanations, summaries, or instructions.
+- Do not shorten, summarise or leave out any text. Do not add any explanations, summaries, or instructions.
 
 STRICT OUTPUT FORMAT:
 Return the result ONLY as valid JSON array, exactly like this:
