@@ -184,7 +184,7 @@ class _FavoritePageState extends State<FavoritePage> {
                                   IconButton(
                                     visualDensity: VisualDensity.compact,
                                     icon: Image.asset(
-                                      'assets/images/bulb.png',
+                                      'assets/png24/black/b_lightbulb.png',
                                       width: 24,
                                       height: 24,
                                     ),
@@ -203,10 +203,12 @@ class _FavoritePageState extends State<FavoritePage> {
                                 // Unfavorite star
                                 IconButton(
                                   visualDensity: VisualDensity.compact,
-                                  icon: const Icon(
-                                    Icons.star,
+                                  icon: Image.asset(
+                                    'assets/png24/black/b_favorit.png',
+                                    width: 24,
+                                    height: 24,
                                     color: gold,
-                                    size: 24,
+                                    colorBlendMode: BlendMode.srcIn,
                                   ),
                                   onPressed: () async {
                                     await _db.translationDao.toggleFavorite(

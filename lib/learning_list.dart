@@ -340,7 +340,7 @@ class _LearningListPageState extends State<LearningListPage> {
                                   top: 0,
                                   right: 0,
                                   child: Image.asset(
-                                    'assets/images/bulb.png',
+                                    'assets/png24/black/b_lightbulb.png',
                                     width: 28,
                                     height: 28,
                                   ),

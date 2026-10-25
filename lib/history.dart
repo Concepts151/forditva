@@ -212,8 +212,11 @@ class _HistoryPageState extends State<HistoryPage> {
                                     if (_hasHungarian(entry))
                                       IconButton(
                                         visualDensity: VisualDensity.compact,
+                                        // Markus's line icon, matching the
+                                        // star next to it (Markus,
+                                        // 2026-10-25).
                                         icon: Image.asset(
-                                          'assets/images/bulb.png',
+                                          'assets/png24/black/b_lightbulb.png',
                                           width: 24,
                                           height: 24,
                                         ),
@@ -232,14 +235,18 @@ class _HistoryPageState extends State<HistoryPage> {
                                       ),
                                     IconButton(
                                       visualDensity: VisualDensity.compact,
-                                      icon: Icon(
-                                        entry.isFavorite
-                                            ? Icons.star
-                                            : Icons.star_border,
+                                      // Markus's star; his set has no
+                                      // filled one, so the colour shows
+                                      // the state.
+                                      icon: Image.asset(
+                                        'assets/png24/black/b_favorit.png',
+                                        width: 24,
+                                        height: 24,
                                         color:
                                             entry.isFavorite
                                                 ? gold
                                                 : Colors.grey,
+                                        colorBlendMode: BlendMode.srcIn,
                                       ),
                                       onPressed: () async {
                                         await _db.translationDao
