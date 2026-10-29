@@ -330,7 +330,10 @@ class _TutorPageState extends State<TutorPage> {
 
   Future<void> _recordAnswerTime(int ms) async {
     final prefs = await SharedPreferences.getInstance();
-    final times = [...prefs.getStringList(_answerTimesKey) ?? const [], '$ms'];
+    final times = <String>[
+      ...?prefs.getStringList(_answerTimesKey),
+      '$ms',
+    ];
     await prefs.setStringList(
       _answerTimesKey,
       times.sublist(math.max(0, times.length - 10)),
