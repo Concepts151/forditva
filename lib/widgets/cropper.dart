@@ -220,6 +220,16 @@ class _ImageCropperPageState extends State<ImageCropperPage> {
                             ..add(details.localPosition);
                         });
                       },
+                      // Lifting the finger closes the shape with a straight
+                      // line back to the start (Markus, 2026-10-29: being one
+                      // or two pixels off the start rejected the whole
+                      // outline).
+                      onPanEnd: (_) {
+                        if (_points.length < 3) return;
+                        setState(() {
+                          _points = List.from(_points)..add(_points.first);
+                        });
+                      },
                       child: CustomPaint(
                         painter: _FreehandPainter(_points),
                         size: Size(cropBoxWidth, cropBoxHeight),
@@ -241,28 +251,11 @@ class _ImageCropperPageState extends State<ImageCropperPage> {
                   Navigator.of(context).pop(widget.imageFile);
                   return;
                 }
-                // Check if shape is closed or close enough
-                final start = _points.first;
-                final end = _points.last;
-                final distance = (start - end).distance;
-
-                List<Offset> pointsToCrop = List.from(_points);
-
-                // If the start and end points are close, automatically close the polygon
-                if (distance <= 30) {
-                  // Add the first point to the end to explicitly close the polygon for cropping
-                  pointsToCrop.add(_points.first);
-                } else {
-                  // If not close enough, show a message and clear points
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Please connect the shape back to the start!',
-                      ),
-                    ),
-                  );
-                  setState(() => _points = []);
-                  return;
+                // Closed when the finger lifted; close it here too in case
+                // the last stroke had not ended yet.
+                final pointsToCrop = List<Offset>.from(_points);
+                if (pointsToCrop.last != pointsToCrop.first) {
+                  pointsToCrop.add(pointsToCrop.first);
                 }
 
                 // Set processing state to true to show loading indicator
@@ -358,7 +351,9 @@ class _FreehandPainter extends CustomPainter {
 
     final paint =
         Paint()
-          ..color = Colors.red.withValues(alpha: 0.7) // Semi-transparent red line
+          ..color = Colors.red.withValues(
+            alpha: 0.7,
+          ) // Semi-transparent red line
           ..strokeWidth = 3.5
           ..style = PaintingStyle.stroke;
 

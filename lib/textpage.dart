@@ -360,9 +360,11 @@ class _TextPageState extends State<TextPage> {
       );
       if (!await file.exists() || (await file.length()) == 0) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("TTS failed: ${file.path}")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.readAloudUnavailable),
+            ),
+          );
           setState(() => _isAudioPlaying = false);
         }
         onDone();
@@ -583,7 +585,11 @@ class _TextPageState extends State<TextPage> {
   }
 
   /// Translates a finished voice recording and records it in History.
-  Future<String> translateFinal(String input, Language from, Language to) async {
+  Future<String> translateFinal(
+    String input,
+    Language from,
+    Language to,
+  ) async {
     // Single pass — the previous HU branch translated twice, which doubled
     // latency and re-translated an already-translated result.
     final result = await _gemini.translate(input, from.code, to.code);
@@ -839,7 +845,8 @@ class _TextPageState extends State<TextPage> {
                 // bigger). Down to the shared scale's sm tier.
                 left: Spacing.sm,
                 right: Spacing.sm,
-                height: halfHeight + switchHalf, // down to the bottom of the switch
+                height:
+                    halfHeight + switchHalf, // down to the bottom of the switch
                 child: TranslationCard(
                   inverted: true,
                   borderRadius: const BorderRadius.vertical(

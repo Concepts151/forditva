@@ -21,6 +21,7 @@ import 'package:forditva/widgets/document_question_dialog.dart';
 import 'package:forditva/tutor/tutor_page.dart';
 import 'package:forditva/widgets/language_mismatch_dialog.dart';
 import 'package:forditva/widgets/pdf_page_selector.dart';
+import 'package:forditva/widgets/wallet_dialogs.dart' show condensedDialog;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -623,7 +624,28 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
             // lines are really big").
             lineHeight: LineHeight.number(0.95),
             fontFamily: GoogleFonts.robotoCondensed().fontFamily,
+            // Start at the top edge, no 8 px frame (Markus's video,
+            // 2026-10-29: "start here on the top").
+            margin: Margins.zero,
           ),
+          // The library gives every paragraph and list a full empty line
+          // above and below, and lists a 40 px indent. Markus, 2026-10-29:
+          // "a bit more, but not too much" between blocks, and the bullet
+          // list further left, higher and wider.
+          "p": Style(margin: Margins.only(bottom: 0.5, unit: Unit.em)),
+          "ul": Style(
+            margin: Margins.only(bottom: 0.5, unit: Unit.em),
+            padding: HtmlPaddings.only(inlineStart: 1.2, unit: Unit.em),
+          ),
+          "ol": Style(
+            margin: Margins.only(bottom: 0.5, unit: Unit.em),
+            padding: HtmlPaddings.only(inlineStart: 1.6, unit: Unit.em),
+          ),
+          "li": Style(margin: Margins.only(bottom: 0.3, unit: Unit.em)),
+          for (final h in ['h1', 'h2', 'h3', 'h4'])
+            h: Style(
+              margin: Margins.only(top: 0.3, bottom: 0.3, unit: Unit.em),
+            ),
         },
       );
     }
@@ -728,7 +750,44 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     return input.trim();
   }
 
+  /// Gemini takes at most 20 MB per request, and sending a file adds about
+  /// a third, so 14 MB is the largest file that still fits. Markus's 15.3 MB
+  /// PDF failed after 10 s with "service unavailable" (2026-10-29: "block
+  /// too big such files or tell the user").
+  static const _maxFileBytes = 14000000;
+
+  /// False (after telling the user) when [file] is too big to send.
+  Future<bool> _fileFits(File file) async {
+    final bytes = await file.length();
+    if (bytes <= _maxFileBytes || !mounted) return bytes <= _maxFileBytes;
+    final loc = AppLocalizations.of(context)!;
+    var size = (bytes / 1000000).toStringAsFixed(1);
+    if (loc.localeName != 'en') size = size.replaceAll('.', ',');
+    await showDialog<void>(
+      context: context,
+      builder:
+          (dialogContext) => condensedDialog(
+            dialogContext,
+            AlertDialog(
+              title: Text(loc.fileTooLargeTitle),
+              content: Text(
+                loc.fileTooLargeBody(size),
+                style: const TextStyle(fontSize: 18, height: 1.3),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(loc.ok),
+                ),
+              ],
+            ),
+          ),
+    );
+    return false;
+  }
+
   Future<void> _processImage({required File imageFile}) async {
+    if (!await _fileFits(imageFile) || !mounted) return;
     if (!await ensureWiuBalance(context)) return;
 
     setState(() {
@@ -1160,6 +1219,8 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
       return;
     }
 
+    if (!await _fileFits(file)) return;
+
     // PDF (uploaded directly, or converted from an Office/text document):
     // nothing to crop. Let the user tick the pages to process on a visual
     // preview before spending tokens on the whole document (Markus,
@@ -1495,7 +1556,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                                 GestureDetector(
                                                   onTap: _showLoadSourceSheet,
                                                   child: Image.asset(
-                                                    'assets/png24/black/b_pdf.png',
+                                                    'assets/png24/black/b_document.png',
                                                     width: 54,
                                                     height: 54,
                                                   ),
@@ -1619,13 +1680,11 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                     GestureDetector(
                                       onTap: _showLoadSourceSheet,
                                       child: Image.asset(
-                                        // Was the generic document glyph;
-                                        // swapped for Markus's PDF icon to
-                                        // match the empty-state icons
-                                        // (2026-07-24: "replace the third
-                                        // small icon in upper panel with the
-                                        // new pdf file").
-                                        'assets/png24/black/b_pdf.png',
+                                        // The plain document icon: it opens
+                                        // images and Office files too, not
+                                        // only PDFs (Markus, 2026-10-29: "the
+                                        // PDF symbol there makes no sense").
+                                        'assets/png24/black/b_document.png',
                                         width: iconSize,
                                         height: iconSize,
                                       ),

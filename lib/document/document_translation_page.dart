@@ -119,7 +119,9 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text("TTS failed: ${file.path}")));
+          ).showSnackBar(SnackBar(
+              content: Text(AppLocalizations.of(context)!.readAloudUnavailable),
+            ));
         }
         return;
       }
