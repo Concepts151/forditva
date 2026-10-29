@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../flutter_gen/gen_l10n/app_localizations.dart';
 import '../services/learning_store.dart';
@@ -109,15 +111,34 @@ class _TutorPageState extends State<TutorPage> {
   int? _dragLevel;
   final Map<String, List<Map<String, dynamic>>> _results = {};
   String? _loadingKey;
+  // Markus, 2026-10-29 (Tutor waiting, option A): a bar that only shows
+  // activity (no seconds, never full before the answer). Once the answer
+  // takes clearly longer than usual on this phone, a calm note and
+  // "Shorter answer" appear; nothing switches on its own.
   bool _showAnswerNow = false;
+  bool _shortRequested = false;
   bool _failed = false;
-  Timer? _answerNowTimer;
+  Timer? _waitTimer;
+  final Stopwatch _waitWatch = Stopwatch();
+  int _usualMs = _defaultAnswerMs;
+
+  static const _answerTimesKey = 'tutor_answer_ms';
+  static const _defaultAnswerMs = 15000;
+
+  /// A wait that never ends is shown as an error instead (Markus: no
+  /// endless waiting message). The accurate answer can take up to 2 min.
+  static const _giveUpAfter = Duration(seconds: 150);
+
+  /// The sentence split takes 5-13 s, 62 s at the worst peak so far
+  /// (Alex's Vertex metrics, 29 Oct).
+  static const _splitGiveUpAfter = Duration(seconds: 90);
   final List<TutorService> _inFlight = [];
 
   @override
   void initState() {
     super.initState();
     TutorLauncher.request.addListener(_onRequest);
+    _loadUsualAnswerTime();
     WidgetsBinding.instance.addPostFrameCallback((_) => _onRequest());
   }
 
@@ -129,7 +150,7 @@ class _TutorPageState extends State<TutorPage> {
   }
 
   void _cancelInFlight() {
-    _answerNowTimer?.cancel();
+    _waitTimer?.cancel();
     for (final s in _inFlight) {
       s.cancel();
     }
@@ -198,7 +219,16 @@ class _TutorPageState extends State<TutorPage> {
     if (!await ensureWiuBalance(context)) return;
     setState(() => _splitting = true);
     try {
-      final sentences = await TutorService().splitSentences(text, _lang);
+      final service = TutorService();
+      final sentences = await service
+          .splitSentences(text, _lang)
+          .timeout(
+            _splitGiveUpAfter,
+            onTimeout: () {
+              service.cancel();
+              throw TimeoutException('Tutor sentence split');
+            },
+          );
       if (!mounted || _request?.text != text) return;
       if (sentences.length <= 1) {
         setState(() => _splitting = false);
@@ -252,25 +282,60 @@ class _TutorPageState extends State<TutorPage> {
       _loadingKey = key;
       _failed = false;
       _showAnswerNow = false;
+      _shortRequested = false;
     });
-    // "Answer now" (Markus, 2026-10-09: like Gemini) appears once the
-    // accurate answer is taking a moment.
-    _answerNowTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _loadingKey == key) {
-        setState(() => _showAnswerNow = true);
+    _waitWatch
+      ..reset()
+      ..start();
+    _waitTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (!mounted || _loadingKey != key) return;
+      if (_waitWatch.elapsed >= _giveUpAfter) {
+        _cancelInFlight();
+        setState(() {
+          _loadingKey = null;
+          _failed = true;
+          _showAnswerNow = false;
+        });
+        return;
       }
+      setState(() {
+        _showAnswerNow = _waitWatch.elapsedMilliseconds >= _usualMs * 1.5;
+      });
     });
     _fetch(mode, key, text, fast: false);
   }
 
-  /// "Answer now": asks for the fast (no thinking) version alongside the
-  /// accurate one; whichever arrives first is shown.
+  /// "Shorter answer": asks for the fast (no thinking) version alongside
+  /// the accurate one; whichever arrives first is shown.
   void _answerNow() {
     final text = _text;
     final key = _loadingKey;
-    if (text == null || key == null) return;
-    setState(() => _showAnswerNow = false);
+    if (text == null || key == null || _shortRequested) return;
+    setState(() => _shortRequested = true);
     _fetch(_mode, key, text, fast: true);
+  }
+
+  // The median of the last 10 accurate answers on this phone.
+  Future<void> _loadUsualAnswerTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final times =
+        (prefs.getStringList(_answerTimesKey) ?? const <String>[])
+            .map(int.tryParse)
+            .whereType<int>()
+            .toList()
+          ..sort();
+    if (times.isEmpty || !mounted) return;
+    _usualMs = times[times.length ~/ 2];
+  }
+
+  Future<void> _recordAnswerTime(int ms) async {
+    final prefs = await SharedPreferences.getInstance();
+    final times = [...prefs.getStringList(_answerTimesKey) ?? const [], '$ms'];
+    await prefs.setStringList(
+      _answerTimesKey,
+      times.sublist(math.max(0, times.length - 10)),
+    );
+    await _loadUsualAnswerTime();
   }
 
   int _pending = 0;
@@ -294,6 +359,7 @@ class _TutorPageState extends State<TutorPage> {
       );
       if (!mounted || _loadingKey != key || _text != text) return;
       _cancelInFlight(); // the other request is no longer needed
+      if (!fast) _recordAnswerTime(_waitWatch.elapsedMilliseconds);
       setState(() {
         _results[key] = result;
         _loadingKey = null;
@@ -305,7 +371,7 @@ class _TutorPageState extends State<TutorPage> {
       // Only a failure of the last request still running is an error; a
       // cancelled or failed duplicate is not.
       if (_pending <= 1) {
-        _answerNowTimer?.cancel();
+        _waitTimer?.cancel();
         setState(() {
           _loadingKey = null;
           _failed = true;
@@ -351,17 +417,17 @@ class _TutorPageState extends State<TutorPage> {
         ),
       ),
       child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _header(),
-          const SizedBox(height: 12),
-          Expanded(child: _body()),
-          if (!_picking && _text != null && _mode == TutorMode.understanding)
-            _levelBar(),
-        ],
-      ),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _header(),
+            const SizedBox(height: 12),
+            Expanded(child: _body()),
+            if (!_picking && _text != null && _mode == TutorMode.understanding)
+              _levelBar(),
+          ],
+        ),
       ),
     );
   }
@@ -369,7 +435,11 @@ class _TutorPageState extends State<TutorPage> {
   Widget _header() {
     final loc = AppLocalizations.of(context)!;
     final tabs = [
-      (TutorMode.understanding, Icons.chat_bubble_outline, loc.tutorUnderstanding),
+      (
+        TutorMode.understanding,
+        Icons.chat_bubble_outline,
+        loc.tutorUnderstanding,
+      ),
       (TutorMode.decoding, Icons.workspaces_outlined, loc.tutorDecoding),
       (TutorMode.focus, Icons.track_changes, loc.tutorFocus),
     ];
@@ -517,19 +587,40 @@ class _TutorPageState extends State<TutorPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(color: _navGreen),
+          SizedBox(
+            width: 240,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                // Fills toward 90 % over the usual answer time, never to
+                // the end: the answer replaces the bar when it arrives.
+                value:
+                    0.9 *
+                    (1 -
+                        math.exp(
+                          -1.6 * _waitWatch.elapsedMilliseconds / _usualMs,
+                        )),
+                minHeight: 8,
+                color: _navGreen,
+                backgroundColor: _selectedFill,
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          Text(
-            loc.tutorThinking,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.robotoCondensed(fontSize: 18),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              _showAnswerNow ? loc.tutorTakingLonger : loc.tutorThinking,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.robotoCondensed(fontSize: 18),
+            ),
           ),
           const SizedBox(height: 16),
           AnimatedOpacity(
             opacity: _showAnswerNow ? 1 : 0,
             duration: const Duration(milliseconds: 300),
             child: OutlinedButton.icon(
-              onPressed: _showAnswerNow ? _answerNow : null,
+              onPressed: _showAnswerNow && !_shortRequested ? _answerNow : null,
               style: OutlinedButton.styleFrom(
                 foregroundColor: _navGreen,
                 side: const BorderSide(color: _navGreen, width: 1.5),
@@ -541,7 +632,18 @@ class _TutorPageState extends State<TutorPage> {
                   vertical: 12,
                 ),
               ),
-              icon: const Icon(Icons.bolt),
+              // A spinner once tapped, so the tap visibly did something.
+              icon:
+                  _shortRequested
+                      ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _navGreen,
+                        ),
+                      )
+                      : const Icon(Icons.short_text),
               label: Text(
                 loc.tutorAnswerNow,
                 style: GoogleFonts.robotoCondensed(
