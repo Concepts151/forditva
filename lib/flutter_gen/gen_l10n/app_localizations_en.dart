@@ -436,4 +436,69 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get swipeToDeleteTip =>
       'Tip: swipe an entry to the left to delete it.';
+
+  @override
+  String get walletWelcomeTitle => 'Welcome to fordítva';
+
+  @override
+  String get walletWelcomeBody =>
+      'You start with 200 free WIU. Used fordítva before? Bring your WIU back with your recovery code.';
+
+  @override
+  String get walletStartNew => 'Start with 200 WIU';
+
+  @override
+  String get walletHaveRecoveryCode => 'I have a recovery code';
+
+  @override
+  String get walletNeedsInternet =>
+      'Please connect to the internet once to set up your WIU balance.';
+
+  @override
+  String get recoveryCodeTitle => 'Your recovery code';
+
+  @override
+  String get recoveryCodeBody =>
+      'Write this code down and keep it safe. If you reinstall the app or get a new phone, it brings your WIU back. We show it only once.';
+
+  @override
+  String get recoveryCodeDone => 'I wrote it down';
+
+  @override
+  String get recoverTitle => 'Restore with recovery code';
+
+  @override
+  String get recoverNeededBody =>
+      'This phone already had a WIU balance. Enter your recovery code to get it back.';
+
+  @override
+  String get recoverHint => '25-character code';
+
+  @override
+  String get recoverButton => 'Restore';
+
+  @override
+  String get recoverDone => 'Your WIU balance is back';
+
+  @override
+  String get recoverLimit =>
+      'This code was used 3 times in 30 days. Please try again later.';
+
+  @override
+  String get recoverDeviceLinked =>
+      'This phone already belongs to another WIU balance.';
+
+  @override
+  String get codeLockedHour =>
+      'Too many wrong codes. Please try again in one hour.';
+
+  @override
+  String get codeAlreadyAdded => 'This code was already added to your balance.';
+
+  @override
+  String get newRecoveryCode => 'New recovery code';
+
+  @override
+  String get newRecoveryCodeConfirm =>
+      'You get a new recovery code, and your old one stops working. Continue?';
 }

@@ -13,9 +13,9 @@ import 'flutter_gen/gen_l10n/app_localizations.dart';
 import 'models/language_enum.dart';
 import 'services/history_store.dart';
 import 'services/level_pref.dart';
-import 'services/prepaid_token_service.dart';
 import 'services/third_language_pref.dart';
 import 'services/token_balance.dart';
+import 'widgets/wallet_dialogs.dart';
 
 const Color _navGreen = Color(0xFF436F4D);
 const Color _pageBg = Color(0xFFF6F3F7);
@@ -51,7 +51,6 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   // The "How it works" box's always-visible scrollbar needs its own
   // controller; without one Flutter threw an error every time Settings opened.
   final ScrollController _howItWorksScroll = ScrollController();
-  final PrepaidTokenService _prepaidTokens = PrepaidTokenService();
   bool _isRedeeming = false;
 
   // The status bar shows 7 blocks: all filled while the balance is at or above
@@ -136,42 +135,41 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       ).showSnackBar(SnackBar(content: Text(_loc.pleaseEnterCode)));
       return;
     }
-    if (!_prepaidTokens.isValidFormat(code)) {
+    if (!TokenBalance.isGiftCodeFormat(code)) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(_loc.codeInvalid)));
       return;
     }
 
+    // A gift code needs a wallet (new install, or one that needs recovery).
+    if (!await ensureWallet(context) || !mounted) return;
+
     setState(() => _isRedeeming = true);
     try {
-      final value = await _prepaidTokens.redeem(code);
-      await TokenBalance.instance.add(value);
+      final value = await TokenBalance.instance.redeem(code);
       if (!mounted) return;
       _codeController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${_loc.codeRedeemed}: $value WIUs')),
+        SnackBar(
+          content: Text(
+            value > 0
+                ? '${_loc.codeRedeemed}: $value WIUs'
+                : _loc.codeAlreadyAdded,
+          ),
+        ),
       );
-    } on PrepaidTokenException catch (e) {
+    } on WalletException catch (e) {
       if (!mounted) return;
+      if (e.kind == WalletError.needsRecovery) {
+        await showRecoverDialog(context, needed: true);
+        return;
+      }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(_messageFor(e.kind))));
+      ).showSnackBar(SnackBar(content: Text(walletErrorText(_loc, e.kind))));
     } finally {
       if (mounted) setState(() => _isRedeeming = false);
-    }
-  }
-
-  String _messageFor(PrepaidErrorKind kind) {
-    switch (kind) {
-      case PrepaidErrorKind.rateLimited:
-        return _loc.codeRateLimited;
-      case PrepaidErrorKind.network:
-        return _loc.codeNetworkError;
-      case PrepaidErrorKind.config:
-        return _loc.codeUnavailable;
-      case PrepaidErrorKind.invalidCode:
-        return _loc.codeInvalid;
     }
   }
 
@@ -239,6 +237,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
           _padded(_howItWorksCard()),
           _padded(_currentStatus()),
           _padded(_codeForFilling()),
+          _padded(_recoveryCode()),
           _padded(_organizeCredits()),
 
           _sectionHeader(_loc.languageLearning),
@@ -578,6 +577,43 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         ],
       ),
     ],
+  );
+
+  // Restore a wallet from another install, or replace a lost recovery code.
+  Widget _recoveryCode() => ValueListenableBuilder<WalletState>(
+    valueListenable: TokenBalance.instance.state,
+    builder:
+        (context, state, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _walletTextButton(
+              _loc.recoverTitle,
+              () => showRecoverDialog(
+                context,
+                needed: state == WalletState.needsRecovery,
+              ),
+            ),
+            if (state == WalletState.ready)
+              _walletTextButton(
+                _loc.newRecoveryCode,
+                () => showNewRecoveryCodeFlow(context),
+              ),
+          ],
+        ),
+  );
+
+  Widget _walletTextButton(String label, VoidCallback onPressed) => TextButton(
+    onPressed: onPressed,
+    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+    child: Text(
+      label,
+      style: GoogleFonts.robotoCondensed(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        color: _navGreen,
+        decoration: TextDecoration.underline,
+      ),
+    ),
   );
 
   Widget _organizeCredits() => Column(

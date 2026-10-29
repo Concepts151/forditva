@@ -28,6 +28,7 @@ import 'services/token_balance.dart';
 import 'spacing.dart';
 import 'textpage.dart';
 import 'tutor/tutor_page.dart';
+import 'widgets/wallet_dialogs.dart';
 
 // Colors and constants
 const Color navRed = Color(0xFFCD2A3E);
@@ -49,10 +50,9 @@ void main() async {
   await LevelPref.load();
   await HistoryStore.load();
   await TokenBalance.instance.load();
-  // Not awaited: on a first Android launch this waits on the welcome-grant
-  // server check (10s timeout), which kept the app on a blank screen. The
-  // balance is a ValueNotifier, so the UI picks up the grant when it lands.
-  unawaited(TokenBalance.instance.grantWelcomeIfFirstRun());
+  // Not awaited: a sync can take up to 20 s on a bad connection. The
+  // balance is a ValueNotifier, so the UI picks up the result when it lands.
+  unawaited(TokenBalance.instance.start());
   runApp(
     MultiProvider(
       providers: [
@@ -101,14 +101,30 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final ValueNotifier<Locale?> _localeNotifier = ValueNotifier<Locale?>(null);
   static const _localePrefKey = 'app_locale';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSavedLocale();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // API.md §5: sync the wallet when the app comes to the foreground, if the
+  // last sync is 8 hours old or more (the client checks the interval).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(TokenBalance.instance.syncIfDue());
+    }
   }
 
   // Restore the language the user last picked in Settings, so it (and the
@@ -220,6 +236,13 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     TutorLauncher.request.addListener(_showTutorPage);
+    // A new install picks "start with 200 WIU" or "recovery code" once the
+    // home page is up; the WIU gate asks again if it was skipped.
+    if (TokenBalance.instance.state.value == WalletState.none) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showWalletWelcome(context);
+      });
+    }
   }
 
   @override

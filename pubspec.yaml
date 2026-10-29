@@ -2,7 +2,7 @@ name: forditva
 description: "A new Flutter project."
 publish_to: "none"
 
-version: 1.0.3+77
+version: 1.0.4+78
 
 environment:
   sdk: ^3.7.2
@@ -50,6 +50,7 @@ dependencies:
   # in the app. 4.x: 5.0.0 was only a day old on 2026-10-16.
   firebase_ai: ^4.0.0
   cloud_functions: ^6.5.0
+  device_info_plus: ^11.5.0
 
 dev_dependencies:
   flutter_test:

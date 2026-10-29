@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../flutter_gen/gen_l10n/app_localizations.dart';
 import '../services/token_balance.dart';
+import 'wallet_dialogs.dart';
 
 const Color _navGreen = Color(0xFF436F4D);
 
@@ -12,6 +13,11 @@ const Color _navGreen = Color(0xFF436F4D);
 /// ahead (Markus, 2026-07-10: block at 0, warn under 200).
 Future<bool> ensureWiuBalance(BuildContext context) async {
   final loc = AppLocalizations.of(context)!;
+  // No wallet yet (or it needs the recovery code): set it up first.
+  if (TokenBalance.instance.state.value != WalletState.ready) {
+    final ready = await ensureWallet(context);
+    if (!ready || !context.mounted) return false;
+  }
   if (TokenBalance.instance.isEmpty) {
     await showDialog(
       context: context,

@@ -439,4 +439,70 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get swipeToDeleteTip =>
       'Tipp: Wische einen Eintrag nach links, um ihn zu löschen.';
+
+  @override
+  String get walletWelcomeTitle => 'Willkommen bei fordítva';
+
+  @override
+  String get walletWelcomeBody =>
+      'Du startest mit 200 kostenlosen WIU. Hast du fordítva schon genutzt? Mit deinem Wiederherstellungscode holst du dein Guthaben zurück.';
+
+  @override
+  String get walletStartNew => 'Mit 200 WIU starten';
+
+  @override
+  String get walletHaveRecoveryCode => 'Ich habe einen Wiederherstellungscode';
+
+  @override
+  String get walletNeedsInternet =>
+      'Bitte verbinde dich einmal mit dem Internet, um dein WIU-Guthaben einzurichten.';
+
+  @override
+  String get recoveryCodeTitle => 'Dein Wiederherstellungscode';
+
+  @override
+  String get recoveryCodeBody =>
+      'Schreib dir diesen Code auf und bewahre ihn gut auf. Wenn du die App neu installierst oder ein neues Handy hast, bekommst du damit dein WIU-Guthaben zurück. Wir zeigen ihn nur einmal an.';
+
+  @override
+  String get recoveryCodeDone => 'Ich habe ihn notiert';
+
+  @override
+  String get recoverTitle => 'Mit Wiederherstellungscode zurückholen';
+
+  @override
+  String get recoverNeededBody =>
+      'Auf diesem Handy gab es schon ein WIU-Guthaben. Gib deinen Wiederherstellungscode ein, um es zurückzuholen.';
+
+  @override
+  String get recoverHint => 'Code mit 25 Zeichen';
+
+  @override
+  String get recoverButton => 'Zurückholen';
+
+  @override
+  String get recoverDone => 'Dein WIU-Guthaben ist zurück';
+
+  @override
+  String get recoverLimit =>
+      'Dieser Code wurde in 30 Tagen schon 3-mal verwendet. Bitte versuche es später erneut.';
+
+  @override
+  String get recoverDeviceLinked =>
+      'Dieses Handy gehört schon zu einem anderen WIU-Guthaben.';
+
+  @override
+  String get codeLockedHour =>
+      'Zu viele falsche Codes. Bitte versuche es in einer Stunde erneut.';
+
+  @override
+  String get codeAlreadyAdded =>
+      'Dieser Code wurde deinem Guthaben bereits gutgeschrieben.';
+
+  @override
+  String get newRecoveryCode => 'Neuer Wiederherstellungscode';
+
+  @override
+  String get newRecoveryCodeConfirm =>
+      'Du bekommst einen neuen Wiederherstellungscode, dein alter funktioniert dann nicht mehr. Fortfahren?';
 }

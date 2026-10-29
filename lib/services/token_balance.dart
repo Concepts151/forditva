@@ -1,53 +1,111 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:android_id/android_id.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'welcome_grant_service.dart';
+import 'forditva_token_client.dart';
 
-/// The user's prepaid credit, measured in WIUs (wir-in-ungarn units) at a
-/// fixed $0.0025/WIU consumer rate (10,000 WIU = $25). Redeeming a prepaid
-/// code adds its value here. Every Gemini and TTS call spends WIUs equal to
-/// its REAL Google cost converted to that rate (see [geminiWiuCost] and
-/// gemini_tts_service.dart), not a flat per-token count — Markus, 2026-07-11:
-/// "I want to earn nothing... if we reduce 1000 WIU, the user needs to be
-/// getting $2.50 of real AI work for it." The "Current Status" bar in
-/// Profile settings reads this. Persisted so the balance survives restarts.
+/// Alex's Token Server 3.0 (live 2026-10-27). Contract: API.md v3, §3-7.
+const String tokenServerUrl = 'https://forditva-api.wir-in-ungarn.hu';
+
+/// Whether this install has a wallet on the Token Server.
+enum WalletState {
+  /// No wallet yet: the user picks "start new" or "recovery code" first.
+  none,
+
+  /// Wallet works; the balance is the last known server state minus local use.
+  ready,
+
+  /// The server refused this install's credential (401 after a recovery on
+  /// another phone) or this device already has a wallet (409 on register,
+  /// e.g. after an Android reinstall). Only the recovery code helps.
+  needsRecovery,
+}
+
+/// What went wrong in a wallet call, so the UI can pick the right message.
+enum WalletError {
+  /// Gift code or recovery code does not exist or was used by another wallet.
+  invalidCode,
+
+  /// 5 wrong gift codes in a row: no redeem for one hour.
+  codeLocked,
+
+  /// The reverse proxy's per-IP limit (HTML 429): wait at least 60 s.
+  rateLimited,
+
+  /// See [WalletState.needsRecovery].
+  needsRecovery,
+
+  /// 3 recoveries of this wallet in the last 30 days.
+  recoveryLimit,
+
+  /// This device already belongs to a different wallet.
+  deviceLinked,
+
+  /// No connection or timeout.
+  network,
+
+  /// Server error (5xx) or an answer the app does not understand.
+  unavailable,
+}
+
+class WalletException implements Exception {
+  final WalletError kind;
+  WalletException(this.kind);
+
+  @override
+  String toString() => 'WalletException($kind)';
+}
+
+/// The user's credit in WIUs (wir-in-ungarn units) at a fixed $0.0025/WIU
+/// consumer rate (10,000 WIU = $25). Every Gemini and TTS call spends WIUs
+/// equal to its REAL Google cost converted to that rate (see
+/// [geminiWiuCost] and gemini_tts_service.dart) — Markus, 2026-07-11: "I want
+/// to earn nothing... if we reduce 1000 WIU, the user needs to be getting
+/// $2.50 of real AI work for it."
+///
+/// Since 1.0.4 the wallet lives on the Token Server: it grants 200 WIU once
+/// per wallet and adds gift codes; the app counts its own use and reports
+/// the lifetime total at start/resume every 8 hours and with each redeem.
+/// The old local balance and the WordPress prepaid codes are not carried
+/// over (API.md §7, decision 2026-10-28: testers start fresh).
 class TokenBalance {
-  TokenBalance._();
-  static final TokenBalance instance = TokenBalance._();
+  TokenBalance._(this._client, this._storage);
 
-  static const _key = 'token_balance_wiu';
-  static const _welcomeKey = 'welcome_granted';
-  // Stored as remainder*1000 (an int) since SharedPreferences has no double.
-  static const _remainderKey = 'token_balance_remainder_x1000';
+  static final TokenBalance instance = TokenBalance._(
+    ForditvaTokenClient(baseUrl: tokenServerUrl),
+    const FlutterSecureStorage(),
+  );
 
-  // iOS Keychain survives app uninstall (unlike SharedPreferences), so on
-  // iOS this is the real guard against a reinstall re-granting the welcome
-  // bonus (Markus, 2026-07-12: confirmed reinstalls should not re-grant).
-  static const _secureStorage = FlutterSecureStorage();
+  @visibleForTesting
+  factory TokenBalance.forTest(
+    ForditvaTokenClient client,
+    FlutterSecureStorage storage,
+  ) => TokenBalance._(client, storage);
 
-  // Android has no client-only equivalent to the Keychain, so it checks the
-  // wir-in-ungarn.hu backend by ANDROID_ID instead (welcome-grant/check and
-  // /claim, live as of 2026-07-12 per Alam).
-  static const _androidId = AndroidId();
-  final _welcomeGrantService = WelcomeGrantService();
+  final ForditvaTokenClient _client;
+  final FlutterSecureStorage _storage;
 
-  /// One-time WIUs credited to every new install on first launch (Markus,
-  /// 2026-07-12: 100, not 500 — enough for 50-100 translations before the
-  /// user needs to buy their next prepaid code).
-  static const welcomeGrant = 100;
+  // The server takes whole WIUs only. The fraction below 1 WIU waits here and
+  // counts at a later spend (API.md §5: report the total rounded down).
+  // Stored as remainder*1000 since SharedPreferences has no double.
+  static const _remainderKey = 'wallet_spend_remainder_x1000';
 
   /// Below this, the UI nudges the user to top up soon without blocking yet
-  /// (Markus, 2026-07-10: warn under 200 WIUs; 2026-10-09: lowered to 50,
-  /// since 200 was above the 100 WIU welcome grant and every new user saw
-  /// the warning from the start).
+  /// (Markus, 2026-07-10: warn under 200 WIUs; 2026-10-09: lowered to 50).
   static const lowBalanceThreshold = 50;
 
   /// Current balance in WIUs. Listen to rebuild the status bar on change.
+  /// Can go below 0 (the server accepts any reported total).
   final ValueNotifier<int> value = ValueNotifier<int>(0);
+
+  /// Listen to react when a wallet is created, recovered or refused.
+  final ValueNotifier<WalletState> state = ValueNotifier<WalletState>(
+    WalletState.none,
+  );
 
   /// True once the balance has run out — callers must block new AI requests
   /// and tell the user to top up (Markus, 2026-07-10).
@@ -56,90 +114,189 @@ class TokenBalance {
   /// True while there's still balance left but it's running low.
   bool get isLow => value.value > 0 && value.value < lowBalanceThreshold;
 
-  // Carries fractional WIU cost between calls (every call now costs a real-
-  // dollar-weighted fraction of a WIU, rarely a whole number) so small costs
-  // accumulate correctly instead of rounding to 0 each time.
   double _fractionalRemainder = 0.0;
 
+  /// Reads the local wallet. No network call.
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    value.value = prefs.getInt(_key) ?? 0;
     _fractionalRemainder = (prefs.getInt(_remainderKey) ?? 0) / 1000.0;
-  }
-
-  /// Credits the one-time welcome grant on the very first launch of this
-  /// install. On iOS checked against the Keychain; on Android checked
-  /// against the wir-in-ungarn.hu backend by ANDROID_ID — both survive an
-  /// uninstall, so a reinstall on the same device does not re-grant. If the
-  /// Android network check fails (offline, server error), grants anyway
-  /// rather than blocking app startup; the claim call is best-effort too.
-  /// Safe to call every launch: it grants only once.
-  Future<void> grantWelcomeIfFirstRun() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_welcomeKey) ?? false) return;
-
-    if (Platform.isIOS) {
-      final alreadyGranted = await _secureStorage.read(key: _welcomeKey);
-      if (alreadyGranted == 'true') {
-        await prefs.setBool(_welcomeKey, true);
-        return;
-      }
-    } else if (Platform.isAndroid) {
-      try {
-        final deviceId = await _androidId.getId();
-        if (deviceId != null &&
-            await _welcomeGrantService.checkGranted(deviceId)) {
-          await prefs.setBool(_welcomeKey, true);
-          return;
-        }
-      } catch (_) {
-        // Network/server issue — fall through and grant locally rather than
-        // block the user on startup.
-      }
-    }
-
-    value.value += welcomeGrant;
-    await prefs.setBool(_welcomeKey, true);
-    await prefs.setInt(_key, value.value);
-
-    if (Platform.isIOS) {
-      await _secureStorage.write(key: _welcomeKey, value: 'true');
-    } else if (Platform.isAndroid) {
-      try {
-        final deviceId = await _androidId.getId();
-        if (deviceId != null) await _welcomeGrantService.claim(deviceId);
-      } catch (_) {
-        // Best-effort — if this fails to record, worst case this device can
-        // re-grant once more on a future reinstall.
-      }
+    if (await _client.hasLocalWallet()) {
+      _apply(await _client.getLocalWallet());
+      if (state.value == WalletState.none) state.value = WalletState.ready;
     }
   }
 
-  /// Adds [amount] WIUs (e.g. after redeeming a code) and persists the total.
-  Future<void> add(int amount) async {
-    if (amount <= 0) return;
-    value.value += amount;
-    await _persist();
+  /// At app start: syncs an existing wallet if the last sync is 8 h old.
+  /// Never registers; a new install waits for the user's choice
+  /// ([createWallet] or [recover]). Never throws.
+  Future<void> start() async {
+    try {
+      if (!await _client.hasLocalWallet()) return;
+      final start = await _client.initialize();
+      _apply(start.wallet);
+    } catch (e) {
+      _handleBackground(e);
+    }
   }
+
+  /// On resume: same 8-hour rule as [start]. Never throws.
+  Future<void> syncIfDue() async {
+    try {
+      if (!await _client.hasLocalWallet()) return;
+      _apply(await _client.syncIfDue());
+    } catch (e) {
+      _handleBackground(e);
+    }
+  }
+
+  /// Registers a new wallet (200 WIU) and returns its recovery code, to show
+  /// the user once. Null if this install already had a wallet.
+  Future<String?> createWallet() async {
+    final hadWallet = await _client.hasLocalWallet();
+    try {
+      final start = await _client.initialize();
+      _apply(start.wallet);
+      return hadWallet ? null : start.recoveryCode;
+    } catch (e) {
+      // Register can succeed and the follow-up rotate fail (lost response,
+      // then offline): the wallet works, the code comes from Settings.
+      if (!hadWallet && await _client.hasLocalWallet()) {
+        _apply(await _client.getLocalWallet());
+        return null;
+      }
+      throw _mapError(e);
+    }
+  }
+
+  /// Moves the wallet of [code] to this install.
+  Future<void> recover(String code) async {
+    try {
+      _apply((await _client.recover(code)).wallet);
+    } on ForditvaTokenException catch (e) {
+      if (e.message != 'RECOVERY_REQUEST_ID_ALREADY_USED' &&
+          e.message != 'RECOVERY_SESSION_SUPERSEDED') {
+        throw _mapError(e);
+      }
+      // The client keeps the pending request for retries after a timeout;
+      // here the server wants a new one (API.md §3.4), so drop it and retry.
+      await _clearPendingRecovery();
+      try {
+        _apply((await _client.recover(code)).wallet);
+      } catch (e2) {
+        throw _mapError(e2);
+      }
+    } catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// Redeems a gift code with the current lifetime total. Returns the added
+  /// WIUs; 0 if this wallet had already redeemed the same code.
+  Future<int> redeem(String code) async {
+    try {
+      final result = await _client.redeemGiftCode(code);
+      _apply(result.wallet);
+      return result.alreadyRedeemed ? 0 : result.addedTokens;
+    } catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// A new recovery code; the old one stops working.
+  Future<String> rotateRecoveryCode() async {
+    try {
+      return await _client.rotateRecoveryCode();
+    } catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// True when [input] has the gift-code shape (8 of A-H J-N P-Z 2-9, after
+  /// removing spaces and dashes), checked before any network call.
+  static bool isGiftCodeFormat(String input) =>
+      RegExp(r'^[A-HJ-NP-Z2-9]{8}$').hasMatch(normalizeCode(input));
+
+  /// Same for a recovery code (25 characters).
+  static bool isRecoveryCodeFormat(String input) =>
+      RegExp(r'^[A-HJ-NP-Z2-9]{25}$').hasMatch(normalizeCode(input));
+
+  static String normalizeCode(String input) =>
+      input.trim().replaceAll('-', '').replaceAll(' ', '').toUpperCase();
 
   /// Spends a real-cost-weighted fractional WIU amount (every Gemini call
   /// and every TTS play). Accumulates the fraction until a whole WIU is
-  /// owed, then debits the visible integer balance, so small per-call costs
-  /// aren't silently rounded away.
+  /// owed, then records it on the wallet, so small per-call costs aren't
+  /// silently rounded away.
   Future<void> spendFractional(double wiuCost) async {
     if (wiuCost <= 0) return;
     _fractionalRemainder += wiuCost;
     final whole = _fractionalRemainder.floor();
     if (whole > 0) {
       _fractionalRemainder -= whole;
-      value.value = (value.value - whole).clamp(0, value.value);
+      value.value -= whole;
     }
-    await _persist();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_remainderKey, (_fractionalRemainder * 1000).round());
+    if (whole > 0 && await _client.hasLocalWallet()) {
+      _apply(await _client.recordConsumption(whole));
+    }
   }
 
-  Future<void> _persist() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_key, value.value);
-    await prefs.setInt(_remainderKey, (_fractionalRemainder * 1000).round());
+  void _apply(ForditvaWallet wallet) {
+    value.value = wallet.balance;
+    state.value = WalletState.ready;
+  }
+
+  // Start/resume sync: keep the local balance on any failure; only a refused
+  // credential changes the state.
+  void _handleBackground(Object e) {
+    final mapped = _mapError(e);
+    if (mapped.kind != WalletError.needsRecovery) {
+      debugPrint('Wallet sync skipped: ${mapped.kind}');
+    }
+  }
+
+  // Logs only the status and detail code, never ids, codes or bodies
+  // (API.md §4).
+  WalletException _mapError(Object e) {
+    if (e is WalletException) return e;
+    if (e is FormatException) return WalletException(WalletError.invalidCode);
+    if (e is http.ClientException ||
+        e is SocketException ||
+        e is TimeoutException) {
+      return WalletException(WalletError.network);
+    }
+    if (e is StateError) {
+      state.value = WalletState.none;
+      return WalletException(WalletError.unavailable);
+    }
+    if (e is! ForditvaTokenException) {
+      debugPrint('Wallet error: ${e.runtimeType}');
+      return WalletException(WalletError.unavailable);
+    }
+    debugPrint('Wallet: HTTP ${e.status} ${e.message}');
+    switch (e.message) {
+      case 'INVALID_OR_USED_CODE':
+      case 'INVALID_RECOVERY_CODE':
+        return WalletException(WalletError.invalidCode);
+      case 'CODE_ATTEMPTS_LOCKED':
+        return WalletException(WalletError.codeLocked);
+      case 'RECOVERY_LIMIT_3_PER_30_DAYS':
+        return WalletException(WalletError.recoveryLimit);
+      case 'DEVICE_LINKED_TO_OTHER_WALLET':
+        return WalletException(WalletError.deviceLinked);
+      case 'INVALID_WALLET_CREDENTIALS':
+      case 'DEVICE_ALREADY_USED_ENTER_RECOVERY_CODE':
+        state.value = WalletState.needsRecovery;
+        return WalletException(WalletError.needsRecovery);
+    }
+    if (e.status == 429) return WalletException(WalletError.rateLimited);
+    if (e.status == 422) return WalletException(WalletError.invalidCode);
+    return WalletException(WalletError.unavailable);
+  }
+
+  Future<void> _clearPendingRecovery() async {
+    await _storage.delete(key: 'forditva_v3_pending_recover_credential');
+    await _storage.delete(key: 'forditva_v3_pending_recover_request');
   }
 }

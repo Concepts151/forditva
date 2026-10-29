@@ -861,6 +861,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tip: swipe an entry to the left to delete it.'**
   String get swipeToDeleteTip;
+
+  /// No description provided for @walletWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to fordítva'**
+  String get walletWelcomeTitle;
+
+  /// No description provided for @walletWelcomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You start with 200 free WIU. Used fordítva before? Bring your WIU back with your recovery code.'**
+  String get walletWelcomeBody;
+
+  /// No description provided for @walletStartNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with 200 WIU'**
+  String get walletStartNew;
+
+  /// No description provided for @walletHaveRecoveryCode.
+  ///
+  /// In en, this message translates to:
+  /// **'I have a recovery code'**
+  String get walletHaveRecoveryCode;
+
+  /// No description provided for @walletNeedsInternet.
+  ///
+  /// In en, this message translates to:
+  /// **'Please connect to the internet once to set up your WIU balance.'**
+  String get walletNeedsInternet;
+
+  /// No description provided for @recoveryCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your recovery code'**
+  String get recoveryCodeTitle;
+
+  /// No description provided for @recoveryCodeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Write this code down and keep it safe. If you reinstall the app or get a new phone, it brings your WIU back. We show it only once.'**
+  String get recoveryCodeBody;
+
+  /// No description provided for @recoveryCodeDone.
+  ///
+  /// In en, this message translates to:
+  /// **'I wrote it down'**
+  String get recoveryCodeDone;
+
+  /// No description provided for @recoverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore with recovery code'**
+  String get recoverTitle;
+
+  /// No description provided for @recoverNeededBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone already had a WIU balance. Enter your recovery code to get it back.'**
+  String get recoverNeededBody;
+
+  /// No description provided for @recoverHint.
+  ///
+  /// In en, this message translates to:
+  /// **'25-character code'**
+  String get recoverHint;
+
+  /// No description provided for @recoverButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get recoverButton;
+
+  /// No description provided for @recoverDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your WIU balance is back'**
+  String get recoverDone;
+
+  /// No description provided for @recoverLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'This code was used 3 times in 30 days. Please try again later.'**
+  String get recoverLimit;
+
+  /// No description provided for @recoverDeviceLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone already belongs to another WIU balance.'**
+  String get recoverDeviceLinked;
+
+  /// No description provided for @codeLockedHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many wrong codes. Please try again in one hour.'**
+  String get codeLockedHour;
+
+  /// No description provided for @codeAlreadyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'This code was already added to your balance.'**
+  String get codeAlreadyAdded;
+
+  /// No description provided for @newRecoveryCode.
+  ///
+  /// In en, this message translates to:
+  /// **'New recovery code'**
+  String get newRecoveryCode;
+
+  /// No description provided for @newRecoveryCodeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'You get a new recovery code, and your old one stops working. Continue?'**
+  String get newRecoveryCodeConfirm;
 }
 
 class _AppLocalizationsDelegate

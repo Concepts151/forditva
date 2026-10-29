@@ -436,4 +436,69 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get swipeToDeleteTip =>
       'Tipp: húzz egy bejegyzést balra a törléséhez.';
+
+  @override
+  String get walletWelcomeTitle => 'Üdvözlünk a fordítvában!';
+
+  @override
+  String get walletWelcomeBody =>
+      '200 ingyenes WIU-val kezdesz. Használtad már a fordítvát? A visszaállító kódoddal visszakapod az egyenlegedet.';
+
+  @override
+  String get walletStartNew => 'Kezdés 200 WIU-val';
+
+  @override
+  String get walletHaveRecoveryCode => 'Van visszaállító kódom';
+
+  @override
+  String get walletNeedsInternet =>
+      'Kérlek, csatlakozz egyszer az internethez, hogy beállítsuk a WIU egyenlegedet.';
+
+  @override
+  String get recoveryCodeTitle => 'A visszaállító kódod';
+
+  @override
+  String get recoveryCodeBody =>
+      'Írd fel ezt a kódot, és őrizd meg jól. Ha újratelepíted az alkalmazást, vagy új telefonod lesz, ezzel visszakapod a WIU egyenlegedet. Csak egyszer mutatjuk meg.';
+
+  @override
+  String get recoveryCodeDone => 'Felírtam';
+
+  @override
+  String get recoverTitle => 'Visszaállítás kóddal';
+
+  @override
+  String get recoverNeededBody =>
+      'Ezen a telefonon már volt WIU egyenleg. Add meg a visszaállító kódodat, hogy visszakapd.';
+
+  @override
+  String get recoverHint => '25 karakteres kód';
+
+  @override
+  String get recoverButton => 'Visszaállítás';
+
+  @override
+  String get recoverDone => 'Visszakaptad a WIU egyenlegedet';
+
+  @override
+  String get recoverLimit =>
+      'Ezt a kódot 30 napon belül már 3-szor használták. Kérlek, próbáld újra később.';
+
+  @override
+  String get recoverDeviceLinked =>
+      'Ez a telefon már egy másik WIU egyenleghez tartozik.';
+
+  @override
+  String get codeLockedHour =>
+      'Túl sok hibás kód. Kérlek, próbáld újra egy óra múlva.';
+
+  @override
+  String get codeAlreadyAdded => 'Ezt a kódot már jóváírtuk az egyenlegeden.';
+
+  @override
+  String get newRecoveryCode => 'Új visszaállító kód';
+
+  @override
+  String get newRecoveryCodeConfirm =>
+      'Új visszaállító kódot kapsz, a régi pedig nem működik tovább. Folytatod?';
 }
