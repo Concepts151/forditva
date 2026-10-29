@@ -118,6 +118,8 @@ class _TutorPageState extends State<TutorPage> {
   bool _showAnswerNow = false;
   bool _shortRequested = false;
   bool _failed = false;
+  // The failure is "no Hungarian sentence in this text", not a service error.
+  bool _noHungarian = false;
   Timer? _waitTimer;
   final Stopwatch _waitWatch = Stopwatch();
   int _usualMs = _defaultAnswerMs;
@@ -190,6 +192,7 @@ class _TutorPageState extends State<TutorPage> {
       _results.clear();
       _loadingKey = null;
       _failed = false;
+      _noHungarian = false;
       _mode = TutorMode.understanding;
     });
     final cached = r.cached;
@@ -243,11 +246,12 @@ class _TutorPageState extends State<TutorPage> {
         ]);
         _picking = true;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _splitting = false;
         _failed = true;
+        _noHungarian = e is TutorNoHungarianException;
       });
     }
   }
@@ -369,7 +373,7 @@ class _TutorPageState extends State<TutorPage> {
         _showAnswerNow = false;
       });
       _saveToHistory(text);
-    } catch (_) {
+    } catch (e) {
       if (!mounted || _loadingKey != key) return;
       // Only a failure of the last request still running is an error; a
       // cancelled or failed duplicate is not.
@@ -378,6 +382,7 @@ class _TutorPageState extends State<TutorPage> {
         setState(() {
           _loadingKey = null;
           _failed = true;
+          _noHungarian = e is TutorNoHungarianException;
           _showAnswerNow = false;
         });
       }
@@ -666,13 +671,19 @@ class _TutorPageState extends State<TutorPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            AppLocalizations.of(context)!.serviceUnavailable,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.robotoCondensed(fontSize: 18),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text(
+              _noHungarian
+                  ? AppLocalizations.of(context)!.tutorNoHungarian
+                  : AppLocalizations.of(context)!.serviceUnavailable,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.robotoCondensed(fontSize: 18),
+            ),
           ),
           const SizedBox(height: 8),
-          IconButton(
+          // Asking again can't find Hungarian that isn't there.
+          if (!_noHungarian) IconButton(
             icon: const Icon(Icons.refresh, color: _navGreen, size: 32),
             onPressed: () {
               setState(() => _failed = false);

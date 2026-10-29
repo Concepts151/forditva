@@ -621,14 +621,18 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
 
   // Tutor: called by the nav bar's bulb button (main.dart, via GlobalKey).
   // Explains whichever Hungarian text is currently on this page.
+  // Same mapping as _updateHasHungarianText: _rightLang is the source
+  // (_inputController), _leftLang the target (_translatedText). This had them
+  // backwards, so English -> Hungarian sent the English input to the Tutor
+  // (user test, 2026-10-29: Decoding showed only English).
   void openTutor() {
     final hungarianText =
-        _leftLang == Language.hungarian
+        _rightLang == Language.hungarian
             ? _inputController.text.trim()
-            : _rightLang == Language.hungarian
+            : _leftLang == Language.hungarian
             ? _translatedText.trim()
             : '';
-    final other = _leftLang == Language.hungarian ? _rightLang : _leftLang;
+    final other = _rightLang == Language.hungarian ? _leftLang : _rightLang;
     // The new Tutor page (Markus, 2026-10-09) replaces the old modal.
     TutorLauncher.open(hungarianText, otherLangCode: other.code);
   }

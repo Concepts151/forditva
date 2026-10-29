@@ -136,6 +136,21 @@ bool _validDecoder(List v) => v.every(
 bool _validMode3(List v) =>
     v.every((s) => s is Map && s['hu'] is String && _validItems(s['items']));
 
+/// The model found no Hungarian sentence in the text and answered `[]`
+/// (for example German text from the File page's explain mode, 2026-10-29).
+/// Asking again gives the same answer, so this is not retried.
+class TutorNoHungarianException implements Exception {
+  const TutorNoHungarianException();
+}
+
+/// True when [reply] is an empty JSON array, with or without a fence.
+bool isEmptyTutorReply(String reply) {
+  var text = reply.trim();
+  final fence = RegExp(r'^```[a-zA-Z]*\s*([\s\S]*?)\s*```$').firstMatch(text);
+  if (fence != null) text = fence.group(1)!.trim();
+  return RegExp(r'^\[\s*\]$').hasMatch(text);
+}
+
 /// Parses a model reply into a JSON array, tolerating a ```json fence.
 /// JSON modes that only allow an object at the top (DeepSeek's) answer
 /// either one sentence object (has "hu") or an object wrapping the array in

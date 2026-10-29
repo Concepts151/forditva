@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 import '../services/ai/ai_router.dart';
 import 'tutor_core.dart';
 
-export 'tutor_core.dart' show TutorMode, TutorSentence;
+export 'tutor_core.dart'
+    show TutorMode, TutorNoHungarianException, TutorSentence;
 
 /// AI calls behind the Tutor page. The model is chosen in [aiRoutes]
 /// ([AiTask.tutor], [AiTask.tutorSentences]); every call is billed in WIU at
@@ -98,6 +99,9 @@ class TutorService {
         ),
         client: _client,
       );
+      if (isEmptyTutorReply(result.text)) {
+        throw const TutorNoHungarianException();
+      }
       final parsed = parseTutorArray(result.text);
       if (parsed != null && isValid(parsed)) return parsed;
       debugPrint('Tutor: invalid JSON on attempt ${attempt + 1}');
