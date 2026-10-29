@@ -193,10 +193,20 @@ class ForditvaTokenClient {
       if (await _syncDue()) {
         try {
           await _sync();
-        } on ForditvaTokenException {
-          rethrow; // missing/revoked credentials should be surfaced
+        } on ForditvaTokenException catch (error) {
+          // WHY: HTTP_ERROR = no JSON detail (the proxy: 502/503/504/429, or a
+          // plain 500). Keep the local balance (docs/API.md §6). A server answer
+          // with a detail code (for example 401 INVALID_WALLET_CREDENTIALS) is
+          // surfaced: missing/revoked credentials must reach the app.
+          if (error.message != 'HTTP_ERROR' && error.status < 500) rethrow;
+        } on http.ClientException {
+          // NOTE: package:http (1.6.0) wraps connection failures of IOClient in
+          // ClientException; cronet_http and cupertino_http throw it too. The
+          // app itself requires internet for AI. No wallet reset here.
         } on SocketException {
-          // The app itself requires internet for AI. No wallet reset here.
+          // The same as above.
+        } on HandshakeException {
+          // TLS failure, for example a captive portal. Not a server answer.
         } on TimeoutException {
           // Keep last known local balance until next opportunity.
         }
@@ -251,6 +261,8 @@ class ForditvaTokenClient {
   /// Call ONCE for each cost already calculated by the EXISTING Dart logic.
   /// Do not call from the server, and do not call again for the same usage.
   /// If needed, the existing app must ensure its charge event is idempotent.
+  /// Whole WIU only: the app keeps the exact fraction itself and reports its
+  /// lifetime total rounded down (docs/API.md §5).
   Future<ForditvaWallet> recordConsumption(int tokens) => _serial(() async {
     if (tokens < 0) throw ArgumentError.value(tokens, 'tokens');
     if (!await hasLocalWallet()) throw StateError('Wallet not initialized');
@@ -271,6 +283,17 @@ class ForditvaTokenClient {
         result['amount'] as int, result['already_redeemed'] as bool);
   });
 
+  // WHY: with these two answers the stored request_id can never succeed again
+  // (server/app.py recover). Every other answer keeps the pending request.
+  static const Set<String> _deadRecoveryRequest = {
+    'RECOVERY_REQUEST_ID_ALREADY_USED', 'RECOVERY_SESSION_SUPERSEDED',
+  };
+
+  Future<void> _deletePendingRecovery() async {
+    await _storage.delete(key: '${_prefix}pending_recover_credential');
+    await _storage.delete(key: '${_prefix}pending_recover_request');
+  }
+
   /// Restore from the most recently synchronized server state. All unsynced
   /// spending since then is irrecoverable if the app was uninstalled.
   /// At most three successful NEW recoveries per rolling 30 days.
@@ -279,6 +302,18 @@ class ForditvaTokenClient {
     if (!RegExp(r'^[A-HJ-NP-Z2-9]{25}$').hasMatch(code)) {
       throw const FormatException('Recovery code requires 25 valid characters');
     }
+    ForditvaWallet wallet;
+    try {
+      wallet = await _recoverOnce(code);
+    } on ForditvaTokenException catch (error) {
+      if (!_deadRecoveryRequest.contains(error.message)) rethrow;
+      // NOTE: one retry with a new request_id. A second error goes to the caller.
+      wallet = await _recoverOnce(code);
+    }
+    return ForditvaStart(wallet: wallet, isNew: false);
+  });
+
+  Future<ForditvaWallet> _recoverOnce(String code) async {
     // Persist pending request ID and secret, so retry after connection timeout
     // reuses the same operation (does not use another recovery allowance).
     var pendingSecret = await _get('pending_recover_credential');
@@ -287,19 +322,28 @@ class ForditvaTokenClient {
     pendingRequest ??= _randomHex(16);
     await _put('pending_recover_credential', pendingSecret);
     await _put('pending_recover_request', pendingRequest);
-    final data = await _post('/v3/recover', {
-      'recovery_code': code,
-      'device_id': await _deviceId(),
-      'new_credential': pendingSecret,
-      'request_id': pendingRequest,
-    });
+    // NOTE: a timeout or a network error is not caught here, so the pending
+    // request stays for the next try.
+    final Map<String, dynamic> data;
+    try {
+      data = await _post('/v3/recover', {
+        'recovery_code': code,
+        'device_id': await _deviceId(),
+        'new_credential': pendingSecret,
+        'request_id': pendingRequest,
+      });
+    } on ForditvaTokenException catch (error) {
+      if (_deadRecoveryRequest.contains(error.message)) {
+        await _deletePendingRecovery();
+      }
+      rethrow; // every other server answer keeps the pending request
+    }
     await _put('wallet_id', data['wallet_id'] as String);
     await _put('credential', pendingSecret);
     final wallet = await _accept(data, isRecovery: true);
-    await _storage.delete(key: '${_prefix}pending_recover_credential');
-    await _storage.delete(key: '${_prefix}pending_recover_request');
-    return ForditvaStart(wallet: wallet, isNew: false);
-  });
+    await _deletePendingRecovery();
+    return wallet;
+  }
 
   /// Replace lost/compromised recovery code while current installation works.
   /// Does not consume one of the three reactivations.

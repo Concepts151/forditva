@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -73,21 +72,17 @@ class WalletException implements Exception {
 /// The old local balance and the WordPress prepaid codes are not carried
 /// over (API.md §7, decision 2026-10-28: testers start fresh).
 class TokenBalance {
-  TokenBalance._(this._client, this._storage);
+  TokenBalance._(this._client);
 
   static final TokenBalance instance = TokenBalance._(
     ForditvaTokenClient(baseUrl: tokenServerUrl),
-    const FlutterSecureStorage(),
   );
 
   @visibleForTesting
-  factory TokenBalance.forTest(
-    ForditvaTokenClient client,
-    FlutterSecureStorage storage,
-  ) => TokenBalance._(client, storage);
+  factory TokenBalance.forTest(ForditvaTokenClient client) =>
+      TokenBalance._(client);
 
   final ForditvaTokenClient _client;
-  final FlutterSecureStorage _storage;
 
   // The server takes whole WIUs only. The fraction below 1 WIU waits here and
   // counts at a later spend (API.md §5: report the total rounded down).
@@ -168,23 +163,11 @@ class TokenBalance {
     }
   }
 
-  /// Moves the wallet of [code] to this install.
+  /// Moves the wallet of [code] to this install. The client retries once
+  /// itself when the server wants a new request id (API.md §3.4).
   Future<void> recover(String code) async {
     try {
       _apply((await _client.recover(code)).wallet);
-    } on ForditvaTokenException catch (e) {
-      if (e.message != 'RECOVERY_REQUEST_ID_ALREADY_USED' &&
-          e.message != 'RECOVERY_SESSION_SUPERSEDED') {
-        throw _mapError(e);
-      }
-      // The client keeps the pending request for retries after a timeout;
-      // here the server wants a new one (API.md §3.4), so drop it and retry.
-      await _clearPendingRecovery();
-      try {
-        _apply((await _client.recover(code)).wallet);
-      } catch (e2) {
-        throw _mapError(e2);
-      }
     } catch (e) {
       throw _mapError(e);
     }
@@ -293,10 +276,5 @@ class TokenBalance {
     if (e.status == 429) return WalletException(WalletError.rateLimited);
     if (e.status == 422) return WalletException(WalletError.invalidCode);
     return WalletException(WalletError.unavailable);
-  }
-
-  Future<void> _clearPendingRecovery() async {
-    await _storage.delete(key: 'forditva_v3_pending_recover_credential');
-    await _storage.delete(key: 'forditva_v3_pending_recover_request');
   }
 }

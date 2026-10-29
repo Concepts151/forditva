@@ -53,7 +53,6 @@ void main() {
         httpClient: MockClient(handler),
         secureStorage: storage,
       ),
-      storage,
     );
     await balance.load();
     return balance;
@@ -99,6 +98,24 @@ void main() {
     await balance.syncIfDue();
     expect(balance.value.value, 195);
     expect(balance.state.value, WalletState.ready);
+  });
+
+  test('a proxy error at app start keeps the local balance', () async {
+    final balance = await wallet(
+      (req) async => http.Response('<html>503</html>', 503),
+    );
+    await balance.start();
+    expect(balance.value.value, 200);
+    expect(balance.state.value, WalletState.ready);
+  });
+
+  test('a refused credential at app start asks for the recovery code',
+      () async {
+    final balance = await wallet(
+      (req) async => _json(401, {'detail': 'INVALID_WALLET_CREDENTIALS'}),
+    );
+    await balance.start();
+    expect(balance.state.value, WalletState.needsRecovery);
   });
 
   test('a refused credential asks for the recovery code', () async {
