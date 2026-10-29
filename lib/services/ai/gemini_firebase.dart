@@ -45,8 +45,13 @@ Future<GeminiReply> geminiGenerate(
   final httpClient =
       kDebugMode ? _RequestLogClient(client ?? ownClient!) : client;
   try {
+    // Limited-use App Check tokens: with enforcement on, AI Logic counts the
+    // standard 1-hour token as reused and answers "genai config not found"
+    // (Alex, 2026-10-29). Google enforces App Check for AI Logic in every
+    // project from 2 Nov 2026.
     final generativeModel = FirebaseAI.agentPlatform(
       location: geminiLocation,
+      useLimitedUseAppCheckTokens: true,
     ).generativeModel(
       model: model.id,
       systemInstruction:
