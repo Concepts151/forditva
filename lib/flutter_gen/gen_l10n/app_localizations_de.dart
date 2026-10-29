@@ -112,23 +112,23 @@ class AppLocalizationsDe extends AppLocalizations {
   String get historyCleared => 'Verlauf gelöscht';
 
   @override
-  String get credits => 'Guthaben';
+  String get credits => 'Credits';
 
   @override
   String get howItWorks => 'So funktioniert es ...';
 
   @override
   String get howItWorksBody =>
-      'Diese App lebt vom Gemeinschaftsgeist! Einen Guthabencode erhältst du über dein Benutzerkonto auf wir-in-ungarn.hu. Hier gibt es keinen kommerziellen Checkout — Guthaben verdienst du dir ausschließlich durch dein Engagement, sei es durch das Beitragen von Inhalten oder das Helfen in der Community. Deine Teilnahme ist unsere Währung!';
+      'Diese App lebt vom Gemeinschaftsgeist! Einen Aufladecode erhältst du über dein Benutzerkonto auf wir-in-ungarn.hu. Hier gibt es keinen kommerziellen Checkout — Credits verdienst du dir ausschließlich durch dein Engagement, sei es durch das Beitragen von Inhalten oder das Helfen in der Community. Deine Teilnahme ist unsere Währung!';
 
   @override
   String get currentStatus => 'Aktueller Status';
 
   @override
-  String get codeForFillingCredits => 'Code zum Aufladen';
+  String get codeForFillingCredits => 'Credits aufladen';
 
   @override
-  String get pleaseEnterCode => 'Bitte gib einen Code ein';
+  String get pleaseEnterCode => 'Bitte gib einen Aufladecode ein';
 
   @override
   String get codeSubmitted => 'Code übermittelt';
@@ -152,7 +152,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get codeUnavailable => 'Das Aufladen ist gerade nicht verfügbar';
 
   @override
-  String get organizeCredits => 'Guthaben verwalten';
+  String get organizeCredits => 'Credits verwalten';
 
   @override
   String get gotoProfile => 'Zu meinem Profil auf wir-in-ungarn.hu';
@@ -260,19 +260,19 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wir konnten den Übersetzungsdienst nicht erreichen. Bitte prüfe deine Internetverbindung und versuche es erneut.';
 
   @override
-  String get wiuEmptyTitle => 'Guthaben aufgebraucht';
+  String get wiuEmptyTitle => 'Credits aufgebraucht';
 
   @override
   String get wiuEmptyBody =>
-      'Dein WIU-Guthaben ist leer. Bitte lade es auf wir-in-ungarn.hu auf, um weiter zu übersetzen.';
+      'Du hast keine Credits mehr. Bitte lade auf wir-in-ungarn.hu auf, um weiter zu übersetzen.';
 
   @override
   String get wiuLowBody =>
-      'Dein WIU-Guthaben wird knapp. Lade bald auf wir-in-ungarn.hu auf.';
+      'Deine Credits werden knapp. Lade bald auf wir-in-ungarn.hu auf.';
 
   @override
   String wiuRemaining(Object count) {
-    return 'Noch $count WIUs übrig';
+    return 'Noch $count Credits übrig';
   }
 
   @override
@@ -280,7 +280,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get legalPrivacyBody =>
-      'Die App „fordítva“ arbeitet komplett werbefrei und speichert keine persönlichen Profile oder Standortdaten von dir. Um zu erfahren, wie wir deine Eingaben (wie Sprach- oder Bilddaten) rein flüchtig verarbeiten und wie das anonyme WIU-Guthabensystem funktioniert, kannst du jederzeit unsere vollständige Datenschutzerklärung einsehen.';
+      'Die App „fordítva“ arbeitet komplett werbefrei und speichert keine persönlichen Profile oder Standortdaten von dir. Um zu erfahren, wie wir deine Eingaben (wie Sprach- oder Bilddaten) rein flüchtig verarbeiten und wie das anonyme Credit-System funktioniert, kannst du jederzeit unsere vollständige Datenschutzerklärung einsehen.';
 
   @override
   String get openPrivacyPolicy => 'Datenschutzerklärung öffnen';
@@ -434,7 +434,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tutorThinking => 'Einen Moment, ich bereite deine Antwort vor ...';
 
   @override
-  String get tutorAnswerNow => 'Jetzt antworten';
+  String get tutorAnswerNow => 'Kürzere Antwort';
 
   @override
   String get swipeToDeleteTip =>
@@ -445,64 +445,87 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get walletWelcomeBody =>
-      'Du startest mit 200 kostenlosen WIU. Hast du fordítva schon genutzt? Mit deinem Wiederherstellungscode holst du dein Guthaben zurück.';
+      'Du kannst mit 200 kostenlosen Credits starten. Hast du bereits einen Sicherungscode? Damit kannst du deine Credits wiederherstellen.';
 
   @override
-  String get walletStartNew => 'Mit 200 WIU starten';
+  String get walletStartNew => 'Mit 200 Credits starten';
 
   @override
-  String get walletHaveRecoveryCode => 'Ich habe einen Wiederherstellungscode';
+  String get walletHaveRecoveryCode => 'Sicherungscode eingeben';
 
   @override
   String get walletNeedsInternet =>
-      'Bitte verbinde dich einmal mit dem Internet, um dein WIU-Guthaben einzurichten.';
+      'Um deine Credits einzurichten, benötigst du eine Internetverbindung. Bitte verbinde dich mit dem Internet.';
 
   @override
-  String get recoveryCodeTitle => 'Dein Wiederherstellungscode';
+  String get recoveryCodeTitle => 'Dein Sicherungscode';
 
   @override
   String get recoveryCodeBody =>
-      'Schreib dir diesen Code auf und bewahre ihn gut auf. Wenn du die App neu installierst oder ein neues Handy hast, bekommst du damit dein WIU-Guthaben zurück. Wir zeigen ihn nur einmal an.';
+      'Bewahre diesen Code an einem sicheren Ort auf. Damit kannst du deine Credits wiederherstellen, wenn du die App neu installierst oder dein Handy wechselst. Der Code wird nur einmal angezeigt.';
 
   @override
-  String get recoveryCodeDone => 'Ich habe ihn notiert';
+  String get recoveryCodeDone => 'Ich habe den Code gesichert';
 
   @override
-  String get recoverTitle => 'Mit Wiederherstellungscode zurückholen';
+  String get recoverTitle => 'Credits wiederherstellen';
 
   @override
   String get recoverNeededBody =>
-      'Auf diesem Handy gab es schon ein WIU-Guthaben. Gib deinen Wiederherstellungscode ein, um es zurückzuholen.';
+      'Auf diesem Handy waren bereits Credits eingerichtet. Gib deinen Sicherungscode ein, um sie wiederherzustellen.';
 
   @override
   String get recoverHint => 'Code mit 25 Zeichen';
 
   @override
-  String get recoverButton => 'Zurückholen';
+  String get recoverButton => 'Credits wiederherstellen';
 
   @override
-  String get recoverDone => 'Dein WIU-Guthaben ist zurück';
+  String get recoverDone => 'Deine Credits wurden wiederhergestellt.';
 
   @override
   String get recoverLimit =>
-      'Dieser Code wurde in 30 Tagen schon 3-mal verwendet. Bitte versuche es später erneut.';
+      'Dieser Sicherungscode wurde innerhalb der letzten 30 Tage bereits dreimal verwendet. Versuche es später erneut.';
 
   @override
   String get recoverDeviceLinked =>
-      'Dieses Handy gehört schon zu einem anderen WIU-Guthaben.';
+      'Mit diesem Handy sind bereits Credits verknüpft. Andere Credits können hier nicht wiederhergestellt werden.';
 
   @override
   String get codeLockedHour =>
-      'Zu viele falsche Codes. Bitte versuche es in einer Stunde erneut.';
+      'Du hast zu oft einen ungültigen Aufladecode eingegeben. Versuche es in einer Stunde erneut.';
 
   @override
   String get codeAlreadyAdded =>
-      'Dieser Code wurde deinem Guthaben bereits gutgeschrieben.';
+      'Diesen Aufladecode hast du bereits eingelöst. Die Credits wurden dir schon gutgeschrieben.';
 
   @override
-  String get newRecoveryCode => 'Neuer Wiederherstellungscode';
+  String get newRecoveryCode => 'Neuen Sicherungscode erstellen';
 
   @override
   String get newRecoveryCodeConfirm =>
-      'Du bekommst einen neuen Wiederherstellungscode, dein alter funktioniert dann nicht mehr. Fortfahren?';
+      'Wenn du einen neuen Sicherungscode erstellst, wird dein bisheriger Code ungültig. Möchtest du fortfahren?';
+
+  @override
+  String get newRecoveryCodeCreate => 'Neuen Code erstellen';
+
+  @override
+  String get topUpCodeHint => 'Aufladecode';
+
+  @override
+  String creditsAdded(Object count) {
+    return 'Aufladecode eingelöst: $count Credits gutgeschrieben';
+  }
+
+  @override
+  String get tutorTakingLonger =>
+      'Deine Antwort braucht gerade etwas länger als üblich. Du kannst weiter warten oder eine kürzere Antwort anfordern.';
+
+  @override
+  String get fileTooLargeTitle => 'Datei zu groß';
+
+  @override
+  String fileTooLargeBody(String size) {
+    return 'Diese Datei hat $size MB. fordítva kann Dateien bis 14 MB lesen. Bitte verkleinere die Datei, zum Beispiel indem du das PDF mit geringerer Bildqualität speicherst, und versuche es erneut.';
+  }
 }

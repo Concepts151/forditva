@@ -1,10 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../flutter_gen/gen_l10n/app_localizations.dart';
 import '../services/token_balance.dart';
 
 const Color _navGreen = Color(0xFF436F4D);
+
+/// Roboto Condensed for every text in [child], as on the rest of the app
+/// (Markus, 2026-10-29: fewer bad line breaks in long German words).
+Widget condensedDialog(BuildContext context, Widget child) {
+  final theme = Theme.of(context);
+  return Theme(
+    data: theme.copyWith(
+      textTheme: GoogleFonts.robotoCondensedTextTheme(theme.textTheme),
+    ),
+    child: child,
+  );
+}
 
 /// The message for a failed wallet call.
 String walletErrorText(AppLocalizations loc, WalletError kind) {
@@ -236,7 +249,9 @@ Future<bool> showRecoverDialog(
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed:
-                      busy ? null : () => Navigator.of(dialogContext).pop(false),
+                      busy
+                          ? null
+                          : () => Navigator.of(dialogContext).pop(false),
                   child: Text(
                     loc.cancel,
                     style: const TextStyle(fontSize: 17, color: _navGreen),
@@ -262,18 +277,31 @@ Future<void> showNewRecoveryCodeFlow(BuildContext context) async {
   final go = await showDialog<bool>(
     context: context,
     builder:
-        (dialogContext) => AlertDialog(
-          content: Text(loc.newRecoveryCodeConfirm, style: _bodyStyle),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(loc.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(loc.ok),
-            ),
-          ],
+        (dialogContext) => condensedDialog(
+          dialogContext,
+          AlertDialog(
+            content: Text(loc.newRecoveryCodeConfirm, style: _bodyStyle),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(
+                  loc.cancel,
+                  style: const TextStyle(fontSize: 17, color: _navGreen),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(
+                  loc.newRecoveryCodeCreate,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: _navGreen,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
   );
   if (go != true || !context.mounted) return;
@@ -354,6 +382,10 @@ class _WalletDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return condensedDialog(context, _dialog());
+  }
+
+  Widget _dialog() {
     return Dialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

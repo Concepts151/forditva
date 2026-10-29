@@ -154,7 +154,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         SnackBar(
           content: Text(
             value > 0
-                ? '${_loc.codeRedeemed}: $value WIUs'
+                ? _loc.creditsAdded(value)
                 : _loc.codeAlreadyAdded,
           ),
         ),
@@ -535,7 +535,11 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
           Expanded(
             child: TextField(
               controller: _codeController,
+              textCapitalization: TextCapitalization.characters,
+              autocorrect: false,
+              enableSuggestions: false,
               decoration: InputDecoration(
+                hintText: _loc.topUpCodeHint,
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(

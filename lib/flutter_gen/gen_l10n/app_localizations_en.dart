@@ -119,16 +119,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howItWorksBody =>
-      'This app is powered by community spirit! You can get a credit code via your user account on wir-in-ungarn.hu. There is no commercial checkout here — credits are earned solely through your engagement, whether by contributing content or helping out in the community. Your participation is our currency!';
+      'This app is powered by community spirit! You can get a top-up code via your user account on wir-in-ungarn.hu. There is no commercial checkout here — credits are earned solely through your engagement, whether by contributing content or helping out in the community. Your participation is our currency!';
 
   @override
   String get currentStatus => 'Current Status';
 
   @override
-  String get codeForFillingCredits => 'Code for recharging';
+  String get codeForFillingCredits => 'Add credits';
 
   @override
-  String get pleaseEnterCode => 'Please enter a code';
+  String get pleaseEnterCode => 'Please enter a top-up code';
 
   @override
   String get codeSubmitted => 'Code submitted';
@@ -151,7 +151,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get codeUnavailable => 'Recharging is not available right now';
 
   @override
-  String get organizeCredits => 'Manage Credits';
+  String get organizeCredits => 'Manage credits';
 
   @override
   String get gotoProfile => 'Go to my profile on wir-in-ungarn.hu';
@@ -259,19 +259,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'We can\'t reach the translation service right now. Please check your internet connection and try again.';
 
   @override
-  String get wiuEmptyTitle => 'Out of credit';
+  String get wiuEmptyTitle => 'Out of credits';
 
   @override
   String get wiuEmptyBody =>
-      'Your WIU balance is empty. Please top up on wir-in-ungarn.hu to keep translating.';
+      'You have no credits left. Please top up on wir-in-ungarn.hu to keep translating.';
 
   @override
   String get wiuLowBody =>
-      'Your WIU balance is getting low. Consider topping up soon on wir-in-ungarn.hu.';
+      'You are running low on credits. Consider topping up soon on wir-in-ungarn.hu.';
 
   @override
   String wiuRemaining(Object count) {
-    return '$count WIUs remaining';
+    return '$count credits remaining';
   }
 
   @override
@@ -279,7 +279,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legalPrivacyBody =>
-      'The \"fordítva\" app is completely ad-free and does not store any personal profiles or location data. To learn how we process your inputs (such as voice or image data) purely temporarily and how the anonymous WIU credit system works, you can view our full privacy policy at any time.';
+      'The \"fordítva\" app is completely ad-free and does not store any personal profiles or location data. To learn how we process your inputs (such as voice or image data) purely temporarily and how the anonymous credit system works, you can view our full privacy policy at any time.';
 
   @override
   String get openPrivacyPolicy => 'Open Privacy Policy';
@@ -431,7 +431,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tutorThinking => 'A good answer takes a moment...';
 
   @override
-  String get tutorAnswerNow => 'Answer now';
+  String get tutorAnswerNow => 'Shorter answer';
 
   @override
   String get swipeToDeleteTip =>
@@ -442,63 +442,87 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get walletWelcomeBody =>
-      'You start with 200 free WIU. Used fordítva before? Bring your WIU back with your recovery code.';
+      'You can start with 200 free credits. Already have a backup code? Use it to restore your credits.';
 
   @override
-  String get walletStartNew => 'Start with 200 WIU';
+  String get walletStartNew => 'Start with 200 credits';
 
   @override
-  String get walletHaveRecoveryCode => 'I have a recovery code';
+  String get walletHaveRecoveryCode => 'Enter backup code';
 
   @override
   String get walletNeedsInternet =>
-      'Please connect to the internet once to set up your WIU balance.';
+      'An internet connection is required to set up your credits. Please connect to the internet.';
 
   @override
-  String get recoveryCodeTitle => 'Your recovery code';
+  String get recoveryCodeTitle => 'Your backup code';
 
   @override
   String get recoveryCodeBody =>
-      'Write this code down and keep it safe. If you reinstall the app or get a new phone, it brings your WIU back. We show it only once.';
+      'Keep this code in a safe place. You can use it to restore your credits if you reinstall the app or switch phones. The code will only be shown once.';
 
   @override
-  String get recoveryCodeDone => 'I wrote it down';
+  String get recoveryCodeDone => 'I\'ve saved the code';
 
   @override
-  String get recoverTitle => 'Restore with recovery code';
+  String get recoverTitle => 'Restore credits';
 
   @override
   String get recoverNeededBody =>
-      'This phone already had a WIU balance. Enter your recovery code to get it back.';
+      'Credits were previously set up on this phone. Enter your backup code to restore them.';
 
   @override
   String get recoverHint => '25-character code';
 
   @override
-  String get recoverButton => 'Restore';
+  String get recoverButton => 'Restore credits';
 
   @override
-  String get recoverDone => 'Your WIU balance is back';
+  String get recoverDone => 'Your credits have been restored.';
 
   @override
   String get recoverLimit =>
-      'This code was used 3 times in 30 days. Please try again later.';
+      'This backup code has already been used three times in the past 30 days. Please try again later.';
 
   @override
   String get recoverDeviceLinked =>
-      'This phone already belongs to another WIU balance.';
+      'Credits are already linked to this phone. You cannot restore a different set of credits here.';
 
   @override
   String get codeLockedHour =>
-      'Too many wrong codes. Please try again in one hour.';
+      'You\'ve entered too many invalid top-up codes. Please try again in one hour.';
 
   @override
-  String get codeAlreadyAdded => 'This code was already added to your balance.';
+  String get codeAlreadyAdded =>
+      'You\'ve already redeemed this top-up code. The credits have been added to your account.';
 
   @override
-  String get newRecoveryCode => 'New recovery code';
+  String get newRecoveryCode => 'Create new backup code';
 
   @override
   String get newRecoveryCodeConfirm =>
-      'You get a new recovery code, and your old one stops working. Continue?';
+      'If you create a new backup code, your current code will no longer work. Do you want to continue?';
+
+  @override
+  String get newRecoveryCodeCreate => 'Create new code';
+
+  @override
+  String get topUpCodeHint => 'Top-up code';
+
+  @override
+  String creditsAdded(Object count) {
+    return 'Top-up code redeemed: $count credits added';
+  }
+
+  @override
+  String get tutorTakingLonger =>
+      'Your answer is taking a little longer than usual. You can keep waiting or request a shorter answer.';
+
+  @override
+  String get fileTooLargeTitle => 'File too large';
+
+  @override
+  String fileTooLargeBody(String size) {
+    return 'This file is $size MB. fordítva can read files up to 14 MB. Please make the file smaller, for example by saving the PDF with lower image quality, and try again.';
+  }
 }

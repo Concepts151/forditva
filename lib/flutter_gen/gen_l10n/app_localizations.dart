@@ -319,7 +319,7 @@ abstract class AppLocalizations {
   /// No description provided for @howItWorksBody.
   ///
   /// In en, this message translates to:
-  /// **'This app is powered by community spirit! You can get a credit code via your user account on wir-in-ungarn.hu. There is no commercial checkout here — credits are earned solely through your engagement, whether by contributing content or helping out in the community. Your participation is our currency!'**
+  /// **'This app is powered by community spirit! You can get a top-up code via your user account on wir-in-ungarn.hu. There is no commercial checkout here — credits are earned solely through your engagement, whether by contributing content or helping out in the community. Your participation is our currency!'**
   String get howItWorksBody;
 
   /// No description provided for @currentStatus.
@@ -331,13 +331,13 @@ abstract class AppLocalizations {
   /// No description provided for @codeForFillingCredits.
   ///
   /// In en, this message translates to:
-  /// **'Code for recharging'**
+  /// **'Add credits'**
   String get codeForFillingCredits;
 
   /// No description provided for @pleaseEnterCode.
   ///
   /// In en, this message translates to:
-  /// **'Please enter a code'**
+  /// **'Please enter a top-up code'**
   String get pleaseEnterCode;
 
   /// No description provided for @codeSubmitted.
@@ -379,7 +379,7 @@ abstract class AppLocalizations {
   /// No description provided for @organizeCredits.
   ///
   /// In en, this message translates to:
-  /// **'Manage Credits'**
+  /// **'Manage credits'**
   String get organizeCredits;
 
   /// No description provided for @gotoProfile.
@@ -553,25 +553,25 @@ abstract class AppLocalizations {
   /// No description provided for @wiuEmptyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Out of credit'**
+  /// **'Out of credits'**
   String get wiuEmptyTitle;
 
   /// No description provided for @wiuEmptyBody.
   ///
   /// In en, this message translates to:
-  /// **'Your WIU balance is empty. Please top up on wir-in-ungarn.hu to keep translating.'**
+  /// **'You have no credits left. Please top up on wir-in-ungarn.hu to keep translating.'**
   String get wiuEmptyBody;
 
   /// No description provided for @wiuLowBody.
   ///
   /// In en, this message translates to:
-  /// **'Your WIU balance is getting low. Consider topping up soon on wir-in-ungarn.hu.'**
+  /// **'You are running low on credits. Consider topping up soon on wir-in-ungarn.hu.'**
   String get wiuLowBody;
 
   /// No description provided for @wiuRemaining.
   ///
   /// In en, this message translates to:
-  /// **'{count} WIUs remaining'**
+  /// **'{count} credits remaining'**
   String wiuRemaining(Object count);
 
   /// No description provided for @legalPrivacyTitle.
@@ -583,7 +583,7 @@ abstract class AppLocalizations {
   /// No description provided for @legalPrivacyBody.
   ///
   /// In en, this message translates to:
-  /// **'The \"fordítva\" app is completely ad-free and does not store any personal profiles or location data. To learn how we process your inputs (such as voice or image data) purely temporarily and how the anonymous WIU credit system works, you can view our full privacy policy at any time.'**
+  /// **'The \"fordítva\" app is completely ad-free and does not store any personal profiles or location data. To learn how we process your inputs (such as voice or image data) purely temporarily and how the anonymous credit system works, you can view our full privacy policy at any time.'**
   String get legalPrivacyBody;
 
   /// No description provided for @openPrivacyPolicy.
@@ -853,7 +853,7 @@ abstract class AppLocalizations {
   /// No description provided for @tutorAnswerNow.
   ///
   /// In en, this message translates to:
-  /// **'Answer now'**
+  /// **'Shorter answer'**
   String get tutorAnswerNow;
 
   /// No description provided for @swipeToDeleteTip.
@@ -871,55 +871,55 @@ abstract class AppLocalizations {
   /// No description provided for @walletWelcomeBody.
   ///
   /// In en, this message translates to:
-  /// **'You start with 200 free WIU. Used fordítva before? Bring your WIU back with your recovery code.'**
+  /// **'You can start with 200 free credits. Already have a backup code? Use it to restore your credits.'**
   String get walletWelcomeBody;
 
   /// No description provided for @walletStartNew.
   ///
   /// In en, this message translates to:
-  /// **'Start with 200 WIU'**
+  /// **'Start with 200 credits'**
   String get walletStartNew;
 
   /// No description provided for @walletHaveRecoveryCode.
   ///
   /// In en, this message translates to:
-  /// **'I have a recovery code'**
+  /// **'Enter backup code'**
   String get walletHaveRecoveryCode;
 
   /// No description provided for @walletNeedsInternet.
   ///
   /// In en, this message translates to:
-  /// **'Please connect to the internet once to set up your WIU balance.'**
+  /// **'An internet connection is required to set up your credits. Please connect to the internet.'**
   String get walletNeedsInternet;
 
   /// No description provided for @recoveryCodeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Your recovery code'**
+  /// **'Your backup code'**
   String get recoveryCodeTitle;
 
   /// No description provided for @recoveryCodeBody.
   ///
   /// In en, this message translates to:
-  /// **'Write this code down and keep it safe. If you reinstall the app or get a new phone, it brings your WIU back. We show it only once.'**
+  /// **'Keep this code in a safe place. You can use it to restore your credits if you reinstall the app or switch phones. The code will only be shown once.'**
   String get recoveryCodeBody;
 
   /// No description provided for @recoveryCodeDone.
   ///
   /// In en, this message translates to:
-  /// **'I wrote it down'**
+  /// **'I\'ve saved the code'**
   String get recoveryCodeDone;
 
   /// No description provided for @recoverTitle.
   ///
   /// In en, this message translates to:
-  /// **'Restore with recovery code'**
+  /// **'Restore credits'**
   String get recoverTitle;
 
   /// No description provided for @recoverNeededBody.
   ///
   /// In en, this message translates to:
-  /// **'This phone already had a WIU balance. Enter your recovery code to get it back.'**
+  /// **'Credits were previously set up on this phone. Enter your backup code to restore them.'**
   String get recoverNeededBody;
 
   /// No description provided for @recoverHint.
@@ -931,50 +931,86 @@ abstract class AppLocalizations {
   /// No description provided for @recoverButton.
   ///
   /// In en, this message translates to:
-  /// **'Restore'**
+  /// **'Restore credits'**
   String get recoverButton;
 
   /// No description provided for @recoverDone.
   ///
   /// In en, this message translates to:
-  /// **'Your WIU balance is back'**
+  /// **'Your credits have been restored.'**
   String get recoverDone;
 
   /// No description provided for @recoverLimit.
   ///
   /// In en, this message translates to:
-  /// **'This code was used 3 times in 30 days. Please try again later.'**
+  /// **'This backup code has already been used three times in the past 30 days. Please try again later.'**
   String get recoverLimit;
 
   /// No description provided for @recoverDeviceLinked.
   ///
   /// In en, this message translates to:
-  /// **'This phone already belongs to another WIU balance.'**
+  /// **'Credits are already linked to this phone. You cannot restore a different set of credits here.'**
   String get recoverDeviceLinked;
 
   /// No description provided for @codeLockedHour.
   ///
   /// In en, this message translates to:
-  /// **'Too many wrong codes. Please try again in one hour.'**
+  /// **'You\'ve entered too many invalid top-up codes. Please try again in one hour.'**
   String get codeLockedHour;
 
   /// No description provided for @codeAlreadyAdded.
   ///
   /// In en, this message translates to:
-  /// **'This code was already added to your balance.'**
+  /// **'You\'ve already redeemed this top-up code. The credits have been added to your account.'**
   String get codeAlreadyAdded;
 
   /// No description provided for @newRecoveryCode.
   ///
   /// In en, this message translates to:
-  /// **'New recovery code'**
+  /// **'Create new backup code'**
   String get newRecoveryCode;
 
   /// No description provided for @newRecoveryCodeConfirm.
   ///
   /// In en, this message translates to:
-  /// **'You get a new recovery code, and your old one stops working. Continue?'**
+  /// **'If you create a new backup code, your current code will no longer work. Do you want to continue?'**
   String get newRecoveryCodeConfirm;
+
+  /// No description provided for @newRecoveryCodeCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create new code'**
+  String get newRecoveryCodeCreate;
+
+  /// No description provided for @topUpCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-up code'**
+  String get topUpCodeHint;
+
+  /// No description provided for @creditsAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-up code redeemed: {count} credits added'**
+  String creditsAdded(Object count);
+
+  /// No description provided for @tutorTakingLonger.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer is taking a little longer than usual. You can keep waiting or request a shorter answer.'**
+  String get tutorTakingLonger;
+
+  /// No description provided for @fileTooLargeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'File too large'**
+  String get fileTooLargeTitle;
+
+  /// No description provided for @fileTooLargeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is {size} MB. fordítva can read files up to 14 MB. Please make the file smaller, for example by saving the PDF with lower image quality, and try again.'**
+  String fileTooLargeBody(String size);
 }
 
 class _AppLocalizationsDelegate

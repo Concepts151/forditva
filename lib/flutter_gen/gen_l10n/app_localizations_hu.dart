@@ -119,16 +119,16 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get howItWorksBody =>
-      'Ezt az alkalmazást a közösségi szellem hajtja! Kreditkódot a wir-in-ungarn.hu oldalon, a felhasználói fiókodon keresztül szerezhetsz. Itt nincs kereskedelmi fizetés — a krediteket kizárólag a részvételeddel tudod megszerezni, akár tartalom hozzáadásával, akár a közösség segítésével. A Te részvételed a mi pénznemünk!';
+      'Ezt az alkalmazást a közösségi szellem hajtja! Feltöltőkódot a wir-in-ungarn.hu oldalon, a felhasználói fiókodon keresztül szerezhetsz. Itt nincs kereskedelmi fizetés — a krediteket kizárólag a részvételeddel tudod megszerezni, akár tartalom hozzáadásával, akár a közösség segítésével. A Te részvételed a mi pénznemünk!';
 
   @override
   String get currentStatus => 'Jelenlegi állapot';
 
   @override
-  String get codeForFillingCredits => 'Kód a feltöltéshez';
+  String get codeForFillingCredits => 'Kreditek feltöltése';
 
   @override
-  String get pleaseEnterCode => 'Kérjük, adj meg egy kódot';
+  String get pleaseEnterCode => 'Kérjük, adj meg egy feltöltőkódot';
 
   @override
   String get codeSubmitted => 'Kód elküldve';
@@ -258,19 +258,19 @@ class AppLocalizationsHu extends AppLocalizations {
       'Nem értük el a fordítóprogramot. Kérlek, ellenőrizd az internetkapcsolatodat, és próbáld meg újra.';
 
   @override
-  String get wiuEmptyTitle => 'Nincs egyenleg';
+  String get wiuEmptyTitle => 'Elfogytak a kreditjeid';
 
   @override
   String get wiuEmptyBody =>
-      'Kiürült a WIU egyenleged. Kérlek, töltsd fel a wir-in-ungarn.hu oldalon, hogy tovább tudj fordítani.';
+      'Elfogytak a kreditjeid. Kérlek, töltsd fel őket a wir-in-ungarn.hu oldalon, hogy tovább tudj fordítani.';
 
   @override
   String get wiuLowBody =>
-      'Fogy a WIU egyenleged. Töltsd fel hamarosan a wir-in-ungarn.hu oldalon.';
+      'Fogynak a kreditjeid. Töltsd fel őket hamarosan a wir-in-ungarn.hu oldalon.';
 
   @override
   String wiuRemaining(Object count) {
-    return 'Még $count WIU van hátra';
+    return 'Még $count kredit van hátra';
   }
 
   @override
@@ -278,7 +278,7 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get legalPrivacyBody =>
-      'A „fordítva” alkalmazás teljesen reklámmentesen működik, és nem ment el rólad személyes profilokat vagy helyadatokat. Ha szeretnéd megtudni, hogyan dolgozzuk fel a beviteleidet (például a hang- vagy képadatokat) tisztán ideiglenesen, és hogyan működik az anonim WIU-kreditrendszer, bármikor megtekintheted a teljes adatvédelmi nyilatkozatunkat.';
+      'A „fordítva” alkalmazás teljesen reklámmentesen működik, és nem ment el rólad személyes profilokat vagy helyadatokat. Ha szeretnéd megtudni, hogyan dolgozzuk fel a beviteleidet (például a hang- vagy képadatokat) tisztán ideiglenesen, és hogyan működik az anonim kreditrendszer, bármikor megtekintheted a teljes adatvédelmi nyilatkozatunkat.';
 
   @override
   String get openPrivacyPolicy => 'Adatvédelmi nyilatkozat megnyitása';
@@ -431,7 +431,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get tutorThinking => 'Egy pillanat, készítem a válaszodat...';
 
   @override
-  String get tutorAnswerNow => 'Válaszolj most';
+  String get tutorAnswerNow => 'Rövidebb válasz';
 
   @override
   String get swipeToDeleteTip =>
@@ -442,63 +442,87 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get walletWelcomeBody =>
-      '200 ingyenes WIU-val kezdesz. Használtad már a fordítvát? A visszaállító kódoddal visszakapod az egyenlegedet.';
+      '200 ingyenes kredittel kezdhetsz. Már van mentési kódod? Ezzel visszaállíthatod a kreditjeidet.';
 
   @override
-  String get walletStartNew => 'Kezdés 200 WIU-val';
+  String get walletStartNew => 'Kezdés 200 kredittel';
 
   @override
-  String get walletHaveRecoveryCode => 'Van visszaállító kódom';
+  String get walletHaveRecoveryCode => 'Mentési kód megadása';
 
   @override
   String get walletNeedsInternet =>
-      'Kérlek, csatlakozz egyszer az internethez, hogy beállítsuk a WIU egyenlegedet.';
+      'A kreditek beállításához internetkapcsolat szükséges. Kérjük, csatlakozz az internethez.';
 
   @override
-  String get recoveryCodeTitle => 'A visszaállító kódod';
+  String get recoveryCodeTitle => 'A mentési kódod';
 
   @override
   String get recoveryCodeBody =>
-      'Írd fel ezt a kódot, és őrizd meg jól. Ha újratelepíted az alkalmazást, vagy új telefonod lesz, ezzel visszakapod a WIU egyenlegedet. Csak egyszer mutatjuk meg.';
+      'Őrizd meg ezt a kódot biztonságos helyen. Ha újratelepíted az alkalmazást, vagy telefont váltasz, ezzel visszaállíthatod a kreditjeidet. Ezt a kódot csak egyszer mutatjuk meg.';
 
   @override
-  String get recoveryCodeDone => 'Felírtam';
+  String get recoveryCodeDone => 'Elmentettem a kódot';
 
   @override
-  String get recoverTitle => 'Visszaállítás kóddal';
+  String get recoverTitle => 'Kreditek visszaállítása';
 
   @override
   String get recoverNeededBody =>
-      'Ezen a telefonon már volt WIU egyenleg. Add meg a visszaállító kódodat, hogy visszakapd.';
+      'Ezen a telefonon korábban már voltak kreditek. Add meg a mentési kódodat a visszaállításukhoz.';
 
   @override
   String get recoverHint => '25 karakteres kód';
 
   @override
-  String get recoverButton => 'Visszaállítás';
+  String get recoverButton => 'Kreditek visszaállítása';
 
   @override
-  String get recoverDone => 'Visszakaptad a WIU egyenlegedet';
+  String get recoverDone => 'Sikeresen visszaállítottuk a kreditjeidet.';
 
   @override
   String get recoverLimit =>
-      'Ezt a kódot 30 napon belül már 3-szor használták. Kérlek, próbáld újra később.';
+      'Ezt a mentési kódot az elmúlt 30 napban már háromszor felhasználták. Kérjük, próbáld újra később.';
 
   @override
   String get recoverDeviceLinked =>
-      'Ez a telefon már egy másik WIU egyenleghez tartozik.';
+      'Ehhez a telefonhoz már tartoznak kreditek. Itt nem állíthatsz vissza másik kreditegyenleget.';
 
   @override
   String get codeLockedHour =>
-      'Túl sok hibás kód. Kérlek, próbáld újra egy óra múlva.';
+      'Túl sok érvénytelen feltöltőkódot adtál meg. Kérjük, próbáld újra egy óra múlva.';
 
   @override
-  String get codeAlreadyAdded => 'Ezt a kódot már jóváírtuk az egyenlegeden.';
+  String get codeAlreadyAdded =>
+      'Ezt a feltöltőkódot már beváltottad. A krediteket már jóváírtuk.';
 
   @override
-  String get newRecoveryCode => 'Új visszaállító kód';
+  String get newRecoveryCode => 'Új mentési kód létrehozása';
 
   @override
   String get newRecoveryCodeConfirm =>
-      'Új visszaállító kódot kapsz, a régi pedig nem működik tovább. Folytatod?';
+      'Ha új mentési kódot hozol létre, a jelenlegi kódod érvényét veszti. Szeretnéd folytatni?';
+
+  @override
+  String get newRecoveryCodeCreate => 'Új kód létrehozása';
+
+  @override
+  String get topUpCodeHint => 'Feltöltőkód';
+
+  @override
+  String creditsAdded(Object count) {
+    return 'Feltöltőkód beváltva: $count kredit jóváírva';
+  }
+
+  @override
+  String get tutorTakingLonger =>
+      'A válasz elkészítése most egy kicsit tovább tart a szokásosnál. Várhatsz tovább, vagy kérhetsz rövidebb választ.';
+
+  @override
+  String get fileTooLargeTitle => 'Túl nagy fájl';
+
+  @override
+  String fileTooLargeBody(String size) {
+    return 'Ez a fájl $size MB. A fordítva legfeljebb 14 MB-os fájlokat tud beolvasni. Kérlek, csökkentsd a fájl méretét, például úgy, hogy a PDF-et kisebb képminőséggel mented el, és próbáld újra.';
+  }
 }
