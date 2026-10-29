@@ -17,9 +17,17 @@ match the app.
 | 1 | Wallet on the Token Server instead of WordPress codes and the local welcome grant | built, unit-tested; phone test open |
 | 2 | First launch: start with 200 WIU or enter a recovery code | built; phone test open |
 | 3 | Recovery code shown once; restore and new code in Settings | built; phone test open |
-| 4 | DE/HU texts for the new dialogs | drafted (du/te), Markus to correct |
+| 4 | DE/HU texts for the new dialogs | replaced by Markus's final texts (29 Oct), in build 79 |
 | 5 | Gift code for the phone test | ask Alex for a test code |
 | 6 | Conversation: changing the dark side's language also blanked and refilled the white side (Markus's video, 29 Oct) | fixed, in 1.0.4; not seen on the phone yet |
+| 7 | Tutor: waits over 30 s need more feedback than a spinner (Markus's voice note, 29 Oct) | Markus picked A with changes (29 Oct); built in build 79 |
+| 8 | New terms: credits, top-up code, backup code; no "WIU" in the UI (Markus, `text modifications.md`, 29 Oct) | built in build 79 |
+| 9 | Wallet dialogs in Roboto Condensed (Markus: "Wiederherstellungscod/e" broke mid-word) | built in build 79 |
+| 10 | Tutor: "Answer now" did nothing, then "service unavailable" (Markus's voice note 13.52, 29 Oct) | open; Markus: texts first, then look again |
+| 11 | File page: a bigger PDF fails after about 10 s with "Der Dienst ist vorübergehend nicht verfügbar"; Markus wants progress feedback instead (screenshot 14.54.44, 29 Oct) | cause confirmed: his PDF is 15.3 MB (2 pages), about 20.4 MB once encoded, over Gemini's 20 MB per request; the app sent the whole file even for page 1. Markus: block too big files. Build 79: files over 14 MB get a "File too large" dialog before anything is sent (checked right after picking a PDF and before every request). Page-by-page progress not built |
+| 12 | File page: the PDF icon opens images and files too, "makes no sense" (Markus's voice note 17.38, 29 Oct) | build 79: both places use his plain document icon `b_document.png`; tell him he can send a folder icon instead |
+| 13 | Photo cutter: "Please connect the shape back to the start!" in English, and an outline 1-2 px off the start was thrown away (screenshot 17.40.41, voice note 17.41.45, 29 Oct) | build 79: lifting the finger closes the shape with a straight line to the start; the message is gone. Also replaced the last hardcoded English error ("TTS failed: <path>") with the localized read-aloud message |
+| 14 | File page, explain mode: an empty line between every paragraph and list, the bullet list indented too far, extra space at the top (Markus's video `recording-2026-10-29-14-17-45.mp4`, edited in Photoshop) | build 79: flutter_html defaults replaced in `_resultBody`: no body margin, 0.5 em after paragraphs and lists, 0.3 em between list items, list indent 40 px → 1.2 em, headings 0.3 em. Not seen on a phone yet (needs a real AI answer) |
 
 ## Decisions (the user, 28 Oct)
 
@@ -30,6 +38,94 @@ match the app.
   reinstall gets 409 at register and the user is stuck at 0 WIU.
 - **Target: 1.0.4 (78) on Play internal testing today.** The reply to Alex
   goes out after the upload, so the date we give him is already true.
+
+## Markus's feedback on 1.0.4, 29 Oct (build 79)
+
+Sources: his annotations on the update doc, `~/Downloads/text modifications.md`,
+screenshots 13.50.34 / 13.51.46 / 13.51.53 and voice note 13.52.46.
+
+**Decisions (Markus):**
+- Replace "WIU" with "credits" everywhere the user sees it. Gift code becomes
+  top-up code (Aufladecode, feltöltőkód); recovery code becomes backup code
+  (Sicherungscode, mentési kód). Internal names (`wiu*` keys, API fields)
+  stay.
+- Tutor waiting: option A. **Never a light model** (option C: "giving back
+  too much wrong stuff"). No streaming (B) for now.
+- Tutor rules: no seconds, no time estimates, no infrastructure messages, no
+  promise of speed; the bar never reaches 100 % before the answer; a calm
+  note and "Shorter answer" when the wait is longer than usual; never
+  switch automatically; a real failure shows an error, not an endless wait.
+- Roboto Condensed for such dialogs.
+
+**What changed in build 79:**
+- `lib/l10n/app_{en,de,hu}.arb`: all of Markus's table texts verbatim.
+  Strings outside his tables that still said WIU, Guthaben or code got the
+  new terms (drafts, listed below).
+- `lib/profile_settings_page.dart`: "Add credits" label, "Top-up code" hint
+  in the field (capitals, no autocorrect), "{count} credits added" after a
+  redeem (was "Code redeemed: N WIUs", hardcoded).
+- `lib/widgets/wallet_dialogs.dart`, `wiu_gate.dart`: `condensedDialog()`
+  puts every text in these dialogs in Roboto Condensed. The new-code
+  confirmation says "Create new code" instead of "OK".
+- `lib/tutor/tutor_page.dart`: a thin bar fills toward 90 % over the usual
+  answer time (median of the last 10 accurate answers on this phone, 15 s
+  to start) and never further. At 1.5x the usual time the text changes to
+  Markus's note and "Shorter answer" fades in. Tapping it shows a spinner
+  in the button (Markus's tap "did nothing" before) and starts the
+  thinking-off request next to the accurate one; the first answer wins, the
+  other is cancelled and not charged. After 150 s with no answer: the error
+  with the retry button.
+
+**Drafted DE/HU (not in Markus's tables), for him to check:**
+
+| Key | EN | DE | HU |
+|---|---|---|---|
+| credits (section header) | Credits | Credits | Kreditek |
+| codeForFillingCredits | Add credits | Credits aufladen | Kreditek feltöltése |
+| topUpCodeHint | Top-up code | Aufladecode | Feltöltőkód |
+| pleaseEnterCode | Please enter a top-up code | Bitte gib einen Aufladecode ein | Kérjük, adj meg egy feltöltőkódot |
+| creditsAdded | Top-up code redeemed: {count} credits added | Aufladecode eingelöst: {count} Credits gutgeschrieben | Feltöltőkód beváltva: {count} kredit jóváírva |
+| organizeCredits | Manage credits | Credits verwalten | Kreditek kezelése |
+| wiuRemaining | {count} credits remaining | Noch {count} Credits übrig | Még {count} kredit van hátra |
+| wiuEmptyTitle | Out of credits | Credits aufgebraucht | Elfogytak a kreditjeid |
+| wiuEmptyBody | You have no credits left. Please top up on wir-in-ungarn.hu to keep translating. | Du hast keine Credits mehr. Bitte lade auf wir-in-ungarn.hu auf, um weiter zu übersetzen. | Elfogytak a kreditjeid. Kérlek, töltsd fel őket a wir-in-ungarn.hu oldalon, hogy tovább tudj fordítani. |
+| wiuLowBody | You are running low on credits. Consider topping up soon on wir-in-ungarn.hu. | Deine Credits werden knapp. Lade bald auf wir-in-ungarn.hu auf. | Fogynak a kreditjeid. Töltsd fel őket hamarosan a wir-in-ungarn.hu oldalon. |
+| howItWorksBody | "credit code" → "top-up code" | "Guthabencode" → "Aufladecode", "Guthaben verdienst du dir" → "Credits verdienst du dir" | "Kreditkódot" → "Feltöltőkódot" |
+| legalPrivacyBody | "WIU credit system" → "credit system" | "WIU-Guthabensystem" → "Credit-System" | "WIU-kreditrendszer" → "kreditrendszer" |
+
+**Recovery limit date:** the server answers only `RECOVERY_LIMIT_3_PER_30_DAYS`
+with no date (API.md §3.4), so the app keeps "try again later", as Markus
+asked when no date is available. Alex could add a `retry_after`.
+
+**Item 10, Tutor stability (not built):** both Tutor requests run on
+gemini-3.8-flash on "eu". Neither has a retry or a time limit, so when
+Google hangs, both hang (23 Oct: 9 of 10 afternoon calls hung or got 429).
+Build 79 only bounds the wait at 150 s. Ideas to discuss with Markus, all
+EU and no light model: one automatic retry after a 429 or 503; a second EU
+region (e.g. a single region like europe-west4 instead of the "eu"
+multi-region) as fallback, if 3.8 Flash is offered there.
+
+**Alex's analysis (29 Oct, `~/Downloads/Forditva-Tutor-timeout-analysis-29oct.md`):**
+not App Check, no 429/503: every call returned 200, but Vertex "eu" took
+p50 89 s for a Tutor answer (25-33 s on 23-27 Oct) and 62 s for the
+sentence split at 12:40 UTC. The app had no time limit. `europe-west4`
+still answers 404 for this project, so no regional fallback.
+His five proposals and where they stand:
+
+| # | Alex | Status |
+|---|---|---|
+| 1 | Stream the answer | = option B; Markus said not now. Ask Markus |
+| 2 | 75 s timeout per call, own message, retry | build 79 has 150 s for the answer and now 90 s for the split; the error is the general one. Own message needs Markus's DE/HU |
+| 3 | Thinking off by default (31 s vs 58 s) | contradicts Markus 2026-10-09 (accurate by default). Ask Markus; a thinking budget (1,024) is the middle way |
+| 4 | Sentence split on Flash-Lite | Markus: never a light model. Ask him if that covers the split (it also translates each sentence for the picker) |
+| 5 | maxOutputTokens 32768 → 4096 | not as proposed: his own probe had 3,563-4,253 output tokens, so 4096 would cut answers into invalid JSON and trigger the retry. 8192 at most |
+
+**Alex's client update (29 Oct):** `initialize()` keeps the local balance
+on proxy HTML errors and any 5xx; the client retries a dead recovery
+request once. Dropped in unchanged; compiles, analyze clean, 13 tests pass.
+Our own recovery retry in `token_balance.dart` removed (it would have made
+a third attempt). The retry itself is not unit-testable on the Mac (the
+device id needs Android or iOS).
 
 ## What changed
 
