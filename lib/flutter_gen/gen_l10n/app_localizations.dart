@@ -1011,6 +1011,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This file is {size} MB. fordítva can read files up to 14 MB. Please make the file smaller, for example by saving the PDF with lower image quality, and try again.'**
   String fileTooLargeBody(String size);
+
+  /// No description provided for @documentImporterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import document'**
+  String get documentImporterTitle;
+
+  /// No description provided for @convertedToPdfNote.
+  ///
+  /// In en, this message translates to:
+  /// **'We converted your {type} file to a PDF so that fordítva can read it.'**
+  String convertedToPdfNote(String type);
 }
 
 class _AppLocalizationsDelegate

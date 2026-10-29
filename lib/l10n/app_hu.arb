@@ -168,5 +168,14 @@
         "type": "String"
       }
     }
+  },
+  "documentImporterTitle": "Dokumentum importálása",
+  "convertedToPdfNote": "PDF-fé alakítottuk ezt a {type} fájlt, hogy a fordítva be tudja olvasni.",
+  "@convertedToPdfNote": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
   }
 }

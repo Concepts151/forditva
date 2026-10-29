@@ -235,5 +235,14 @@
         "type": "String"
       }
     }
+  },
+  "documentImporterTitle": "Import document",
+  "convertedToPdfNote": "We converted your {type} file to a PDF so that fordítva can read it.",
+  "@convertedToPdfNote": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
   }
 }

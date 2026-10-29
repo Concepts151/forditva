@@ -19,9 +19,16 @@ class PdfPageSelectorDialog extends StatefulWidget {
     super.key,
     required this.file,
     this.initialSelection = const {},
+    this.convertedFrom,
   });
 
   final File file;
+
+  /// The original file type ("DOCX", "XLSX", ...) when [file] is the PDF
+  /// the conversion server made from it. The picker then says so, instead
+  /// of "pdf-importer" for a Word file (Markus, 2026-10-29: "the normal
+  /// user will not understand").
+  final String? convertedFrom;
 
   /// Pages ticked when the picker opens: the pages translated last time,
   /// when the user comes back to the same PDF to pick others (Markus,
@@ -169,13 +176,23 @@ class _PdfPageSelectorDialogState extends State<PdfPageSelectorDialog> {
     return Column(
       children: [
         Text(
-          'pdf-importer',
+          widget.convertedFrom == null
+              ? 'pdf-importer'
+              : loc.documentImporterTitle,
           style: GoogleFonts.robotoCondensed(
             fontSize: 30,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 12),
+        if (widget.convertedFrom != null) ...[
+          Text(
+            loc.convertedToPdfNote(widget.convertedFrom!),
+            textAlign: TextAlign.center,
+            style: GoogleFonts.robotoCondensed(fontSize: 18, height: 1.25),
+          ),
+          const SizedBox(height: 8),
+        ],
         Text(
           loc.pdfImporterInstruction(_pageCount),
           textAlign: TextAlign.center,

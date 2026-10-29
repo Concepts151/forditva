@@ -88,6 +88,31 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
   /// Loaded file has no bitmap to show (PDF or text).
   bool get _isDocumentFile => _isPdf || _isTextFile;
 
+  /// The original type ("DOCX", ...) when the loaded PDF was converted from
+  /// an Office file; null for a real PDF or anything else.
+  String? _convertedFrom;
+
+  /// The loaded file's name. A converted Office file shows its own name
+  /// ("Brief.docx"), not the PDF the server made ("Brief_1761...pdf").
+  String get _documentName {
+    final name = _imageFile!.path.split(RegExp(r'[/\\]')).last;
+    final from = _convertedFrom;
+    if (from == null) return name;
+    final base = name.replaceFirst(RegExp(r'(_\d+)?\.pdf$'), '');
+    return '$base.${from.toLowerCase()}';
+  }
+
+  /// Markus's file-type icon for the loaded document (2026-10-29: "the user
+  /// will understand that it's not PDF, but some other kind of file").
+  String get _documentIcon {
+    if (_isTextFile) return 'assets/png24/red/r_txt.png';
+    return switch (_convertedFrom) {
+      'XLS' || 'XLSX' || 'ODS' => 'assets/png24/red/r_xls.png',
+      'DOC' || 'DOCX' || 'ODT' => 'assets/png24/red/r_doc.png',
+      _ => 'assets/png24/red/r_pdf.png',
+    };
+  }
+
   /// Which pages of the current PDF to process, e.g. "3" or "2-5". Null =
   /// all pages. Asked once when the PDF is picked (Markus, 2026-07-15:
   /// "maybe you can ask which page of a PDF should be opened") and kept so
@@ -1201,6 +1226,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
         _imageFile = file;
         _croppedImageFile = null;
         _pdfPageSpec = null;
+        _convertedFrom = null;
         _resultText = '';
         _translateResultCache = null;
         _interpretResultCache = null;
@@ -1215,11 +1241,14 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
       file = converted;
     } else if (extension != 'pdf') {
       _pdfPageSpec = null;
+      _convertedFrom = null;
       await _loadImageWithCropper(file);
       return;
     }
 
     if (!await _fileFits(file)) return;
+    final convertedFrom =
+        _officeExtensions.contains(extension) ? extension.toUpperCase() : null;
 
     // PDF (uploaded directly, or converted from an Office/text document):
     // nothing to crop. Let the user tick the pages to process on a visual
@@ -1229,7 +1258,9 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     final selected = await showDialog<List<int>?>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => PdfPageSelectorDialog(file: file),
+      builder:
+          (_) =>
+              PdfPageSelectorDialog(file: file, convertedFrom: convertedFrom),
     );
     if (selected == null || selected.isEmpty) return; // cancelled
     // Clear the previous document's result here, not just inside
@@ -1241,6 +1272,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
       _imageFile = file;
       _croppedImageFile = null;
       _pdfPageSpec = _pagesToSpec(selected);
+      _convertedFrom = convertedFrom;
       _resultText = '';
       _translateResultCache = null;
       _interpretResultCache = null;
@@ -1312,6 +1344,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
           (_) => PdfPageSelectorDialog(
             file: file,
             initialSelection: _specToPages(_pdfPageSpec),
+            convertedFrom: _convertedFrom,
           ),
     );
     if (!mounted || selected == null || selected.isEmpty) return;
@@ -1440,12 +1473,10 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
                                             children: [
-                                              Icon(
-                                                _isPdf
-                                                    ? Icons.picture_as_pdf
-                                                    : Icons.description,
-                                                size: 72,
-                                                color: navRed,
+                                              Image.asset(
+                                                _documentIcon,
+                                                width: 72,
+                                                height: 72,
                                               ),
                                               const SizedBox(height: 10),
                                               Padding(
@@ -1454,9 +1485,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                                       horizontal: 16,
                                                     ),
                                                 child: Text(
-                                                  _imageFile!.path
-                                                      .split(RegExp(r'[/\\]'))
-                                                      .last,
+                                                  _documentName,
                                                   textAlign: TextAlign.center,
                                                   maxLines: 2,
                                                   overflow:

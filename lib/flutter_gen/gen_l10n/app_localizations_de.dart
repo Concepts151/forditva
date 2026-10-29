@@ -528,4 +528,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String fileTooLargeBody(String size) {
     return 'Diese Datei hat $size MB. fordítva kann Dateien bis 14 MB lesen. Bitte verkleinere die Datei, zum Beispiel indem du das PDF mit geringerer Bildqualität speicherst, und versuche es erneut.';
   }
+
+  @override
+  String get documentImporterTitle => 'Dokument importieren';
+
+  @override
+  String convertedToPdfNote(String type) {
+    return 'Wir haben deine $type-Datei in ein PDF umgewandelt, damit fordítva sie lesen kann.';
+  }
 }

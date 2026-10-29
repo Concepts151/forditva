@@ -168,5 +168,14 @@
         "type": "String"
       }
     }
+  },
+  "documentImporterTitle": "Dokument importieren",
+  "convertedToPdfNote": "Wir haben deine {type}-Datei in ein PDF umgewandelt, damit fordítva sie lesen kann.",
+  "@convertedToPdfNote": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
   }
 }

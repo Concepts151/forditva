@@ -525,4 +525,12 @@ class AppLocalizationsHu extends AppLocalizations {
   String fileTooLargeBody(String size) {
     return 'Ez a fájl $size MB. A fordítva legfeljebb 14 MB-os fájlokat tud beolvasni. Kérlek, csökkentsd a fájl méretét, például úgy, hogy a PDF-et kisebb képminőséggel mented el, és próbáld újra.';
   }
+
+  @override
+  String get documentImporterTitle => 'Dokumentum importálása';
+
+  @override
+  String convertedToPdfNote(String type) {
+    return 'PDF-fé alakítottuk ezt a $type fájlt, hogy a fordítva be tudja olvasni.';
+  }
 }
