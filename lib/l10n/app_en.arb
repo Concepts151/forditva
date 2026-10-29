@@ -119,10 +119,12 @@
       "lang": {}
     }
   },
-  "pdfImporterInstruction": "The document contains {count} single pages. Which from them should we import? Check them with a click in the corner.",
+  "pdfImporterInstruction": "{count, plural, =1{The document has 1 page. Should we import it? Tick it with a tap in the corner.} other{The document has {count} pages. Which ones should we import? Tick them with a tap in the corner.}}",
   "@pdfImporterInstruction": {
     "placeholders": {
-      "count": {}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "pdfPageCounter": "Page {current}/{total}",
@@ -138,7 +140,7 @@
   "documentQuestionError": "Couldn't get an answer. Please try again.",
   "uploadAreaTakePhoto": "Take a photo",
   "uploadAreaOr": "or",
-  "uploadAreaUploadFile": "Upload an image or document (PDF or text file)",
+  "uploadAreaUploadFile": "Upload an image or document (PDF, Word, Excel, OpenDocument or text file)",
   "convertingDocument": "Converting document...",
   "analyzingAndTranslating": "Analyzing and translating...",
   "conversionFailedTitle": "This document could not be converted.",
@@ -244,5 +246,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "tutorNoHungarian": "I couldn't find a Hungarian sentence in this text. The Tutor explains Hungarian sentences."
 }

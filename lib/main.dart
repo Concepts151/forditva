@@ -155,7 +155,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           title: 'Forditva',
-          theme: ThemeData(primarySwatch: Colors.green),
+          // Material 3 ignores primarySwatch, so spinners and the text
+          // cursor fell back to its default purple (user, 2026-10-29).
+          theme: ThemeData(
+            primarySwatch: Colors.green,
+            progressIndicatorTheme: const ProgressIndicatorThemeData(
+              color: navGreen,
+            ),
+            textSelectionTheme: const TextSelectionThemeData(
+              cursorColor: navGreen,
+              // navGreen at one third, for selected text.
+              selectionColor: Color(0x55436F4D),
+              selectionHandleColor: navGreen,
+            ),
+          ),
 
           // ✅ ADD THESE LINES
           initialRoute: '/',

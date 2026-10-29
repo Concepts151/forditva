@@ -317,8 +317,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String pdfImporterInstruction(Object count) {
-    return 'The document contains $count single pages. Which from them should we import? Check them with a click in the corner.';
+  String pdfImporterInstruction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'The document has $count pages. Which ones should we import? Tick them with a tap in the corner.',
+      one:
+          'The document has 1 page. Should we import it? Tick it with a tap in the corner.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -347,7 +355,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get uploadAreaUploadFile =>
-      'Upload an image or document (PDF or text file)';
+      'Upload an image or document (PDF, Word, Excel, OpenDocument or text file)';
 
   @override
   String get convertingDocument => 'Converting document...';
@@ -533,4 +541,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String convertedToPdfNote(String type) {
     return 'We converted your $type file to a PDF so that fordítva can read it.';
   }
+
+  @override
+  String get tutorNoHungarian =>
+      'I couldn\'t find a Hungarian sentence in this text. The Tutor explains Hungarian sentences.';
 }

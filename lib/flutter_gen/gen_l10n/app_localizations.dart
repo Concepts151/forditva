@@ -655,8 +655,8 @@ abstract class AppLocalizations {
   /// No description provided for @pdfImporterInstruction.
   ///
   /// In en, this message translates to:
-  /// **'The document contains {count} single pages. Which from them should we import? Check them with a click in the corner.'**
-  String pdfImporterInstruction(Object count);
+  /// **'{count, plural, =1{The document has 1 page. Should we import it? Tick it with a tap in the corner.} other{The document has {count} pages. Which ones should we import? Tick them with a tap in the corner.}}'**
+  String pdfImporterInstruction(int count);
 
   /// No description provided for @pdfPageCounter.
   ///
@@ -703,7 +703,7 @@ abstract class AppLocalizations {
   /// No description provided for @uploadAreaUploadFile.
   ///
   /// In en, this message translates to:
-  /// **'Upload an image or document (PDF or text file)'**
+  /// **'Upload an image or document (PDF, Word, Excel, OpenDocument or text file)'**
   String get uploadAreaUploadFile;
 
   /// No description provided for @convertingDocument.
@@ -1023,6 +1023,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We converted your {type} file to a PDF so that fordítva can read it.'**
   String convertedToPdfNote(String type);
+
+  /// No description provided for @tutorNoHungarian.
+  ///
+  /// In en, this message translates to:
+  /// **'I couldn\'t find a Hungarian sentence in this text. The Tutor explains Hungarian sentences.'**
+  String get tutorNoHungarian;
 }
 
 class _AppLocalizationsDelegate

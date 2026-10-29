@@ -176,8 +176,13 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
 
   /// Extracts the Hungarian segment(s) from the result, whichever side
   /// (original 'o' or translated 't') is currently set to Hungarian.
+  /// Explain mode shows an explanation in the target language, not the
+  /// document's text, so the Hungarian comes from the translation of the
+  /// same document, or there is none (2026-10-29: the Tutor got the German
+  /// explanation and Decoding failed on it).
   String _hungarianText() {
-    final raw = _resultText.trim();
+    final raw =
+        (_interpretMode ? (_translateResultCache ?? '') : _resultText).trim();
     if (raw.isEmpty) return '';
     if (_rightLang != Language.hu && _leftLang != Language.hu) return '';
     final key = _rightLang == Language.hu ? 'o' : 't';
@@ -190,6 +195,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
             .join('. ');
       }
     } catch (_) {}
+    if (_interpretMode) return '';
     return raw
         .replaceAll(RegExp(r'<[^>]*>'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
@@ -1284,9 +1290,12 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
   /// showing the same status text convention as [_processImage]. Returns
   /// null (having already shown [conversionFailedTitle]) on any failure.
   Future<File?> _convertOfficeDocument(File file) async {
-    setState(
-      () => _statusText = AppLocalizations.of(context)!.convertingDocument,
-    );
+    // The loader shows only while _isProcessing is on; without it the page
+    // stayed blank for the whole conversion (user test, 2026-10-29).
+    setState(() {
+      _isProcessing = true;
+      _statusText = AppLocalizations.of(context)!.convertingDocument;
+    });
     try {
       return await _conversionService.convertToPdf(file);
     } catch (e) {
@@ -1310,7 +1319,12 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
       }
       return null;
     } finally {
-      if (mounted) setState(() => _statusText = '');
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _statusText = '';
+        });
+      }
     }
   }
 

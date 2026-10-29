@@ -318,8 +318,16 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String pdfImporterInstruction(Object count) {
-    return 'Das Dokument enthält $count einzelne Seiten. Welche davon sollen wir importieren? Wähle mit einem Klick in die Ecke aus.';
+  String pdfImporterInstruction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Das Dokument enthält $count einzelne Seiten. Welche davon sollen wir importieren? Wähle mit einem Klick in die Ecke aus.',
+      one:
+          'Das Dokument enthält 1 Seite. Sollen wir sie importieren? Wähle sie mit einem Klick in die Ecke aus.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -536,4 +544,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String convertedToPdfNote(String type) {
     return 'Wir haben deine $type-Datei in ein PDF umgewandelt, damit fordítva sie lesen kann.';
   }
+
+  @override
+  String get tutorNoHungarian =>
+      'In diesem Text habe ich keinen ungarischen Satz gefunden. Der Tutor erklärt ungarische Sätze.';
 }

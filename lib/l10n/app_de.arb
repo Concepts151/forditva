@@ -95,7 +95,7 @@
   "pdfPagesAll": "Alle Seiten",
   "noTextFoundTitle": "Kein passender Text gefunden",
   "noTextFoundBody": "In dieser Datei wurde kein {lang}-Text gefunden. Bitte überprüfe, ob du die richtige Ausgangssprache ausgewählt hast.",
-  "pdfImporterInstruction": "Das Dokument enthält {count} einzelne Seiten. Welche davon sollen wir importieren? Wähle mit einem Klick in die Ecke aus.",
+  "pdfImporterInstruction": "{count, plural, =1{Das Dokument enthält 1 Seite. Sollen wir sie importieren? Wähle sie mit einem Klick in die Ecke aus.} other{Das Dokument enthält {count} einzelne Seiten. Welche davon sollen wir importieren? Wähle mit einem Klick in die Ecke aus.}}",
   "pdfPageCounter": "Seite {current}/{total}",
   "documentQuestionTitle": "Frage zu diesem Dokument stellen",
   "documentQuestionHint": "Tippe deine Frage ein…",
@@ -177,5 +177,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "tutorNoHungarian": "In diesem Text habe ich keinen ungarischen Satz gefunden. Der Tutor erklärt ungarische Sätze."
 }

@@ -316,8 +316,16 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
-  String pdfImporterInstruction(Object count) {
-    return 'A dokumentum $count oldalt tartalmaz. Melyeket importáljuk? Jelöld ki őket a sarokban lévő kattintással.';
+  String pdfImporterInstruction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'A dokumentum $count oldalt tartalmaz. Melyeket importáljuk? Jelöld ki őket a sarokban lévő kattintással.',
+      one:
+          'A dokumentum 1 oldalt tartalmaz. Importáljuk? Jelöld ki a sarokban lévő kattintással.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -533,4 +541,8 @@ class AppLocalizationsHu extends AppLocalizations {
   String convertedToPdfNote(String type) {
     return 'PDF-fé alakítottuk ezt a $type fájlt, hogy a fordítva be tudja olvasni.';
   }
+
+  @override
+  String get tutorNoHungarian =>
+      'Ebben a szövegben nem találtam magyar mondatot. A Tutor magyar mondatokat magyaráz.';
 }

@@ -95,7 +95,7 @@
   "pdfPagesAll": "Összes oldal",
   "noTextFoundTitle": "Nem található megfelelő szöveg",
   "noTextFoundBody": "Ebben a fájlban nem találtunk {lang} nyelvű szöveget. Kérjük, ellenőrizd, hogy a megfelelő forrásnyelvet választottad-e ki.",
-  "pdfImporterInstruction": "A dokumentum {count} oldalt tartalmaz. Melyeket importáljuk? Jelöld ki őket a sarokban lévő kattintással.",
+  "pdfImporterInstruction": "{count, plural, =1{A dokumentum 1 oldalt tartalmaz. Importáljuk? Jelöld ki a sarokban lévő kattintással.} other{A dokumentum {count} oldalt tartalmaz. Melyeket importáljuk? Jelöld ki őket a sarokban lévő kattintással.}}",
   "pdfPageCounter": "Oldal {current}/{total}",
   "documentQuestionTitle": "Kérdezz a dokumentumról",
   "documentQuestionHint": "Írd be a kérdésed…",
@@ -177,5 +177,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "tutorNoHungarian": "Ebben a szövegben nem találtam magyar mondatot. A Tutor magyar mondatokat magyaráz."
 }
