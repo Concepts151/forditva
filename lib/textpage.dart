@@ -156,8 +156,11 @@ class TextPage extends StatefulWidget {
 class _TextPageState extends State<TextPage> {
   final TextEditingController _inputController = TextEditingController();
   String _translation = '';
-  // ▶︎ spinner while Gemini runs
-  bool _isTranslating = false;
+  // ▶︎ spinner while Gemini runs, per card: only the card that gets the new
+  // text clears and spins; the other keeps its text (Markus, 2026-10-29:
+  // switching the dark side's language also blanked the white side).
+  bool _topBusy = false; // top card shows _translation
+  bool _bottomBusy = false; // bottom card shows _inputController.text
   bool _isAudioLoadingInput = false; // For the input card play button
   bool _isAudioLoadingOutput = false; // For the output card play button
   ap.AudioPlayer? _audioPlayer;
@@ -436,8 +439,18 @@ class _TextPageState extends State<TextPage> {
     bool leftChanged = true,
     bool playTTS = true,
   }) async {
+    // The left language belongs to the bottom card: a left change rewrites
+    // the bottom text, a right change the top text.
+    void setBusy(bool busy) {
+      if (leftChanged) {
+        _bottomBusy = busy;
+      } else {
+        _topBusy = busy;
+      }
+    }
+
     setState(() {
-      _isTranslating = true;
+      setBusy(true);
       if (leftChanged) {
         _isAudioLoadingOutput = true;
       } else {
@@ -452,7 +465,7 @@ class _TextPageState extends State<TextPage> {
 
     if (sourceText.trim().isEmpty) {
       setState(() {
-        _isTranslating = false;
+        setBusy(false);
         _isAudioLoadingOutput = false;
         _isAudioLoadingInput = false;
       });
@@ -495,7 +508,7 @@ class _TextPageState extends State<TextPage> {
     } finally {
       if (mounted) {
         setState(() {
-          _isTranslating = false;
+          setBusy(false);
           _isAudioLoadingOutput = false;
           _isAudioLoadingInput = false;
         });
@@ -840,7 +853,7 @@ class _TextPageState extends State<TextPage> {
                   siblingText: _inputController.text,
                   fromLang: _rightLanguage,
                   toLang: _leftLanguage,
-                  isBusy: _isTranslating,
+                  isBusy: _topBusy,
                   isAudioLoading: _isAudioLoadingInput,
                   isAudioPlaying: _isInputPlaying,
                   isRecording: _isTopRecording,
@@ -879,7 +892,10 @@ class _TextPageState extends State<TextPage> {
                             () {}, // Don't reveal (already visible)
                             () {
                               if (mounted) {
-                                setState(() => _isTranslating = false);
+                                setState(() {
+                                  _topBusy = false;
+                                  _bottomBusy = false;
+                                });
                               }
                             },
                           );
@@ -913,7 +929,7 @@ class _TextPageState extends State<TextPage> {
                   siblingText: _translation,
                   fromLang: _leftLanguage,
                   toLang: _rightLanguage,
-                  isBusy: _isTranslating,
+                  isBusy: _bottomBusy,
                   isAudioLoading: _isAudioLoadingOutput,
                   isAudioPlaying: _isOutputPlaying,
                   isRecording: _isBottomRecording,
@@ -952,7 +968,10 @@ class _TextPageState extends State<TextPage> {
                             () {}, // Don't reveal (already visible)
                             () {
                               if (mounted) {
-                                setState(() => _isTranslating = false);
+                                setState(() {
+                                  _topBusy = false;
+                                  _bottomBusy = false;
+                                });
                               }
                             },
                           );
@@ -1127,7 +1146,7 @@ class _TextPageState extends State<TextPage> {
                           if (!await ensureWiuBalance(context)) return;
                           setState(() {
                             _translation = txt;
-                            _isTranslating = true;
+                            _bottomBusy = true;
                           });
                           try {
                             final result = await translateFinal(
@@ -1138,13 +1157,13 @@ class _TextPageState extends State<TextPage> {
                             if (!mounted) return;
                             setState(() {
                               _inputController.text = result;
-                              _isTranslating = false;
+                              _bottomBusy = false;
                             });
                             // Auto-play the translation (parallel, non-blocking).
                             _playOutputSound();
                           } catch (_) {
                             if (mounted) {
-                              setState(() => _isTranslating = false);
+                              setState(() => _bottomBusy = false);
                               if (context.mounted) showFriendlyError(context);
                             }
                           }
@@ -1196,7 +1215,7 @@ class _TextPageState extends State<TextPage> {
                           if (!await ensureWiuBalance(context)) return;
                           setState(() {
                             _inputController.text = txt;
-                            _isTranslating = true;
+                            _topBusy = true;
                           });
                           try {
                             final result = await translateFinal(
@@ -1207,13 +1226,13 @@ class _TextPageState extends State<TextPage> {
                             if (!mounted) return;
                             setState(() {
                               _translation = result;
-                              _isTranslating = false;
+                              _topBusy = false;
                             });
                             // Auto-play the translation (parallel, non-blocking).
                             _playInputSound();
                           } catch (_) {
                             if (mounted) {
-                              setState(() => _isTranslating = false);
+                              setState(() => _topBusy = false);
                               if (context.mounted) showFriendlyError(context);
                             }
                           }
