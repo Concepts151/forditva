@@ -181,5 +181,6 @@
   "tutorNoHungarian": "In diesem Text habe ich keinen ungarischen Satz gefunden. Der Tutor erklärt ungarische Sätze.",
   "tutorPreparing": "Einen Moment bitte, ich bereite Deine Antwort vor.",
   "cropInstructionBody": "Kreise den gewünschten Bereich ein oder tippe auf OK für das ganze Bild.",
-  "tutorStillWriting": "Ich schreibe noch …"
+  "tutorStillWriting": "Ich schreibe noch …",
+  "tutorUnavailable": "Leider dauert das Erstellen der Erklärung gerade zu lange oder der Server ist ausgelastet. Bitte probiere es später erneut."
 }

@@ -1047,6 +1047,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Still writing …'**
   String get tutorStillWriting;
+
+  /// No description provided for @tutorUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unfortunately, creating the explanation is currently taking too long or the server is overloaded. Please try again later.'**
+  String get tutorUnavailable;
 }
 
 class _AppLocalizationsDelegate

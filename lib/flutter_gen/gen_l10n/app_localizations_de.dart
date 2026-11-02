@@ -559,4 +559,8 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get tutorStillWriting => 'Ich schreibe noch …';
+
+  @override
+  String get tutorUnavailable =>
+      'Leider dauert das Erstellen der Erklärung gerade zu lange oder der Server ist ausgelastet. Bitte probiere es später erneut.';
 }

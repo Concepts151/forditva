@@ -557,4 +557,8 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get tutorStillWriting => 'Még írom …';
+
+  @override
+  String get tutorUnavailable =>
+      'Sajnos most túl sokáig tart az magyarázat elkészítése, vagy túlterhelt a szerver. Kérlek, próbáld újra később.';
 }

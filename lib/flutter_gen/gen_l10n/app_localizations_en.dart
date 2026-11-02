@@ -556,4 +556,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tutorStillWriting => 'Still writing …';
+
+  @override
+  String get tutorUnavailable =>
+      'Unfortunately, creating the explanation is currently taking too long or the server is overloaded. Please try again later.';
 }

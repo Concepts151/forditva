@@ -769,7 +769,7 @@ class _TutorPageState extends State<TutorPage> {
             child: Text(
               _noHungarian
                   ? AppLocalizations.of(context)!.tutorNoHungarian
-                  : AppLocalizations.of(context)!.serviceUnavailable,
+                  : AppLocalizations.of(context)!.tutorUnavailable,
               textAlign: TextAlign.center,
               style: GoogleFonts.robotoCondensed(fontSize: 18),
             ),
