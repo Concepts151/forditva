@@ -248,7 +248,7 @@ class AppLocalizationsHu extends AppLocalizations {
       'Írja be ide a szöveget, vagy illessze be a vágólapról.';
 
   @override
-  String get cropInstruction => 'Rajzold körbe ujjaddal a kívánt területet';
+  String get cropInstruction => 'Mit szeretnél lefordítani?';
 
   @override
   String get errorTitle => 'Kapcsolódási probléma';
@@ -436,7 +436,8 @@ class AppLocalizationsHu extends AppLocalizations {
   String get tutorLevel => 'Nyelvi szint';
 
   @override
-  String get tutorThinking => 'Egy pillanat, készítem a válaszodat...';
+  String get tutorThinking =>
+      'Egy pillanat türelmet, előkészítem a válaszodat.\nKérlek, számolj kb. 30 másodperccel; a terjedelemtől függően tovább is tarthat.';
 
   @override
   String get tutorAnswerNow => 'Rövidebb válasz';
@@ -545,4 +546,12 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get tutorNoHungarian =>
       'Ebben a szövegben nem találtam magyar mondatot. A Tutor magyar mondatokat magyaráz.';
+
+  @override
+  String get tutorPreparing =>
+      'Egy pillanat türelmet, előkészítem a válaszodat.';
+
+  @override
+  String get cropInstructionBody =>
+      'Karikázd be a kívánt részt, vagy nyomj OK-t a teljes képhez.';
 }

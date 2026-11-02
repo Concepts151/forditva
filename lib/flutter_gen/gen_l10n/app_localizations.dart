@@ -535,7 +535,7 @@ abstract class AppLocalizations {
   /// No description provided for @cropInstruction.
   ///
   /// In en, this message translates to:
-  /// **'Shape with your finger the required area'**
+  /// **'What would you like to translate?'**
   String get cropInstruction;
 
   /// No description provided for @errorTitle.
@@ -847,7 +847,7 @@ abstract class AppLocalizations {
   /// No description provided for @tutorThinking.
   ///
   /// In en, this message translates to:
-  /// **'A good answer takes a moment...'**
+  /// **'One moment please, I\'m preparing your answer.\nPlease allow about 30 seconds; depending on the scope, it may take longer.'**
   String get tutorThinking;
 
   /// No description provided for @tutorAnswerNow.
@@ -1029,6 +1029,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I couldn\'t find a Hungarian sentence in this text. The Tutor explains Hungarian sentences.'**
   String get tutorNoHungarian;
+
+  /// No description provided for @tutorPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'One moment please, I\'m preparing your answer.'**
+  String get tutorPreparing;
+
+  /// No description provided for @cropInstructionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Circle the desired area or tap OK to translate the entire image.'**
+  String get cropInstructionBody;
 }
 
 class _AppLocalizationsDelegate

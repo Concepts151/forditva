@@ -249,7 +249,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Type the text here or paste it from the clipboard.';
 
   @override
-  String get cropInstruction => 'Shape with your finger the required area';
+  String get cropInstruction => 'What would you like to translate?';
 
   @override
   String get errorTitle => 'Connection problem';
@@ -436,7 +436,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tutorLevel => 'Language level';
 
   @override
-  String get tutorThinking => 'A good answer takes a moment...';
+  String get tutorThinking =>
+      'One moment please, I\'m preparing your answer.\nPlease allow about 30 seconds; depending on the scope, it may take longer.';
 
   @override
   String get tutorAnswerNow => 'Shorter answer';
@@ -545,4 +546,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tutorNoHungarian =>
       'I couldn\'t find a Hungarian sentence in this text. The Tutor explains Hungarian sentences.';
+
+  @override
+  String get tutorPreparing => 'One moment please, I\'m preparing your answer.';
+
+  @override
+  String get cropInstructionBody =>
+      'Circle the desired area or tap OK to translate the entire image.';
 }

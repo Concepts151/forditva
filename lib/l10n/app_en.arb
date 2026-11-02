@@ -89,7 +89,7 @@
   },
   "translateAction": "Translate",
   "documentPlaceholder": "Type the text here or paste it from the clipboard.",
-  "cropInstruction": "Shape with your finger the required area",
+  "cropInstruction": "What would you like to translate?",
   "errorTitle": "Connection problem",
   "errorMessage": "We can't reach the translation service right now. Please check your internet connection and try again.",
   "wiuEmptyTitle": "Out of credits",
@@ -198,7 +198,7 @@
   "tutorConsecutiveOnly": "only consecutive sentences",
   "tutorApplySelection": "Apply selection",
   "tutorLevel": "Language level",
-  "tutorThinking": "A good answer takes a moment...",
+  "tutorThinking": "One moment please, I'm preparing your answer.\nPlease allow about 30 seconds; depending on the scope, it may take longer.",
   "tutorAnswerNow": "Shorter answer",
   "swipeToDeleteTip": "Tip: swipe an entry to the left to delete it.",
   "walletWelcomeTitle": "Welcome to fordítva",
@@ -247,5 +247,7 @@
       }
     }
   },
-  "tutorNoHungarian": "I couldn't find a Hungarian sentence in this text. The Tutor explains Hungarian sentences."
+  "tutorNoHungarian": "I couldn't find a Hungarian sentence in this text. The Tutor explains Hungarian sentences.",
+  "tutorPreparing": "One moment please, I'm preparing your answer.",
+  "cropInstructionBody": "Circle the desired area or tap OK to translate the entire image."
 }

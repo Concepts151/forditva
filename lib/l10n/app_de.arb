@@ -70,7 +70,7 @@
   "langMismatch": "Erkannte Sprache ist {detected}, aber deine ausgewählte Eingabe ist {selected}. Möchtest du die Eingabesprache wechseln?",
   "translateAction": "Übersetzen",
   "documentPlaceholder": "Hier tippen oder aus Zwischenablage einfügen.",
-  "cropInstruction": "Forme mit deinem Finger den gewünschten Bereich",
+  "cropInstruction": "Was möchtest du übersetzen?",
   "errorTitle": "Verbindung nicht möglich",
   "errorMessage": "Wir konnten den Übersetzungsdienst nicht erreichen. Bitte prüfe deine Internetverbindung und versuche es erneut.",
   "wiuEmptyTitle": "Credits aufgebraucht",
@@ -129,7 +129,7 @@
   "languageNameEs": "Spanisch",
   "languageNameRu": "Russisch",
   "languageNameIt": "Italienisch",
-  "tutorThinking": "Einen Moment, ich bereite deine Antwort vor ...",
+  "tutorThinking": "Einen Moment bitte, ich bereite Deine Antwort vor.\nPlane bitte mal 30 Sekunden ein, je nach Umfang kann es auch länger dauern.",
   "tutorAnswerNow": "Kürzere Antwort",
   "swipeToDeleteTip": "Tipp: Wische einen Eintrag nach links, um ihn zu löschen.",
   "walletWelcomeTitle": "Willkommen bei fordítva",
@@ -178,5 +178,7 @@
       }
     }
   },
-  "tutorNoHungarian": "In diesem Text habe ich keinen ungarischen Satz gefunden. Der Tutor erklärt ungarische Sätze."
+  "tutorNoHungarian": "In diesem Text habe ich keinen ungarischen Satz gefunden. Der Tutor erklärt ungarische Sätze.",
+  "tutorPreparing": "Einen Moment bitte, ich bereite Deine Antwort vor.",
+  "cropInstructionBody": "Kreise den gewünschten Bereich ein oder tippe auf OK für das ganze Bild."
 }

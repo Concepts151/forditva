@@ -70,7 +70,7 @@
   "langMismatch": "Az észlelt nyelv {detected}, de a kiválasztott bemenet {selected}. Szeretnéd átváltani a bemeneti nyelvet?",
   "translateAction": "Fordítás",
   "documentPlaceholder": "Írja be ide a szöveget, vagy illessze be a vágólapról.",
-  "cropInstruction": "Rajzold körbe ujjaddal a kívánt területet",
+  "cropInstruction": "Mit szeretnél lefordítani?",
   "errorTitle": "Kapcsolódási probléma",
   "errorMessage": "Nem értük el a fordítóprogramot. Kérlek, ellenőrizd az internetkapcsolatodat, és próbáld meg újra.",
   "wiuEmptyTitle": "Elfogytak a kreditjeid",
@@ -129,7 +129,7 @@
   "tutorConsecutiveOnly": "csak egymást követő mondatok",
   "tutorApplySelection": "Kijelölés megerősítése",
   "tutorLevel": "Nyelvi szint",
-  "tutorThinking": "Egy pillanat, készítem a válaszodat...",
+  "tutorThinking": "Egy pillanat türelmet, előkészítem a válaszodat.\nKérlek, számolj kb. 30 másodperccel; a terjedelemtől függően tovább is tarthat.",
   "tutorAnswerNow": "Rövidebb válasz",
   "swipeToDeleteTip": "Tipp: húzz egy bejegyzést balra a törléséhez.",
   "walletWelcomeTitle": "Üdvözlünk a fordítvában!",
@@ -178,5 +178,7 @@
       }
     }
   },
-  "tutorNoHungarian": "Ebben a szövegben nem találtam magyar mondatot. A Tutor magyar mondatokat magyaráz."
+  "tutorNoHungarian": "Ebben a szövegben nem találtam magyar mondatot. A Tutor magyar mondatokat magyaráz.",
+  "tutorPreparing": "Egy pillanat türelmet, előkészítem a válaszodat.",
+  "cropInstructionBody": "Karikázd be a kívánt részt, vagy nyomj OK-t a teljes képhez."
 }

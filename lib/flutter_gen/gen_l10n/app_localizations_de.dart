@@ -249,8 +249,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Hier tippen oder aus Zwischenablage einfügen.';
 
   @override
-  String get cropInstruction =>
-      'Forme mit deinem Finger den gewünschten Bereich';
+  String get cropInstruction => 'Was möchtest du übersetzen?';
 
   @override
   String get errorTitle => 'Verbindung nicht möglich';
@@ -439,7 +438,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tutorLevel => 'Sprachlevel';
 
   @override
-  String get tutorThinking => 'Einen Moment, ich bereite deine Antwort vor ...';
+  String get tutorThinking =>
+      'Einen Moment bitte, ich bereite Deine Antwort vor.\nPlane bitte mal 30 Sekunden ein, je nach Umfang kann es auch länger dauern.';
 
   @override
   String get tutorAnswerNow => 'Kürzere Antwort';
@@ -548,4 +548,12 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get tutorNoHungarian =>
       'In diesem Text habe ich keinen ungarischen Satz gefunden. Der Tutor erklärt ungarische Sätze.';
+
+  @override
+  String get tutorPreparing =>
+      'Einen Moment bitte, ich bereite Deine Antwort vor.';
+
+  @override
+  String get cropInstructionBody =>
+      'Kreise den gewünschten Bereich ein oder tippe auf OK für das ganze Bild.';
 }
