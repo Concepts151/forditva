@@ -60,6 +60,28 @@ Language _localThirdLang() {
   }
 }
 
+/// What the File page keeps while another page (the Tutor) is open. The main
+/// screen builds only the current page, so this page's state is thrown away
+/// when the user leaves it. Without this, coming back from the Tutor lost the
+/// page selection ("pages 4-5") and both results, and the next mode switch
+/// read the whole document again at the user's cost (Markus, 2026-11-02).
+/// Lives in memory only; the last image and result are also saved to disk.
+class _FileSession {
+  static bool saved = false;
+  static File? imageFile;
+  static File? croppedImageFile;
+  static String? pdfPageSpec;
+  static String? convertedFrom;
+  static String resultText = '';
+  static String? translateResultCache;
+  static String? interpretResultCache;
+  static bool interpretMode = false;
+  static Language leftLang = Language.de;
+  static Language rightLang = Language.hu;
+  static List<String> docLanguages = const [];
+  static String? docLanguagesKey;
+}
+
 class ImagePlaceholderPage extends StatefulWidget {
   const ImagePlaceholderPage({super.key});
   @override
@@ -529,7 +551,48 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     super.initState();
     _scrollController = ScrollController();
     ThirdLanguagePref.notifier.addListener(_onThirdLanguageChanged);
-    _loadState();
+    // The third language can change in Settings while the page is away; the
+    // kept results belong to the old one, so start from the saved file then.
+    bool known(Language l) =>
+        l == Language.hu || l == Language.de || l == _localThirdLang();
+    if (_FileSession.saved &&
+        known(_FileSession.leftLang) &&
+        known(_FileSession.rightLang)) {
+      _restoreSession();
+    } else {
+      _loadState();
+    }
+  }
+
+  void _restoreSession() {
+    _imageFile = _FileSession.imageFile;
+    _croppedImageFile = _FileSession.croppedImageFile;
+    _pdfPageSpec = _FileSession.pdfPageSpec;
+    _convertedFrom = _FileSession.convertedFrom;
+    _resultText = _FileSession.resultText;
+    _translateResultCache = _FileSession.translateResultCache;
+    _interpretResultCache = _FileSession.interpretResultCache;
+    _interpretMode = _FileSession.interpretMode;
+    _leftLang = _FileSession.leftLang;
+    _rightLang = _FileSession.rightLang;
+    _docLanguages = _FileSession.docLanguages;
+    _docLanguagesKey = _FileSession.docLanguagesKey;
+  }
+
+  void _saveSession() {
+    _FileSession.saved = true;
+    _FileSession.imageFile = _imageFile;
+    _FileSession.croppedImageFile = _croppedImageFile;
+    _FileSession.pdfPageSpec = _pdfPageSpec;
+    _FileSession.convertedFrom = _convertedFrom;
+    _FileSession.resultText = _resultText;
+    _FileSession.translateResultCache = _translateResultCache;
+    _FileSession.interpretResultCache = _interpretResultCache;
+    _FileSession.interpretMode = _interpretMode;
+    _FileSession.leftLang = _leftLang;
+    _FileSession.rightLang = _rightLang;
+    _FileSession.docLanguages = _docLanguages;
+    _FileSession.docLanguagesKey = _docLanguagesKey;
   }
 
   /// The third language changed in Settings: switch to it right away. A new
@@ -575,6 +638,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
 
   @override
   void dispose() {
+    _saveSession();
     ThirdLanguagePref.notifier.removeListener(_onThirdLanguageChanged);
     _scrollController.dispose();
     hasHungarianText.dispose();
@@ -821,6 +885,15 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     if (!await _fileFits(imageFile) || !mounted) return;
     if (!await ensureWiuBalance(context)) return;
 
+    // The request takes 20-60 s. Keep what it was asked for: if the user
+    // switches between translate and explain, or loads another picture,
+    // meanwhile, the answer must not land in the other mode or on the other
+    // picture (Markus, 2026-11-02: an explanation showed up in translate
+    // mode and then went to the Tutor as "Hungarian text").
+    final interpret = _interpretMode;
+    final startImage = _imageFile;
+    var stale = false;
+
     setState(() {
       _isProcessing = true;
       _statusText = AppLocalizations.of(context)!.analyzingAndTranslating;
@@ -831,20 +904,24 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     try {
       final out = await _chat.processImage(
         imageFile: imageFile,
-        translate: !_interpretMode,
-        interpret: _interpretMode,
+        translate: !interpret,
+        interpret: interpret,
         fromLangCode: _langCode(_rightLang),
         toLangCode: _langCode(_leftLang),
         pdfPages: _isPdf ? _pdfPageSpec : null,
       );
 
+      if (!mounted || !identical(_imageFile, startImage)) {
+        stale = true; // another picture was loaded meanwhile
+        return;
+      }
       final sourceCode = _langCode(_rightLang);
       final noMatchingText = _noMatchingLanguageText(out);
 
       // Remember which languages the document contains. When text WAS found
       // in the chosen source language, trust that over the reported list.
       var docLanguages = _chat.lastDocumentLanguages;
-      if (!_interpretMode &&
+      if (!interpret &&
           !noMatchingText &&
           docLanguages.isNotEmpty &&
           !docLanguages.contains(sourceCode)) {
@@ -855,7 +932,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
 
       // Only translate mode can tell a wrong source language from the
       // result: in interpret mode the output is in the target language.
-      if (!_interpretMode) {
+      if (!interpret) {
         String? suggestion;
         var mismatch = false;
         if (noMatchingText) {
@@ -896,8 +973,10 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
 
       final cleaned = out.trim();
       setState(() {
-        _resultText = cleaned;
-        if (_interpretMode) {
+        // Show it only while the mode it was made for is still the one on
+        // screen; it is kept in its own cache either way.
+        if (_interpretMode == interpret) _resultText = cleaned;
+        if (interpret) {
           _interpretResultCache = cleaned;
         } else {
           _translateResultCache = cleaned;
@@ -936,7 +1015,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
         );
       }
     } finally {
-      if (mounted) {
+      if (mounted && !stale) {
         setState(() {
           _isProcessing = false;
           _statusText = '';
@@ -1105,19 +1184,11 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
       imageQuality: _pickQuality,
     );
     if (picked != null) {
-      if (!mounted) return;
-      File file = File(picked.path);
-      final cropped = await Navigator.push<File?>(
-        context,
-        MaterialPageRoute(builder: (_) => ImageCropperPage(imageFile: file)),
-      );
-
-      setState(() {
-        _imageFile = file;
-        _croppedImageFile = cropped;
-      });
-
-      await _processImage(imageFile: cropped ?? file);
+      // Same path as a picture from the gallery: it also clears the previous
+      // document's results. A photo taken in explain mode kept the old
+      // translation, which showed up on the next switch to translate mode
+      // (Markus, 2026-11-02).
+      await _loadImageWithCropper(File(picked.path));
     }
   }
 
@@ -1400,6 +1471,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
       _imageFile = file;
       _croppedImageFile = cropped;
       _pdfPageSpec = null; // images have no page selection
+      _convertedFrom = null;
       _resultText = ''; // clear the previous document's result immediately
       _translateResultCache = null;
       _interpretResultCache = null;
