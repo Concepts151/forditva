@@ -35,7 +35,7 @@ const Map<AiTask, AiModel> aiRoutes = {
   AiTask.explain: AiModels.geminiFlashLite,
   AiTask.detectLanguage: AiModels.geminiFlashLite,
   AiTask.tutor: AiModels.geminiFlash,
-  AiTask.tutorSentences: AiModels.geminiFlash,
+  AiTask.tutorSentences: AiModels.geminiFlashLite,
 };
 
 /// Runs [request] on the model routed for [task] and charges its WIU price.
@@ -50,6 +50,22 @@ Future<TextAiResult> runAiTask(
   final result = (await geminiGenerate(model, request, client: client)).result;
   _charge(model, result);
   return result;
+}
+
+/// Like [runAiTask], but yields the reply in pieces while it is written. The
+/// WIU charge is booked when the stream ends normally.
+Stream<String> runAiTaskStream(
+  AiTask task,
+  TextAiRequest request, {
+  http.Client? client,
+}) {
+  final model = aiRoutes[task]!;
+  return geminiGenerateStream(
+    model,
+    request,
+    client: client,
+    onDone: (result) => _charge(model, result),
+  );
 }
 
 void _charge(AiModel model, TextAiResult result) {

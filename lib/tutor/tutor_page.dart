@@ -110,6 +110,12 @@ class _TutorPageState extends State<TutorPage> {
   // drag does not request every level it passes.
   int? _dragLevel;
   final Map<String, List<Map<String, dynamic>>> _results = {};
+
+  // The sentences of an answer that is still being written (Markus,
+  // 2026-11-02: "write it sentence by sentence and show the user that it is
+  // still working"). Moves to [_results] when the answer is complete.
+  final Map<String, List<Map<String, dynamic>>> _partial = {};
+  final Stopwatch _progressWatch = Stopwatch();
   String? _loadingKey;
   // Markus, 2026-10-29 (Tutor waiting, option A): a bar that only shows
   // activity (no seconds, never full before the answer). Once the answer
@@ -130,6 +136,11 @@ class _TutorPageState extends State<TutorPage> {
   /// A wait that never ends is shown as an error instead (Markus: no
   /// endless waiting message). The accurate answer can take up to 2 min.
   static const _giveUpAfter = Duration(seconds: 150);
+
+  /// Once sentences arrive: how long the stream may stay silent before it is
+  /// treated as failed (thinking is over by then; the next sentence follows
+  /// within seconds).
+  static const _streamStallAfter = Duration(seconds: 60);
 
   /// The sentence split takes 5-13 s, 62 s at the worst peak so far
   /// (Alex's Vertex metrics, 29 Oct).
@@ -152,6 +163,7 @@ class _TutorPageState extends State<TutorPage> {
   }
 
   void _cancelInFlight() {
+    _partial.clear();
     _waitTimer?.cancel();
     for (final s in _inFlight) {
       s.cancel();
@@ -293,7 +305,10 @@ class _TutorPageState extends State<TutorPage> {
       ..start();
     _waitTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
       if (!mounted || _loadingKey != key) return;
-      if (_waitWatch.elapsed >= _giveUpAfter) {
+      final streaming = _partial.containsKey(key);
+      if (streaming
+          ? _progressWatch.elapsed >= _streamStallAfter
+          : _waitWatch.elapsed >= _giveUpAfter) {
         _cancelInFlight();
         setState(() {
           _loadingKey = null;
@@ -303,7 +318,10 @@ class _TutorPageState extends State<TutorPage> {
         return;
       }
       setState(() {
-        _showAnswerNow = _waitWatch.elapsedMilliseconds >= _usualMs * 1.5;
+        // Once sentences arrive the real answer is on its way: no more
+        // "takes longer" note and no shorter answer.
+        _showAnswerNow =
+            !streaming && _waitWatch.elapsedMilliseconds >= _usualMs * 1.5;
       });
     });
     _fetch(mode, key, text, fast: false);
@@ -334,10 +352,7 @@ class _TutorPageState extends State<TutorPage> {
 
   Future<void> _recordAnswerTime(int ms) async {
     final prefs = await SharedPreferences.getInstance();
-    final times = <String>[
-      ...?prefs.getStringList(_answerTimesKey),
-      '$ms',
-    ];
+    final times = <String>[...?prefs.getStringList(_answerTimesKey), '$ms'];
     await prefs.setStringList(
       _answerTimesKey,
       times.sublist(math.max(0, times.length - 10)),
@@ -357,18 +372,48 @@ class _TutorPageState extends State<TutorPage> {
     _inFlight.add(service);
     _pending++;
     try {
-      final result = await service.explain(
-        mode: mode,
-        huText: text,
-        langCode: _lang,
-        level: _level,
-        fast: fast,
-      );
+      List<Map<String, dynamic>>? result;
+      if (fast) {
+        result = await service.explain(
+          mode: mode,
+          huText: text,
+          langCode: _lang,
+          level: _level,
+          fast: true,
+        );
+        // The accurate answer is already being written: keep that one.
+        if (_partial.containsKey(key)) return;
+      } else {
+        await for (final sentences in service.explainStream(
+          mode: mode,
+          huText: text,
+          langCode: _lang,
+          level: _level,
+        )) {
+          if (!mounted || _loadingKey != key || _text != text) return;
+          result = sentences;
+          _progressWatch
+            ..reset()
+            ..start();
+          if (!_partial.containsKey(key)) {
+            // First sentence: the shorter request is no longer needed.
+            for (final other in _inFlight) {
+              if (!identical(other, service)) other.cancel();
+            }
+          }
+          setState(() {
+            _partial[key] = sentences;
+            _showAnswerNow = false;
+          });
+        }
+      }
+      final answer = result;
+      if (answer == null) throw const FormatException('Tutor sent nothing');
       if (!mounted || _loadingKey != key || _text != text) return;
       _cancelInFlight(); // the other request is no longer needed
       if (!fast) _recordAnswerTime(_waitWatch.elapsedMilliseconds);
       setState(() {
-        _results[key] = result;
+        _results[key] = answer;
         _loadingKey = null;
         _showAnswerNow = false;
       });
@@ -564,8 +609,9 @@ class _TutorPageState extends State<TutorPage> {
     if (_picking) return _picker();
     if (_failed) return _failure();
     final key = _key(_mode);
-    final data = _results[key];
+    final data = _results[key] ?? _partial[key];
     if (data == null) return _loading();
+    final stillWriting = _results[key] == null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -599,6 +645,7 @@ class _TutorPageState extends State<TutorPage> {
                     TutorMode.decoding => _decoderSentence(sentence),
                     _ => _explainedSentence(sentence),
                   },
+                if (stillWriting) _stillWriting(),
               ],
             ),
           ),
@@ -684,6 +731,34 @@ class _TutorPageState extends State<TutorPage> {
     );
   }
 
+  // Under the sentences that are there: the rest is still being written.
+  Widget _stillWriting() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: const LinearProgressIndicator(
+              minHeight: 6,
+              color: _navGreen,
+              backgroundColor: _selectedFill,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            AppLocalizations.of(context)!.tutorStillWriting,
+            style: GoogleFonts.robotoCondensed(
+              fontSize: 16,
+              color: Colors.black54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _failure() {
     return Center(
       child: Column(
@@ -701,17 +776,18 @@ class _TutorPageState extends State<TutorPage> {
           ),
           const SizedBox(height: 8),
           // Asking again can't find Hungarian that isn't there.
-          if (!_noHungarian) IconButton(
-            icon: const Icon(Icons.refresh, color: _navGreen, size: 32),
-            onPressed: () {
-              setState(() => _failed = false);
-              if (_text == null && _request != null) {
-                _prepare(_request!.text);
-              } else {
-                _run(_mode);
-              }
-            },
-          ),
+          if (!_noHungarian)
+            IconButton(
+              icon: const Icon(Icons.refresh, color: _navGreen, size: 32),
+              onPressed: () {
+                setState(() => _failed = false);
+                if (_text == null && _request != null) {
+                  _prepare(_request!.text);
+                } else {
+                  _run(_mode);
+                }
+              },
+            ),
         ],
       ),
     );

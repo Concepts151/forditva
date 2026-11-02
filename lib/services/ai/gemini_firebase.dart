@@ -105,6 +105,76 @@ Future<GeminiReply> geminiGenerate(
   }
 }
 
+/// Like [geminiGenerate] for text only, but yields the reply in pieces as it
+/// is written. [onDone] gets the whole reply with its token counts once the
+/// stream has ended normally; a stream that is cancelled or fails reports
+/// nothing, so nothing is charged for it.
+Stream<String> geminiGenerateStream(
+  AiModel model,
+  TextAiRequest request, {
+  http.Client? client,
+  void Function(TextAiResult result)? onDone,
+}) async* {
+  final ownClient = kDebugMode && client == null ? http.Client() : null;
+  final httpClient =
+      kDebugMode ? _RequestLogClient(client ?? ownClient!) : client;
+  try {
+    final generativeModel = FirebaseAI.agentPlatform(
+      location: geminiLocation,
+      useLimitedUseAppCheckTokens: true,
+    ).generativeModel(
+      model: model.id,
+      systemInstruction:
+          request.system != null ? Content.system(request.system!) : null,
+      generationConfig: GenerationConfig(
+        temperature: request.temperature,
+        maxOutputTokens: request.maxOutputTokens,
+        responseMimeType: request.json ? 'application/json' : null,
+        thinkingConfig:
+            !request.thinking && model.thinkingControl
+                ? ThinkingConfig.withThinkingBudget(0)
+                : null,
+      ),
+      httpClient: httpClient,
+    );
+    final all = StringBuffer();
+    UsageMetadata? usage;
+    await for (final chunk in generativeModel.generateContentStream([
+      Content.text(request.user),
+    ])) {
+      usage = chunk.usageMetadata ?? usage;
+      final piece = chunk.text;
+      if (piece != null && piece.isNotEmpty) {
+        all.write(piece);
+        yield piece;
+      }
+    }
+    final prompt = usage?.promptTokenCount ?? 0;
+    if (kDebugMode) {
+      debugPrint(
+        'Gemini stream ${model.id}: $prompt in, '
+        '${usage?.candidatesTokenCount} out, '
+        '${usage?.thoughtsTokenCount} thinking',
+      );
+    }
+    onDone?.call(
+      TextAiResult(
+        text: all.toString(),
+        modelVersion: model.id,
+        inputTokens: prompt,
+        outputTokens: billableOutputTokens(
+          prompt: prompt,
+          candidates: usage?.candidatesTokenCount ?? 0,
+          thoughts: usage?.thoughtsTokenCount,
+          total: usage?.totalTokenCount,
+        ),
+      ),
+    );
+  } finally {
+    ownClient?.close();
+  }
+}
+
 /// Logs the method, URL and status of each request it passes on (debug
 /// builds only). Closing it is left to the owner of [_inner].
 class _RequestLogClient extends http.BaseClient {

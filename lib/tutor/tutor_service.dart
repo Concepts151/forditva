@@ -61,14 +61,73 @@ class TutorService {
       tutorValidator(mode),
       fast: fast,
     );
+    return _trimItems(mode, list);
+  }
+
+  // The handoff allows 1 to 3 items; trim any extra rather than fail.
+  static List<Map<String, dynamic>> _trimItems(
+    TutorMode mode,
+    List<Map<String, dynamic>> list,
+  ) {
     if (mode == TutorMode.understanding) {
-      // The handoff allows 1 to 3 items; trim any extra rather than fail.
       for (final s in list) {
         final items = s['items'] as List;
         if (items.length > 3) s['items'] = items.sublist(0, 3);
       }
     }
     return list;
+  }
+
+  /// The same accurate answer as [explain] (thinking on), but yielded as it
+  /// is written: every yield is the list of sentences finished so far, and
+  /// the last one is the complete, checked answer. An answer the stream parser
+  /// could not use is asked for again in one piece, as before.
+  Stream<List<Map<String, dynamic>>> explainStream({
+    required TutorMode mode,
+    required String huText,
+    required String langCode,
+    required int level,
+  }) async* {
+    final parser = IncrementalJsonArray();
+    final isValid = tutorValidator(mode);
+    final finished = <Map<String, dynamic>>[];
+    final raw = StringBuffer();
+    await for (final piece in runAiTaskStream(
+      AiTask.tutor,
+      TextAiRequest(
+        system: tutorSystemPrompt(mode, langCode, level),
+        user: huText,
+        json: true,
+        temperature: 0.2,
+        thinking: true,
+        maxOutputTokens: 32768,
+      ),
+      client: _client,
+    )) {
+      raw.write(piece);
+      var grew = false;
+      for (final sentence in parser.add(piece)) {
+        if (isValid([sentence])) {
+          finished.add(sentence);
+          grew = true;
+        }
+      }
+      if (grew) yield _trimItems(mode, [for (final s in finished) Map.of(s)]);
+    }
+    final reply = raw.toString();
+    if (isEmptyTutorReply(reply)) throw const TutorNoHungarianException();
+    final parsed = parseTutorArray(reply);
+    if (parsed != null && isValid(parsed)) {
+      yield _trimItems(mode, parsed);
+      return;
+    }
+    debugPrint('Tutor: streamed reply was not valid JSON, asking again');
+    yield await explain(
+      mode: mode,
+      huText: huText,
+      langCode: langCode,
+      level: level,
+    );
   }
 
   /// Parses a model reply into a JSON array, tolerating a ```json fence.

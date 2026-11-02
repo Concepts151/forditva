@@ -136,6 +136,69 @@ bool _validDecoder(List v) => v.every(
 bool _validMode3(List v) =>
     v.every((s) => s is Map && s['hu'] is String && _validItems(s['items']));
 
+/// Pulls the finished sentence objects out of a JSON array that arrives in
+/// pieces, so the Tutor can show each sentence as soon as it is written
+/// (Markus, 2026-11-02: "write it sentence by sentence"). Text before the
+/// opening '[' (a ```json fence) is ignored; so is anything after the closing
+/// ']'. An object counts only when its closing brace has arrived.
+class IncrementalJsonArray {
+  int _depth = 0; // 0: before '[', 1: in the array, 2+: inside an element
+  bool _inString = false;
+  bool _escape = false;
+  bool _finished = false;
+  final StringBuffer _element = StringBuffer();
+
+  /// Feeds the next [chunk]; returns the objects completed by it.
+  List<Map<String, dynamic>> add(String chunk) {
+    final done = <Map<String, dynamic>>[];
+    if (_finished) return done;
+    for (var i = 0; i < chunk.length; i++) {
+      final c = chunk[i];
+      if (_depth == 0) {
+        if (c == '[') _depth = 1;
+        continue;
+      }
+      if (_inString) {
+        if (_depth >= 2) _element.write(c);
+        if (_escape) {
+          _escape = false;
+        } else if (c == r'\') {
+          _escape = true;
+        } else if (c == '"') {
+          _inString = false;
+        }
+        continue;
+      }
+      if (c == '"') {
+        _inString = true;
+        if (_depth >= 2) _element.write(c);
+      } else if (c == '{' || c == '[') {
+        _depth++;
+        if (_depth == 2) _element.clear();
+        _element.write(c);
+      } else if (c == '}' || c == ']') {
+        if (_depth >= 2) {
+          _element.write(c);
+          _depth--;
+          if (_depth == 1) {
+            try {
+              final decoded = jsonDecode(_element.toString());
+              if (decoded is Map) done.add(Map<String, dynamic>.from(decoded));
+            } catch (_) {}
+            _element.clear();
+          }
+        } else if (c == ']') {
+          _finished = true;
+          return done;
+        }
+      } else if (_depth >= 2) {
+        _element.write(c);
+      }
+    }
+    return done;
+  }
+}
+
 /// The model found no Hungarian sentence in the text and answered `[]`
 /// (for example German text from the File page's explain mode, 2026-10-29).
 /// Asking again gives the same answer, so this is not retried.
