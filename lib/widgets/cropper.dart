@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,7 +10,91 @@ import 'package:path_provider/path_provider.dart';
 import '../flutter_gen/gen_l10n/app_localizations.dart';
 
 const Color navRed = Color(0xFFCD2A3E);
+
+/// Size of the ✗ and ✓ buttons under the photo (was 64; Markus, 2026-11-02:
+/// "the two buttons are too massive").
+const double _cropButtonSize = 50;
 const Color navGreen = Color(0xFF436F4D);
+
+/// The part of [orig] inside [polygon], cut to the polygon's bounding box,
+/// with everything outside the outline (but inside the box) painted white.
+///
+/// The old mask was a 3-channel image, whose alpha reads as 255 everywhere, so
+/// nothing outside the outline was ever removed: the AI got the whole bounding
+/// box and translated text the user had left out (Markus, 2026-11-02: the
+/// engraved name labels above his selection).
+img.Image cutOutPolygon(img.Image orig, List<img.Point> polygon) {
+  int minX = polygon.map((p) => p.x.toInt()).reduce((a, b) => a < b ? a : b);
+  int maxX = polygon.map((p) => p.x.toInt()).reduce((a, b) => a > b ? a : b);
+  int minY = polygon.map((p) => p.y.toInt()).reduce((a, b) => a < b ? a : b);
+  int maxY = polygon.map((p) => p.y.toInt()).reduce((a, b) => a > b ? a : b);
+  minX = minX.clamp(0, orig.width - 1);
+  maxX = maxX.clamp(0, orig.width - 1);
+  minY = minY.clamp(0, orig.height - 1);
+  maxY = maxY.clamp(0, orig.height - 1);
+
+  final out = img.copyCrop(
+    orig.numChannels == 4 ? orig : orig.convert(numChannels: 4),
+    x: minX,
+    y: minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  );
+
+  // The outline in the cut-out's own coordinates, drawn on a mask WITH an
+  // alpha channel: opaque inside, transparent outside.
+  final mask = img.Image(width: out.width, height: out.height, numChannels: 4);
+  img.fill(mask, color: img.ColorRgba8(0, 0, 0, 0));
+  img.fillPolygon(
+    mask,
+    vertices: [
+      for (final p in polygon)
+        img.Point(p.x.toInt() - minX, p.y.toInt() - minY),
+    ],
+    color: img.ColorRgba8(255, 255, 255, 255),
+  );
+
+  for (int y = 0; y < out.height; y++) {
+    for (int x = 0; x < out.width; x++) {
+      if (mask.getPixel(x, y).a == 0) {
+        out.setPixelRgba(x, y, 255, 255, 255, 255);
+      }
+    }
+  }
+  return out;
+}
+
+/// Decodes [bytes], cuts out the outline given as x,y pairs in the drawing
+/// area's coordinates ([drawW] x [drawH]) and returns the result as a PNG, or
+/// null when the photo can't be decoded. Runs in a background isolate.
+Uint8List? cropToPolygonPng(
+  Uint8List bytes,
+  List<double> flatPoints,
+  double drawW,
+  double drawH,
+) {
+  final img.Image? decoded;
+  try {
+    decoded = img.decodeImage(bytes);
+  } catch (_) {
+    // The decoder throws on damaged files instead of answering null.
+    return null;
+  }
+  if (decoded == null) return null;
+  // Upright first: the preview shows the photo upright (Flutter honors the
+  // EXIF rotation), so the outline is in those coordinates.
+  final orig = img.bakeOrientation(decoded);
+  final scaleX = orig.width / drawW;
+  final scaleY = orig.height / drawH;
+  final polygon = [
+    for (var i = 0; i + 1 < flatPoints.length; i += 2)
+      img.Point(
+        (flatPoints[i] * scaleX).toInt(),
+        (flatPoints[i + 1] * scaleY).toInt(),
+      ),
+  ];
+  return img.encodePng(cutOutPolygon(orig, polygon));
+}
 
 class ImageCropperPage extends StatefulWidget {
   final File imageFile;
@@ -40,119 +126,42 @@ class _ImageCropperPageState extends State<ImageCropperPage> {
     // Decode once at startup for aspect ratio and drawing
     widget.imageFile.readAsBytes().then((bytes) {
       final decoded = img.decodeImage(bytes);
-      if (mounted) setState(() => _decodedImage = decoded);
+      if (mounted) {
+        setState(
+          () =>
+              _decodedImage =
+                  decoded == null ? null : img.bakeOrientation(decoded),
+        );
+      }
     });
   }
 
   Future<File?> _cropImageToPolygon(
-    // Renamed to a private method for clarity
     File imageFile,
     List<Offset> points, {
     double drawW = 350,
     double drawH = 350,
   }) async {
-    // 1. Load original image bytes and decode
     final bytes = await imageFile.readAsBytes();
-    final img.Image? orig = img.decodeImage(bytes);
-    if (orig == null) {
+    // Decoding, cutting and encoding a 12 MP photo takes seconds; on the main
+    // thread it froze the spinner, so Markus saw no feedback after tapping
+    // the check mark (2026-11-02).
+    final flat = [
+      for (final p in points) ...[p.dx, p.dy],
+    ];
+    final png = await Isolate.run(
+      () => cropToPolygonPng(bytes, flat, drawW, drawH),
+    );
+    if (png == null) {
       debugPrint('Error: Could not decode image.');
       return null;
     }
-
-    final int imgW = orig.width;
-    final int imgH = orig.height;
-
-    // 2. Scale points from UI coordinates to image pixel coordinates
-    final double scaleX = imgW / drawW;
-    final double scaleY = imgH / drawH;
-    final polygon =
-        points
-            .map(
-              (pt) =>
-                  img.Point((pt.dx * scaleX).toInt(), (pt.dy * scaleY).toInt()),
-            )
-            .toList();
-
-    // 3. Create a blank mask image with the same dimensions as the original image.
-    // Use named parameters for width and height.
-    final mask = img.Image(width: imgW, height: imgH);
-
-    // 4. Fill the mask with fully transparent black (0x00000000).
-    // Use img.ColorRgba8 for the color argument.
-    img.fill(mask, color: img.ColorRgba8(0, 0, 0, 0));
-
-    // 5. Fill the polygon area on the mask with fully opaque white (0xFFFFFFFF).
-    // This defines the area that will be kept from the original image.
-    // The list of points must be passed using the 'vertices' named parameter.
-    img.fillPolygon(
-      mask,
-      vertices: polygon,
-      color: img.ColorRgba8(255, 255, 255, 255),
-    );
-
-    // 6. Apply the mask to the original image.
-    // Create a new image from the original to avoid modifying the source directly.
-    final out = img.Image.from(orig);
-    for (int y = 0; y < imgH; y++) {
-      for (int x = 0; x < imgW; x++) {
-        // Get the pixel from the mask image.
-        final maskPixel = mask.getPixel(x, y);
-        // Extract the alpha component directly from the Pixel object using its 'a' property.
-        // If alpha is 0 (fully transparent), set the corresponding pixel in the output
-        // image to fully transparent. This effectively 'cuts out' the unmasked areas.
-        final a = maskPixel.a; // Correctly access alpha from Pixel object
-        if (a == 0) {
-          out.setPixelRgba(
-            x,
-            y,
-            0,
-            0,
-            0,
-            0,
-          ); // Clear pixel in result (fully transparent)
-        }
-      }
-    }
-    // ... after applying mask ...
-
-    // Bounding box calculation for cropping to the minimal size
-    int minX = polygon.map((p) => p.x as int).reduce((a, b) => a < b ? a : b);
-    int maxX = polygon.map((p) => p.x as int).reduce((a, b) => a > b ? a : b);
-    int minY = polygon.map((p) => p.y as int).reduce((a, b) => a < b ? a : b);
-    int maxY = polygon.map((p) => p.y as int).reduce((a, b) => a > b ? a : b);
-
-    // Clamp bounding box to image dimensions
-    minX = minX.clamp(0, imgW - 1);
-    maxX = maxX.clamp(0, imgW - 1);
-    minY = minY.clamp(0, imgH - 1);
-    maxY = maxY.clamp(0, imgH - 1);
-
-    final cropWidth = maxX - minX + 1;
-    final cropHeight = maxY - minY + 1;
-
-    // Crop the image to the calculated bounding box
-    final cropped = img.copyCrop(
-      out,
-      x: minX,
-      y: minY,
-      width: cropWidth,
-      height: cropHeight,
-    );
-
     final tempDir = await getTemporaryDirectory();
     final outPath =
         '${tempDir.path}/crop_result_${DateTime.now().millisecondsSinceEpoch}.png';
     debugPrint('Cropped image saved at: $outPath');
-
     final outFile = File(outPath);
-
-    // Write the cropped image to a file
-    await outFile.writeAsBytes(img.encodePng(cropped));
-
-    // Share the cropped image
-    //final xFile = XFile(outFile.path);
-    ///Share.shareXFiles([xFile], text: 'Cropped image result');
-
+    await outFile.writeAsBytes(png);
     return outFile;
   }
 
@@ -288,8 +297,8 @@ class _ImageCropperPageState extends State<ImageCropperPage> {
               // are not our icons").
               child: Image.asset(
                 'assets/images/check_green.png',
-                width: 64,
-                height: 64,
+                width: _cropButtonSize,
+                height: _cropButtonSize,
               ),
             ),
           ),
@@ -305,31 +314,48 @@ class _ImageCropperPageState extends State<ImageCropperPage> {
               },
               child: Image.asset(
                 'assets/images/close_red.png',
-                width: 64,
-                height: 64,
+                width: _cropButtonSize,
+                height: _cropButtonSize,
               ),
             ),
           ),
-          // Instruction text (center bottom)
+          // Instruction text, centered between the two buttons. Markus,
+          // 2026-11-02: first line Roboto Condensed Bold, the other lines
+          // Medium and 2 px smaller; the buttons smaller.
           Positioned(
-            bottom: 32,
+            bottom: 36,
             left: 0,
             right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 100,
-                  vertical: 10,
-                ),
-                child: Text(
-                  AppLocalizations.of(context)!.cropInstruction,
-                  style: GoogleFonts.robotoCondensed(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.4,
+            child: SizedBox(
+              height: _cropButtonSize,
+              child: OverflowBox(
+                maxHeight: 110,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 86),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)!.cropInstruction,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.robotoCondensed(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        AppLocalizations.of(context)!.cropInstructionBody,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.robotoCondensed(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ),
             ),
