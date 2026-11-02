@@ -259,6 +259,29 @@ now stay visible. The swap button still refreshes both cards.
 fail on the current debug install until its App Check debug token is
 registered.
 
+## Round of 2 Nov, evening (build 85)
+
+35. **Copy and Share gave HTML.** In explain mode the result is stored as HTML,
+    so Copy and Share put `<p>`, `<strong>`, `<li>` on the clipboard (Markus's
+    screenshot and voice note, 21:47). Now plain text: paragraphs, bullets for
+    lists. A translation gives the translated lines instead of the raw
+    segment list. `lib/image_page.dart`, `_copyableText()`.
+36. **"Shorter answer": tested on the phone over 3G.** The button appears, a
+    tap starts the request (spinner). On 3G it took about 30 s, so no visible
+    gain; we could not tell which request delivered the answer. Changes: the
+    button appears after at most 10 s (was 1.5x the usual time, 22 s without
+    history); if the fast request fails, the button comes back; log lines for
+    each step.
+37. **Tutor from the Learning history asked again** (Markus, 21:13). Answers
+    were already saved, but the Understanding answer is saved per level and the
+    page opened at the current slider level, so a different saved level meant
+    no hit. Now the slider goes to the saved level. The same sentence from
+    another page also uses the saved answer when the explanation language
+    matches. Not covered: a sentence picked from "Choose sentences".
+38. **Monthly cleanup of the history** (Markus): entries older than 3 months
+    are deleted, once a month, on the first read after the app starts
+    (`LearningStore.purgeOld`, tested).
+
 ## Still open
 
 - Phone test against the live server (see the plan's checklist).

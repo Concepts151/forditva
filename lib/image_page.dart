@@ -181,6 +181,46 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
         .trim();
   }
 
+  /// The result as plain text for Copy and Share. The explanation is stored
+  /// as HTML and a translation as JSON segments; neither should reach the
+  /// clipboard as markup (Markus, 2026-11-02, pasted `<p>`/`<strong>` tags).
+  String _copyableText() {
+    final raw = _resultText.trim();
+    if (raw.isEmpty) return '';
+    final salvaged = _isJsonArray(raw) ? raw : _extractJsonArray(raw);
+    if (salvaged != null) {
+      try {
+        final decoded = json.decode(salvaged);
+        if (decoded is List) {
+          return decoded
+              .map((e) => (e is Map ? e['t']?.toString() : null) ?? '')
+              .where((t) => t.isNotEmpty)
+              .join('\n');
+        }
+      } catch (_) {}
+    }
+    return stripHtmlCodeFence(raw)
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAllMapped(
+          RegExp(r'<li[^>]*>', caseSensitive: false),
+          (_) => '\n• ',
+        )
+        .replaceAll(
+          RegExp(r'</(p|h[1-6]|ul|ol|div)>', caseSensitive: false),
+          '\n',
+        )
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll(RegExp(r'[ \t]+\n'), '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
+  }
+
   // Public so the nav bar (main.dart, via a GlobalKey) can reactively enable
   // the Tutor bulb only while Hungarian text is actually present on this page.
   final ValueNotifier<bool> hasHungarianText = ValueNotifier(false);
@@ -229,7 +269,9 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     // The new Tutor page (Markus, 2026-10-09) replaces the old popup.
     TutorLauncher.open(
       _hungarianText(),
-      otherLangCode: _langCode(_leftLang == Language.hu ? _rightLang : _leftLang),
+      otherLangCode: _langCode(
+        _leftLang == Language.hu ? _rightLang : _leftLang,
+      ),
     );
   }
 
@@ -760,7 +802,6 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     );
   }
 
-
   Widget formattedJsonResult(
     String jsonStr,
     double panelH, {
@@ -1070,7 +1111,10 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
 
   /// A language from [docLanguages] to offer instead of [excluding], or null
   /// when the document's languages are unknown.
-  String? _suggestSource(List<String> docLanguages, {required String excluding}) {
+  String? _suggestSource(
+    List<String> docLanguages, {
+    required String excluding,
+  }) {
     for (final code in docLanguages) {
       if (code != excluding) return code;
     }
@@ -1303,14 +1347,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
   /// once that service is configured: until then every pick failed with the
   /// "conversion failed" dialog. TXT is no longer here, it needs no
   /// conversion (see [_isTextFile]).
-  static const _officeExtensions = {
-    'doc',
-    'docx',
-    'xls',
-    'xlsx',
-    'odt',
-    'ods',
-  };
+  static const _officeExtensions = {'doc', 'docx', 'xls', 'xlsx', 'odt', 'ods'};
 
   final _conversionService = DocumentConversionService();
 
@@ -1596,56 +1633,56 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                           onTap:
                                               _isPdf ? _reselectPdfPages : null,
                                           child: Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Image.asset(
-                                                _documentIcon,
-                                                width: 72,
-                                                height: 72,
-                                              ),
-                                              const SizedBox(height: 10),
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 16,
-                                                    ),
-                                                child: Text(
-                                                  _documentName,
-                                                  textAlign: TextAlign.center,
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style:
-                                                      GoogleFonts.robotoCondensed(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Image.asset(
+                                                  _documentIcon,
+                                                  width: 72,
+                                                  height: 72,
                                                 ),
-                                              ),
-                                              if (_isPdf &&
-                                                  _pdfPageSpec != null) ...[
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  AppLocalizations.of(
-                                                    context,
-                                                  )!.pdfPagesLabel(
-                                                    _specToPages(
-                                                      _pdfPageSpec,
-                                                    ).length,
-                                                    _pdfPageSpec!,
+                                                const SizedBox(height: 10),
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 16,
+                                                      ),
+                                                  child: Text(
+                                                    _documentName,
+                                                    textAlign: TextAlign.center,
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style:
+                                                        GoogleFonts.robotoCondensed(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
                                                   ),
-                                                  style:
-                                                      GoogleFonts.robotoCondensed(
-                                                        fontSize: 16,
-                                                        color: navGreen,
-                                                      ),
                                                 ),
+                                                if (_isPdf &&
+                                                    _pdfPageSpec != null) ...[
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    AppLocalizations.of(
+                                                      context,
+                                                    )!.pdfPagesLabel(
+                                                      _specToPages(
+                                                        _pdfPageSpec,
+                                                      ).length,
+                                                      _pdfPageSpec!,
+                                                    ),
+                                                    style:
+                                                        GoogleFonts.robotoCondensed(
+                                                          fontSize: 16,
+                                                          color: navGreen,
+                                                        ),
+                                                  ),
+                                                ],
                                               ],
-                                            ],
-                                          ),
+                                            ),
                                           ),
                                         )
                                         : (_croppedImageFile ?? _imageFile) !=
@@ -1927,11 +1964,10 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                           ),
                                           child: Text(
                                             _statusText,
-                                            style:
-                                                GoogleFonts.robotoCondensed(
-                                                  fontSize: 16,
-                                                  color: navRed,
-                                                ),
+                                            style: GoogleFonts.robotoCondensed(
+                                              fontSize: 16,
+                                              color: navRed,
+                                            ),
                                           ),
                                         ),
                                     ],
@@ -1972,7 +2008,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                       onTap: () {
                                         final textToCopy =
                                             _resultText.isNotEmpty
-                                                ? _resultText
+                                                ? _copyableText()
                                                 : _placeholderText;
                                         Clipboard.setData(
                                           ClipboardData(text: textToCopy),
@@ -2009,7 +2045,7 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
                                     GestureDetector(
                                       onTap: () {
                                         if (_resultText.isNotEmpty) {
-                                          Share.share(_resultText);
+                                          Share.share(_copyableText());
                                         }
                                       },
                                       child: Image.asset(

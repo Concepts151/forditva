@@ -132,6 +132,7 @@ class _TutorPageState extends State<TutorPage> {
 
   static const _answerTimesKey = 'tutor_answer_ms';
   static const _defaultAnswerMs = 15000;
+  static const _showShorterAfterMs = 10000;
 
   /// A wait that never ends is shown as an error instead (Markus: no
   /// endless waiting message). The accurate answer can take up to 2 min.
@@ -209,18 +210,51 @@ class _TutorPageState extends State<TutorPage> {
     });
     final cached = r.cached;
     if (cached != null) {
-      cached.forEach((k, v) {
-        if (v is List) {
-          _results[k] = [
-            for (final e in v)
-              if (e is Map) Map<String, dynamic>.from(e),
-          ];
-        }
-      });
+      _useSaved(cached);
+      _startWith(r.text);
+      return;
+    }
+    _openOrPrepare(r);
+  }
+
+  /// A sentence explained before (same text, same explanation language) is
+  /// shown from the phone instead of asking again (Markus, 2026-11-02).
+  Future<void> _openOrPrepare(TutorRequest r) async {
+    final saved = await LearningStore.find(r.text);
+    if (!mounted || !identical(r, _request)) return;
+    final tutor = saved == null ? null : parseTutorEntry(saved.explanation);
+    final results = tutor?['results'];
+    if (tutor != null &&
+        tutor['lang'] == _lang &&
+        results is Map<String, dynamic> &&
+        results.isNotEmpty) {
+      _useSaved(results);
       _startWith(r.text);
       return;
     }
     _prepare(r.text);
+  }
+
+  /// Puts saved answers into [_results]. When the Understanding answer was
+  /// saved at another level than the slider shows, the slider goes to the
+  /// saved level, so the saved answer is the one shown.
+  void _useSaved(Map<String, dynamic> cached) {
+    cached.forEach((k, v) {
+      if (v is List) {
+        _results[k] = [
+          for (final e in v)
+            if (e is Map) Map<String, dynamic>.from(e),
+        ];
+      }
+    });
+    if (!_results.containsKey(_key(TutorMode.understanding))) {
+      final saved = _results.keys.firstWhere(
+        (k) => k.startsWith('${TutorMode.understanding.name}@'),
+        orElse: () => '',
+      );
+      final level = int.tryParse(saved.split('@').last);
+      if (level != null) setState(() => _level = level);
+    }
   }
 
   /// One sentence (no sentence end inside the text): explain right away.
@@ -320,8 +354,12 @@ class _TutorPageState extends State<TutorPage> {
       setState(() {
         // Once sentences arrive the real answer is on its way: no more
         // "takes longer" note and no shorter answer.
+        // Sooner than 1.5x the usual time, but never later than 10 s
+        // (Markus, 2026-11-02: nobody should wait long for the button).
         _showAnswerNow =
-            !streaming && _waitWatch.elapsedMilliseconds >= _usualMs * 1.5;
+            !streaming &&
+            _waitWatch.elapsedMilliseconds >=
+                math.min(_usualMs * 1.5, _showShorterAfterMs);
       });
     });
     _fetch(mode, key, text, fast: false);
@@ -333,6 +371,9 @@ class _TutorPageState extends State<TutorPage> {
     final text = _text;
     final key = _loadingKey;
     if (text == null || key == null || _shortRequested) return;
+    debugPrint(
+      'Tutor: shorter answer requested after ${_waitWatch.elapsedMilliseconds} ms',
+    );
     setState(() => _shortRequested = true);
     _fetch(_mode, key, text, fast: true);
   }
@@ -381,6 +422,9 @@ class _TutorPageState extends State<TutorPage> {
           level: _level,
           fast: true,
         );
+        debugPrint(
+          'Tutor: fast answer arrived after ${_waitWatch.elapsedMilliseconds} ms',
+        );
         // The accurate answer is already being written: keep that one.
         if (_partial.containsKey(key)) return;
       } else {
@@ -420,6 +464,13 @@ class _TutorPageState extends State<TutorPage> {
       _saveToHistory(text);
     } catch (e) {
       if (!mounted || _loadingKey != key) return;
+      if (fast && _pending > 1) {
+        // The shorter answer failed while the accurate one is still coming:
+        // give the button back so it can be tried again.
+        debugPrint('Tutor: fast answer failed: $e');
+        setState(() => _shortRequested = false);
+        return;
+      }
       // Only a failure of the last request still running is an error; a
       // cancelled or failed duplicate is not.
       if (_pending <= 1) {
