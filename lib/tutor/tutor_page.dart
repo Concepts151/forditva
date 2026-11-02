@@ -541,7 +541,25 @@ class _TutorPageState extends State<TutorPage> {
   Widget _body() {
     if (_request == null) return const SizedBox.shrink();
     if (_splitting) {
-      return const Center(child: CircularProgressIndicator(color: _navGreen));
+      // Text under the spinner (Markus, 2026-11-02): the split runs before
+      // the sentence picker, so there is no bar here, only a short note.
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: _navGreen),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                AppLocalizations.of(context)!.tutorPreparing,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.robotoCondensed(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+      );
     }
     if (_picking) return _picker();
     if (_failed) return _failure();

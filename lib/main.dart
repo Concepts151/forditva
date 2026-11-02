@@ -243,6 +243,12 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentPage = 1;
 
+  // The page the Tutor was opened from. The title in the nav bar cycles
+  // Conversation -> Document -> Image, so from the Tutor it always went to
+  // Conversation (Markus, 2026-11-02: "it has to switch back to where it came
+  // from").
+  int _pageBeforeTutor = 1;
+
   // Anything that opens the Tutor (bulb, History, Favorites, Tutor history)
   // sets TutorLauncher.request; switch to the Tutor page when it does.
   @override
@@ -266,7 +272,10 @@ class _MainScreenState extends State<MainScreen> {
 
   void _showTutorPage() {
     if (TutorLauncher.request.value != null && mounted) {
-      setState(() => _currentPage = 7);
+      setState(() {
+        if (_currentPage != 7) _pageBeforeTutor = _currentPage;
+        _currentPage = 7;
+      });
     }
   }
 
@@ -544,6 +553,8 @@ class _MainScreenState extends State<MainScreen> {
                             _currentPage = 5;
                           } else if (_currentPage == 5) {
                             _currentPage = 6;
+                          } else if (_currentPage == 7) {
+                            _currentPage = _pageBeforeTutor;
                           } else {
                             _currentPage = 1;
                           }

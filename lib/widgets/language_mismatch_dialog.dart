@@ -109,36 +109,29 @@ Future<bool> showLanguageMismatchDialog(
                   style: GoogleFonts.robotoCondensed(fontSize: 19),
                 ),
                 const SizedBox(height: 22),
-                Row(
-                  children:
-                      detected == null
-                          ? [
-                            Expanded(
-                              child: _pillButton(
-                                label: loc.ok,
-                                color: _navGreen,
-                                onTap: () => Navigator.of(ctx).pop(false),
-                              ),
-                            ),
-                          ]
-                          : [
-                            Expanded(
-                              child: _pillButton(
-                                label: loc.cancel,
-                                color: _navRed,
-                                onTap: () => Navigator.of(ctx).pop(false),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _pillButton(
-                                label: loc.languageMismatchUse(detected),
-                                color: _navGreen,
-                                onTap: () => Navigator.of(ctx).pop(true),
-                              ),
-                            ),
-                          ],
-                ),
+                // Buttons below each other: side by side, the longer German
+                // and Hungarian labels ("Deutsch verwenden") were cut off
+                // (Markus, 2026-11-02). The action that changes something
+                // comes first.
+                if (detected == null)
+                  _pillButton(
+                    label: loc.ok,
+                    color: _navGreen,
+                    onTap: () => Navigator.of(ctx).pop(false),
+                  )
+                else ...[
+                  _pillButton(
+                    label: loc.languageMismatchUse(detected),
+                    color: _navGreen,
+                    onTap: () => Navigator.of(ctx).pop(true),
+                  ),
+                  const SizedBox(height: 12),
+                  _pillButton(
+                    label: loc.cancel,
+                    color: _navRed,
+                    onTap: () => Navigator.of(ctx).pop(false),
+                  ),
+                ],
               ],
             ),
           ),
