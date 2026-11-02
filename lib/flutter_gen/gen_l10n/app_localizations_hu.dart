@@ -48,7 +48,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get documentMode => 'Dokumentum';
 
   @override
-  String get imageMode => 'Kép';
+  String get imageMode => 'Fájl';
 
   @override
   String get copyToClipboard => 'Vágólapra másolás';
@@ -119,16 +119,16 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get howItWorksBody =>
-      'Ezt az alkalmazást a közösségi szellem hajtja! Kreditkódot a wir-in-ungarn.hu oldalon, a felhasználói fiókodon keresztül szerezhetsz. Itt nincs kereskedelmi fizetés — a krediteket kizárólag a részvételeddel tudod megszerezni, akár tartalom hozzáadásával, akár a közösség segítésével. A Te részvételed a mi pénznemünk!';
+      'Ezt az alkalmazást a közösségi szellem hajtja! Feltöltőkódot a wir-in-ungarn.hu oldalon, a felhasználói fiókodon keresztül szerezhetsz. Itt nincs kereskedelmi fizetés — a krediteket kizárólag a részvételeddel tudod megszerezni, akár tartalom hozzáadásával, akár a közösség segítésével. A Te részvételed a mi pénznemünk!';
 
   @override
   String get currentStatus => 'Jelenlegi állapot';
 
   @override
-  String get codeForFillingCredits => 'Kód a feltöltéshez';
+  String get codeForFillingCredits => 'Kreditek feltöltése';
 
   @override
-  String get pleaseEnterCode => 'Kérjük, adj meg egy kódot';
+  String get pleaseEnterCode => 'Kérjük, adj meg egy feltöltőkódot';
 
   @override
   String get codeSubmitted => 'Kód elküldve';
@@ -177,6 +177,14 @@ class AppLocalizationsHu extends AppLocalizations {
   String get ttsFailed => 'A hanglejátszás sikertelen';
 
   @override
+  String get readAloudUnavailable =>
+      'Most nem tudom felolvasni neked a szöveget.';
+
+  @override
+  String get readAloudBusy =>
+      'A felolvasás most túlterhelt. Próbáld újra egy perc múlva.';
+
+  @override
   String get recordingFailed => 'A felvétel sikertelen.';
 
   @override
@@ -185,6 +193,21 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get couldNotTranscribe =>
       'Nem sikerült átírni a hangot. Próbáld újra.';
+
+  @override
+  String pdfPagesLabel(int count, String pages) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Oldalak: $pages',
+      one: 'Oldal: $pages',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get microphonePermissionNeeded =>
+      'A hangbevitelhez a Forditvának szüksége van a mikrofonra. Kérlek, engedélyezd a Beállításokban.';
 
   @override
   String get pleaseMakeRecording => 'Kérjük, készíts egy felvételt';
@@ -225,7 +248,7 @@ class AppLocalizationsHu extends AppLocalizations {
       'Írja be ide a szöveget, vagy illessze be a vágólapról.';
 
   @override
-  String get cropInstruction => 'Rajzold körbe ujjaddal a kívánt területet';
+  String get cropInstruction => 'Mit szeretnél lefordítani?';
 
   @override
   String get errorTitle => 'Kapcsolódási probléma';
@@ -235,19 +258,19 @@ class AppLocalizationsHu extends AppLocalizations {
       'Nem értük el a fordítóprogramot. Kérlek, ellenőrizd az internetkapcsolatodat, és próbáld meg újra.';
 
   @override
-  String get wiuEmptyTitle => 'Nincs egyenleg';
+  String get wiuEmptyTitle => 'Elfogytak a kreditjeid';
 
   @override
   String get wiuEmptyBody =>
-      'Kiürült a WIU egyenleged. Kérlek, töltsd fel a wir-in-ungarn.hu oldalon, hogy tovább tudj fordítani.';
+      'Elfogytak a kreditjeid. Kérlek, töltsd fel őket a wir-in-ungarn.hu oldalon, hogy tovább tudj fordítani.';
 
   @override
   String get wiuLowBody =>
-      'Fogy a WIU egyenleged. Töltsd fel hamarosan a wir-in-ungarn.hu oldalon.';
+      'Fogynak a kreditjeid. Töltsd fel őket hamarosan a wir-in-ungarn.hu oldalon.';
 
   @override
   String wiuRemaining(Object count) {
-    return 'Még $count WIU van hátra';
+    return 'Még $count kredit van hátra';
   }
 
   @override
@@ -255,7 +278,7 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get legalPrivacyBody =>
-      'A „fordítva” alkalmazás teljesen reklámmentesen működik, és nem ment el rólad személyes profilokat vagy helyadatokat. Ha szeretnéd megtudni, hogyan dolgozzuk fel a beviteleidet (például a hang- vagy képadatokat) tisztán ideiglenesen, és hogyan működik az anonim WIU-kreditrendszer, bármikor megtekintheted a teljes adatvédelmi nyilatkozatunkat.';
+      'A „fordítva” alkalmazás teljesen reklámmentesen működik, és nem ment el rólad személyes profilokat vagy helyadatokat. Ha szeretnéd megtudni, hogyan dolgozzuk fel a beviteleidet (például a hang- vagy képadatokat) tisztán ideiglenesen, és hogyan működik az anonim kreditrendszer, bármikor megtekintheted a teljes adatvédelmi nyilatkozatunkat.';
 
   @override
   String get openPrivacyPolicy => 'Adatvédelmi nyilatkozat megnyitása';
@@ -293,8 +316,16 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
-  String pdfImporterInstruction(Object count) {
-    return 'A dokumentum $count oldalt tartalmaz. Melyeket importáljuk? Jelöld ki őket a sarokban lévő kattintással.';
+  String pdfImporterInstruction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'A dokumentum $count oldalt tartalmaz. Melyeket importáljuk? Jelöld ki őket a sarokban lévő kattintással.',
+      one:
+          'A dokumentum 1 oldalt tartalmaz. Importáljuk? Jelöld ki a sarokban lévő kattintással.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -338,4 +369,196 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get conversionFailedBody =>
       'Kérjük, ellenőrizze, hogy a fájl nem jelszóval védett vagy sérült, és támogatott formátumú. Ezután próbálja meg újra.';
+
+  @override
+  String languageMismatchBody(String detected, String selected) {
+    return 'Ez a szöveg $detected, nem $selected.';
+  }
+
+  @override
+  String languageNotFoundBody(String selected) {
+    return 'Nem találtam $selected nyelvű szöveget. Ellenőrizd, hogy a megfelelő forrásnyelvet választottad-e.';
+  }
+
+  @override
+  String languageMismatchUse(String language) {
+    return '$language nyelv használata';
+  }
+
+  @override
+  String get languageNameHu => 'magyar';
+
+  @override
+  String get languageNameDe => 'német';
+
+  @override
+  String get languageNameEn => 'angol';
+
+  @override
+  String get languageNameNl => 'holland';
+
+  @override
+  String get languageNameFr => 'francia';
+
+  @override
+  String get languageNameEs => 'spanyol';
+
+  @override
+  String get languageNameRu => 'orosz';
+
+  @override
+  String get languageNameIt => 'olasz';
+
+  @override
+  String get tutorUnderstanding => 'Megértés';
+
+  @override
+  String get tutorDecoding => 'Dekódolás';
+
+  @override
+  String get tutorFocus => 'Tanulási fókusz';
+
+  @override
+  String get tutorChooseSentences => 'Mondatok kiválasztása';
+
+  @override
+  String tutorCharCount(int count, int max) {
+    return '$count / $max karakter';
+  }
+
+  @override
+  String get tutorConsecutiveOnly => 'csak egymást követő mondatok';
+
+  @override
+  String get tutorApplySelection => 'Kijelölés megerősítése';
+
+  @override
+  String get tutorLevel => 'Nyelvi szint';
+
+  @override
+  String get tutorThinking =>
+      'Egy pillanat türelmet, előkészítem a válaszodat.\nKérlek, számolj kb. 30 másodperccel; a terjedelemtől függően tovább is tarthat.';
+
+  @override
+  String get tutorAnswerNow => 'Rövidebb válasz';
+
+  @override
+  String get swipeToDeleteTip =>
+      'Tipp: húzz egy bejegyzést balra a törléséhez.';
+
+  @override
+  String get walletWelcomeTitle => 'Üdvözlünk a fordítvában!';
+
+  @override
+  String get walletWelcomeBody =>
+      '200 ingyenes kredittel kezdhetsz. Már van mentési kódod? Ezzel visszaállíthatod a kreditjeidet.';
+
+  @override
+  String get walletStartNew => 'Kezdés 200 kredittel';
+
+  @override
+  String get walletHaveRecoveryCode => 'Mentési kód megadása';
+
+  @override
+  String get walletNeedsInternet =>
+      'A kreditek beállításához internetkapcsolat szükséges. Kérjük, csatlakozz az internethez.';
+
+  @override
+  String get recoveryCodeTitle => 'A mentési kódod';
+
+  @override
+  String get recoveryCodeBody =>
+      'Őrizd meg ezt a kódot biztonságos helyen. Ha újratelepíted az alkalmazást, vagy telefont váltasz, ezzel visszaállíthatod a kreditjeidet. Ezt a kódot csak egyszer mutatjuk meg.';
+
+  @override
+  String get recoveryCodeDone => 'Elmentettem a kódot';
+
+  @override
+  String get recoverTitle => 'Kreditek visszaállítása';
+
+  @override
+  String get recoverNeededBody =>
+      'Ezen a telefonon korábban már voltak kreditek. Add meg a mentési kódodat a visszaállításukhoz.';
+
+  @override
+  String get recoverHint => '25 karakteres kód';
+
+  @override
+  String get recoverButton => 'Kreditek visszaállítása';
+
+  @override
+  String get recoverDone => 'Sikeresen visszaállítottuk a kreditjeidet.';
+
+  @override
+  String get recoverLimit =>
+      'Ezt a mentési kódot az elmúlt 30 napban már háromszor felhasználták. Kérjük, próbáld újra később.';
+
+  @override
+  String get recoverDeviceLinked =>
+      'Ehhez a telefonhoz már tartoznak kreditek. Itt nem állíthatsz vissza másik kreditegyenleget.';
+
+  @override
+  String get codeLockedHour =>
+      'Túl sok érvénytelen feltöltőkódot adtál meg. Kérjük, próbáld újra egy óra múlva.';
+
+  @override
+  String get codeAlreadyAdded =>
+      'Ezt a feltöltőkódot már beváltottad. A krediteket már jóváírtuk.';
+
+  @override
+  String get newRecoveryCode => 'Új mentési kód létrehozása';
+
+  @override
+  String get newRecoveryCodeConfirm =>
+      'Ha új mentési kódot hozol létre, a jelenlegi kódod érvényét veszti. Szeretnéd folytatni?';
+
+  @override
+  String get newRecoveryCodeCreate => 'Új kód létrehozása';
+
+  @override
+  String get topUpCodeHint => 'Feltöltőkód';
+
+  @override
+  String creditsAdded(Object count) {
+    return 'Feltöltőkód beváltva: $count kredit jóváírva';
+  }
+
+  @override
+  String get tutorTakingLonger =>
+      'A válasz elkészítése most egy kicsit tovább tart a szokásosnál. Várhatsz tovább, vagy kérhetsz rövidebb választ.';
+
+  @override
+  String get fileTooLargeTitle => 'Túl nagy fájl';
+
+  @override
+  String fileTooLargeBody(String size) {
+    return 'Ez a fájl $size MB. A fordítva legfeljebb 14 MB-os fájlokat tud beolvasni. Kérlek, csökkentsd a fájl méretét, például úgy, hogy a PDF-et kisebb képminőséggel mented el, és próbáld újra.';
+  }
+
+  @override
+  String get documentImporterTitle => 'Dokumentum importálása';
+
+  @override
+  String convertedToPdfNote(String type) {
+    return 'PDF-fé alakítottuk ezt a $type fájlt, hogy a fordítva be tudja olvasni.';
+  }
+
+  @override
+  String get tutorNoHungarian =>
+      'Ebben a szövegben nem találtam magyar mondatot. A Tutor magyar mondatokat magyaráz.';
+
+  @override
+  String get tutorPreparing =>
+      'Egy pillanat türelmet, előkészítem a válaszodat.';
+
+  @override
+  String get cropInstructionBody =>
+      'Karikázd be a kívánt részt, vagy nyomj OK-t a teljes képhez.';
+
+  @override
+  String get tutorStillWriting => 'Még írom …';
+
+  @override
+  String get tutorUnavailable =>
+      'Sajnos most túl sokáig tart az magyarázat elkészítése, vagy túlterhelt a szerver. Kérlek, próbáld újra később.';
 }

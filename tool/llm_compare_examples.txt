@@ -1,0 +1,6 @@
+# One Hungarian text per line. Placeholders until Markus sends his 10
+# examples (2026-10-12); replace these lines with his.
+Holnap reggel elmegyek a piacra, mert friss zöldséget szeretnék venni.
+Megkérdeztem a szomszédot, hogy el tudná-e vinni a csomagot a postára.
+Ha tegnap nem esett volna az eső, kimentünk volna a Balatonra.
+Tegnap este sokáig dolgoztam. Ma reggel ezért nehezen keltem fel.

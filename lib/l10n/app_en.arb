@@ -12,8 +12,8 @@
   "searchHint": "Search...",
   "inputPlaceholder": "What would you like to translate today?",
   "outputPlaceholder": "Translation will appear here.",
-  "documentMode": "Document",
-  "imageMode": "Image",
+  "documentMode": "Text",
+  "imageMode": "File",
   "copyToClipboard": "Copy to clipboard",
   "copiedToClipboard": "Copied to clipboard",
   "searchFavorites": "Search favorites...",
@@ -36,17 +36,17 @@
   "historyCleared": "History cleared",
   "credits": "Credits",
   "howItWorks": "How it works ...",
-  "howItWorksBody": "This app is powered by community spirit! You can get a credit code via your user account on wir-in-ungarn.hu. There is no commercial checkout here — credits are earned solely through your engagement, whether by contributing content or helping out in the community. Your participation is our currency!",
+  "howItWorksBody": "This app is powered by community spirit! You can get a top-up code via your user account on wir-in-ungarn.hu. There is no commercial checkout here — credits are earned solely through your engagement, whether by contributing content or helping out in the community. Your participation is our currency!",
   "currentStatus": "Current Status",
-  "codeForFillingCredits": "Code for recharging",
-  "pleaseEnterCode": "Please enter a code",
+  "codeForFillingCredits": "Add credits",
+  "pleaseEnterCode": "Please enter a top-up code",
   "codeSubmitted": "Code submitted",
   "codeRedeemed": "Code redeemed",
   "codeInvalid": "This code is invalid or has already been used",
   "codeRateLimited": "Too many attempts. Please wait a moment and try again",
   "codeNetworkError": "No connection. Please check your internet and try again",
   "codeUnavailable": "Recharging is not available right now",
-  "organizeCredits": "Manage Credits",
+  "organizeCredits": "Manage credits",
   "gotoProfile": "Go to my profile on wir-in-ungarn.hu",
   "couldNotOpenPage": "Could not open the page",
   "languageLearning": "Language Learning",
@@ -54,9 +54,24 @@
   "levelTip": "Tip: You can dynamically adjust your level directly inside the Tutor at any time.",
   "myCurrentLevel": "My current Level",
   "ttsFailed": "Speech playback failed",
+  "readAloudUnavailable": "Read-aloud is not available at the moment.",
+  "readAloudBusy": "Read-aloud is busy right now. Please try again in a minute.",
   "recordingFailed": "Recording failed.",
   "transcriptionFailed": "Transcription failed",
   "couldNotTranscribe": "Couldn't transcribe audio. Please try again.",
+  "pdfPagesLabel": "{count, plural, =1{Page {pages}} other{Pages {pages}}}",
+  "@pdfPagesLabel": {
+    "description": "Under the loaded PDF's file name: the pages translated, e.g. 1-3,5. Tapping the PDF picks other pages.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "pages": {
+        "type": "String"
+      }
+    }
+  },
+  "microphonePermissionNeeded": "Forditva needs the microphone for voice input. Please allow it in Settings.",
   "pleaseMakeRecording": "Please make a recording",
   "wrongLanguage": "Wrong Language",
   "wrongLanguageBody": "Please select or enter the correct language.",
@@ -74,20 +89,20 @@
   },
   "translateAction": "Translate",
   "documentPlaceholder": "Type the text here or paste it from the clipboard.",
-  "cropInstruction": "Shape with your finger the required area",
+  "cropInstruction": "What would you like to translate?",
   "errorTitle": "Connection problem",
   "errorMessage": "We can't reach the translation service right now. Please check your internet connection and try again.",
-  "wiuEmptyTitle": "Out of credit",
-  "wiuEmptyBody": "Your WIU balance is empty. Please top up on wir-in-ungarn.hu to keep translating.",
-  "wiuLowBody": "Your WIU balance is getting low. Consider topping up soon on wir-in-ungarn.hu.",
-  "wiuRemaining": "{count} WIUs remaining",
+  "wiuEmptyTitle": "Out of credits",
+  "wiuEmptyBody": "You have no credits left. Please top up on wir-in-ungarn.hu to keep translating.",
+  "wiuLowBody": "You are running low on credits. Consider topping up soon on wir-in-ungarn.hu.",
+  "wiuRemaining": "{count} credits remaining",
   "@wiuRemaining": {
     "placeholders": {
       "count": {}
     }
   },
   "legalPrivacyTitle": "Legal & Privacy",
-  "legalPrivacyBody": "The \"fordítva\" app is completely ad-free and does not store any personal profiles or location data. To learn how we process your inputs (such as voice or image data) purely temporarily and how the anonymous WIU credit system works, you can view our full privacy policy at any time.",
+  "legalPrivacyBody": "The \"fordítva\" app is completely ad-free and does not store any personal profiles or location data. To learn how we process your inputs (such as voice or image data) purely temporarily and how the anonymous credit system works, you can view our full privacy policy at any time.",
   "openPrivacyPolicy": "Open Privacy Policy",
   "grammarExplanation": "Grammar Explanation",
   "keyVocabulary": "Key Vocabulary",
@@ -104,10 +119,12 @@
       "lang": {}
     }
   },
-  "pdfImporterInstruction": "The document contains {count} single pages. Which from them should we import? Check them with a click in the corner.",
+  "pdfImporterInstruction": "{count, plural, =1{The document has 1 page. Should we import it? Tick it with a tap in the corner.} other{The document has {count} pages. Which ones should we import? Tick them with a tap in the corner.}}",
   "@pdfImporterInstruction": {
     "placeholders": {
-      "count": {}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "pdfPageCounter": "Page {current}/{total}",
@@ -123,9 +140,116 @@
   "documentQuestionError": "Couldn't get an answer. Please try again.",
   "uploadAreaTakePhoto": "Take a photo",
   "uploadAreaOr": "or",
-  "uploadAreaUploadFile": "Upload an image or document (PDF, Word, Excel, OpenDocument, or text file)",
+  "uploadAreaUploadFile": "Upload an image or document (PDF, Word, Excel, OpenDocument or text file)",
   "convertingDocument": "Converting document...",
   "analyzingAndTranslating": "Analyzing and translating...",
   "conversionFailedTitle": "This document could not be converted.",
-  "conversionFailedBody": "Please make sure the file is not password-protected, corrupted, or in an unsupported format, then try again."
+  "conversionFailedBody": "Please make sure the file is not password-protected, corrupted, or in an unsupported format, then try again.",
+  "languageMismatchBody": "This text is in {detected}, not {selected}.",
+  "@languageMismatchBody": {
+    "placeholders": {
+      "detected": {
+        "type": "String"
+      },
+      "selected": {
+        "type": "String"
+      }
+    }
+  },
+  "languageNotFoundBody": "No {selected} text was found. Please check the source language.",
+  "@languageNotFoundBody": {
+    "placeholders": {
+      "selected": {
+        "type": "String"
+      }
+    }
+  },
+  "languageMismatchUse": "Use {language}",
+  "@languageMismatchUse": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "languageNameHu": "Hungarian",
+  "languageNameDe": "German",
+  "languageNameEn": "English",
+  "languageNameNl": "Dutch",
+  "languageNameFr": "French",
+  "languageNameEs": "Spanish",
+  "languageNameRu": "Russian",
+  "languageNameIt": "Italian",
+  "tutorUnderstanding": "Understanding",
+  "tutorDecoding": "Decoding",
+  "tutorFocus": "Learning Focus",
+  "tutorChooseSentences": "Choose sentences",
+  "tutorCharCount": "{count} / {max} characters",
+  "@tutorCharCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "tutorConsecutiveOnly": "only consecutive sentences",
+  "tutorApplySelection": "Apply selection",
+  "tutorLevel": "Language level",
+  "tutorThinking": "One moment please, I'm preparing your answer.\nPlease allow about 30 seconds; depending on the scope, it may take longer.",
+  "tutorAnswerNow": "Shorter answer",
+  "swipeToDeleteTip": "Tip: swipe an entry to the left to delete it.",
+  "walletWelcomeTitle": "Welcome to fordítva",
+  "walletWelcomeBody": "You can start with 200 free credits. Already have a backup code? Use it to restore your credits.",
+  "walletStartNew": "Start with 200 credits",
+  "walletHaveRecoveryCode": "Enter backup code",
+  "walletNeedsInternet": "An internet connection is required to set up your credits. Please connect to the internet.",
+  "recoveryCodeTitle": "Your backup code",
+  "recoveryCodeBody": "Keep this code in a safe place. You can use it to restore your credits if you reinstall the app or switch phones. The code will only be shown once.",
+  "recoveryCodeDone": "I've saved the code",
+  "recoverTitle": "Restore credits",
+  "recoverNeededBody": "Credits were previously set up on this phone. Enter your backup code to restore them.",
+  "recoverHint": "25-character code",
+  "recoverButton": "Restore credits",
+  "recoverDone": "Your credits have been restored.",
+  "recoverLimit": "This backup code has already been used three times in the past 30 days. Please try again later.",
+  "recoverDeviceLinked": "Credits are already linked to this phone. You cannot restore a different set of credits here.",
+  "codeLockedHour": "You've entered too many invalid top-up codes. Please try again in one hour.",
+  "codeAlreadyAdded": "You've already redeemed this top-up code. The credits have been added to your account.",
+  "newRecoveryCode": "Create new backup code",
+  "newRecoveryCodeConfirm": "If you create a new backup code, your current code will no longer work. Do you want to continue?",
+  "newRecoveryCodeCreate": "Create new code",
+  "topUpCodeHint": "Top-up code",
+  "creditsAdded": "Top-up code redeemed: {count} credits added",
+  "tutorTakingLonger": "Your answer is taking a little longer than usual. You can keep waiting or request a shorter answer.",
+  "@creditsAdded": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "fileTooLargeTitle": "File too large",
+  "fileTooLargeBody": "This file is {size} MB. fordítva can read files up to 14 MB. Please make the file smaller, for example by saving the PDF with lower image quality, and try again.",
+  "@fileTooLargeBody": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "documentImporterTitle": "Import document",
+  "convertedToPdfNote": "We converted your {type} file to a PDF so that fordítva can read it.",
+  "@convertedToPdfNote": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "tutorNoHungarian": "I couldn't find a Hungarian sentence in this text. The Tutor explains Hungarian sentences.",
+  "tutorPreparing": "One moment please, I'm preparing your answer.",
+  "cropInstructionBody": "Circle the desired area or tap OK to translate the entire image.",
+  "tutorStillWriting": "Still writing …",
+  "tutorUnavailable": "Unfortunately, creating the explanation is currently taking too long or the server is overloaded. Please try again later."
 }

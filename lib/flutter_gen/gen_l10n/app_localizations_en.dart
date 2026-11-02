@@ -45,10 +45,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outputPlaceholder => 'Translation will appear here.';
 
   @override
-  String get documentMode => 'Document';
+  String get documentMode => 'Text';
 
   @override
-  String get imageMode => 'Image';
+  String get imageMode => 'File';
 
   @override
   String get copyToClipboard => 'Copy to clipboard';
@@ -119,16 +119,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get howItWorksBody =>
-      'This app is powered by community spirit! You can get a credit code via your user account on wir-in-ungarn.hu. There is no commercial checkout here — credits are earned solely through your engagement, whether by contributing content or helping out in the community. Your participation is our currency!';
+      'This app is powered by community spirit! You can get a top-up code via your user account on wir-in-ungarn.hu. There is no commercial checkout here — credits are earned solely through your engagement, whether by contributing content or helping out in the community. Your participation is our currency!';
 
   @override
   String get currentStatus => 'Current Status';
 
   @override
-  String get codeForFillingCredits => 'Code for recharging';
+  String get codeForFillingCredits => 'Add credits';
 
   @override
-  String get pleaseEnterCode => 'Please enter a code';
+  String get pleaseEnterCode => 'Please enter a top-up code';
 
   @override
   String get codeSubmitted => 'Code submitted';
@@ -151,7 +151,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get codeUnavailable => 'Recharging is not available right now';
 
   @override
-  String get organizeCredits => 'Manage Credits';
+  String get organizeCredits => 'Manage credits';
 
   @override
   String get gotoProfile => 'Go to my profile on wir-in-ungarn.hu';
@@ -177,6 +177,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ttsFailed => 'Speech playback failed';
 
   @override
+  String get readAloudUnavailable =>
+      'Read-aloud is not available at the moment.';
+
+  @override
+  String get readAloudBusy =>
+      'Read-aloud is busy right now. Please try again in a minute.';
+
+  @override
   String get recordingFailed => 'Recording failed.';
 
   @override
@@ -185,6 +193,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get couldNotTranscribe =>
       'Couldn\'t transcribe audio. Please try again.';
+
+  @override
+  String pdfPagesLabel(int count, String pages) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Pages $pages',
+      one: 'Page $pages',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get microphonePermissionNeeded =>
+      'Forditva needs the microphone for voice input. Please allow it in Settings.';
 
   @override
   String get pleaseMakeRecording => 'Please make a recording';
@@ -226,7 +249,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Type the text here or paste it from the clipboard.';
 
   @override
-  String get cropInstruction => 'Shape with your finger the required area';
+  String get cropInstruction => 'What would you like to translate?';
 
   @override
   String get errorTitle => 'Connection problem';
@@ -236,19 +259,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'We can\'t reach the translation service right now. Please check your internet connection and try again.';
 
   @override
-  String get wiuEmptyTitle => 'Out of credit';
+  String get wiuEmptyTitle => 'Out of credits';
 
   @override
   String get wiuEmptyBody =>
-      'Your WIU balance is empty. Please top up on wir-in-ungarn.hu to keep translating.';
+      'You have no credits left. Please top up on wir-in-ungarn.hu to keep translating.';
 
   @override
   String get wiuLowBody =>
-      'Your WIU balance is getting low. Consider topping up soon on wir-in-ungarn.hu.';
+      'You are running low on credits. Consider topping up soon on wir-in-ungarn.hu.';
 
   @override
   String wiuRemaining(Object count) {
-    return '$count WIUs remaining';
+    return '$count credits remaining';
   }
 
   @override
@@ -256,7 +279,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legalPrivacyBody =>
-      'The \"fordítva\" app is completely ad-free and does not store any personal profiles or location data. To learn how we process your inputs (such as voice or image data) purely temporarily and how the anonymous WIU credit system works, you can view our full privacy policy at any time.';
+      'The \"fordítva\" app is completely ad-free and does not store any personal profiles or location data. To learn how we process your inputs (such as voice or image data) purely temporarily and how the anonymous credit system works, you can view our full privacy policy at any time.';
 
   @override
   String get openPrivacyPolicy => 'Open Privacy Policy';
@@ -294,8 +317,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String pdfImporterInstruction(Object count) {
-    return 'The document contains $count single pages. Which from them should we import? Check them with a click in the corner.';
+  String pdfImporterInstruction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'The document has $count pages. Which ones should we import? Tick them with a tap in the corner.',
+      one:
+          'The document has 1 page. Should we import it? Tick it with a tap in the corner.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -324,7 +355,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get uploadAreaUploadFile =>
-      'Upload an image or document (PDF, Word, Excel, OpenDocument, or text file)';
+      'Upload an image or document (PDF, Word, Excel, OpenDocument or text file)';
 
   @override
   String get convertingDocument => 'Converting document...';
@@ -338,4 +369,195 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get conversionFailedBody =>
       'Please make sure the file is not password-protected, corrupted, or in an unsupported format, then try again.';
+
+  @override
+  String languageMismatchBody(String detected, String selected) {
+    return 'This text is in $detected, not $selected.';
+  }
+
+  @override
+  String languageNotFoundBody(String selected) {
+    return 'No $selected text was found. Please check the source language.';
+  }
+
+  @override
+  String languageMismatchUse(String language) {
+    return 'Use $language';
+  }
+
+  @override
+  String get languageNameHu => 'Hungarian';
+
+  @override
+  String get languageNameDe => 'German';
+
+  @override
+  String get languageNameEn => 'English';
+
+  @override
+  String get languageNameNl => 'Dutch';
+
+  @override
+  String get languageNameFr => 'French';
+
+  @override
+  String get languageNameEs => 'Spanish';
+
+  @override
+  String get languageNameRu => 'Russian';
+
+  @override
+  String get languageNameIt => 'Italian';
+
+  @override
+  String get tutorUnderstanding => 'Understanding';
+
+  @override
+  String get tutorDecoding => 'Decoding';
+
+  @override
+  String get tutorFocus => 'Learning Focus';
+
+  @override
+  String get tutorChooseSentences => 'Choose sentences';
+
+  @override
+  String tutorCharCount(int count, int max) {
+    return '$count / $max characters';
+  }
+
+  @override
+  String get tutorConsecutiveOnly => 'only consecutive sentences';
+
+  @override
+  String get tutorApplySelection => 'Apply selection';
+
+  @override
+  String get tutorLevel => 'Language level';
+
+  @override
+  String get tutorThinking =>
+      'One moment please, I\'m preparing your answer.\nPlease allow about 30 seconds; depending on the scope, it may take longer.';
+
+  @override
+  String get tutorAnswerNow => 'Shorter answer';
+
+  @override
+  String get swipeToDeleteTip =>
+      'Tip: swipe an entry to the left to delete it.';
+
+  @override
+  String get walletWelcomeTitle => 'Welcome to fordítva';
+
+  @override
+  String get walletWelcomeBody =>
+      'You can start with 200 free credits. Already have a backup code? Use it to restore your credits.';
+
+  @override
+  String get walletStartNew => 'Start with 200 credits';
+
+  @override
+  String get walletHaveRecoveryCode => 'Enter backup code';
+
+  @override
+  String get walletNeedsInternet =>
+      'An internet connection is required to set up your credits. Please connect to the internet.';
+
+  @override
+  String get recoveryCodeTitle => 'Your backup code';
+
+  @override
+  String get recoveryCodeBody =>
+      'Keep this code in a safe place. You can use it to restore your credits if you reinstall the app or switch phones. The code will only be shown once.';
+
+  @override
+  String get recoveryCodeDone => 'I\'ve saved the code';
+
+  @override
+  String get recoverTitle => 'Restore credits';
+
+  @override
+  String get recoverNeededBody =>
+      'Credits were previously set up on this phone. Enter your backup code to restore them.';
+
+  @override
+  String get recoverHint => '25-character code';
+
+  @override
+  String get recoverButton => 'Restore credits';
+
+  @override
+  String get recoverDone => 'Your credits have been restored.';
+
+  @override
+  String get recoverLimit =>
+      'This backup code has already been used three times in the past 30 days. Please try again later.';
+
+  @override
+  String get recoverDeviceLinked =>
+      'Credits are already linked to this phone. You cannot restore a different set of credits here.';
+
+  @override
+  String get codeLockedHour =>
+      'You\'ve entered too many invalid top-up codes. Please try again in one hour.';
+
+  @override
+  String get codeAlreadyAdded =>
+      'You\'ve already redeemed this top-up code. The credits have been added to your account.';
+
+  @override
+  String get newRecoveryCode => 'Create new backup code';
+
+  @override
+  String get newRecoveryCodeConfirm =>
+      'If you create a new backup code, your current code will no longer work. Do you want to continue?';
+
+  @override
+  String get newRecoveryCodeCreate => 'Create new code';
+
+  @override
+  String get topUpCodeHint => 'Top-up code';
+
+  @override
+  String creditsAdded(Object count) {
+    return 'Top-up code redeemed: $count credits added';
+  }
+
+  @override
+  String get tutorTakingLonger =>
+      'Your answer is taking a little longer than usual. You can keep waiting or request a shorter answer.';
+
+  @override
+  String get fileTooLargeTitle => 'File too large';
+
+  @override
+  String fileTooLargeBody(String size) {
+    return 'This file is $size MB. fordítva can read files up to 14 MB. Please make the file smaller, for example by saving the PDF with lower image quality, and try again.';
+  }
+
+  @override
+  String get documentImporterTitle => 'Import document';
+
+  @override
+  String convertedToPdfNote(String type) {
+    return 'We converted your $type file to a PDF so that fordítva can read it.';
+  }
+
+  @override
+  String get tutorNoHungarian =>
+      'I couldn\'t find a Hungarian sentence in this text. The Tutor explains Hungarian sentences.';
+
+  @override
+  String get tutorPreparing => 'One moment please, I\'m preparing your answer.';
+
+  @override
+  String get cropInstructionBody =>
+      'Circle the desired area or tap OK to translate the entire image.';
+
+  @override
+  String get tutorStillWriting => 'Still writing …';
+
+  @override
+  String get tutorUnavailable =>
+      'Unfortunately, creating the explanation is currently taking too long or the server is overloaded. Please try again later.';
 }

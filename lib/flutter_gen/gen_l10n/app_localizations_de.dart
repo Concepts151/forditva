@@ -48,7 +48,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get documentMode => 'Dokument';
 
   @override
-  String get imageMode => 'Bild';
+  String get imageMode => 'Datei';
 
   @override
   String get copyToClipboard => 'In die Zwischenablage kopieren';
@@ -112,23 +112,23 @@ class AppLocalizationsDe extends AppLocalizations {
   String get historyCleared => 'Verlauf gelöscht';
 
   @override
-  String get credits => 'Guthaben';
+  String get credits => 'Credits';
 
   @override
   String get howItWorks => 'So funktioniert es ...';
 
   @override
   String get howItWorksBody =>
-      'Diese App lebt vom Gemeinschaftsgeist! Einen Guthabencode erhältst du über dein Benutzerkonto auf wir-in-ungarn.hu. Hier gibt es keinen kommerziellen Checkout — Guthaben verdienst du dir ausschließlich durch dein Engagement, sei es durch das Beitragen von Inhalten oder das Helfen in der Community. Deine Teilnahme ist unsere Währung!';
+      'Diese App lebt vom Gemeinschaftsgeist! Einen Aufladecode erhältst du über dein Benutzerkonto auf wir-in-ungarn.hu. Hier gibt es keinen kommerziellen Checkout — Credits verdienst du dir ausschließlich durch dein Engagement, sei es durch das Beitragen von Inhalten oder das Helfen in der Community. Deine Teilnahme ist unsere Währung!';
 
   @override
   String get currentStatus => 'Aktueller Status';
 
   @override
-  String get codeForFillingCredits => 'Code zum Aufladen';
+  String get codeForFillingCredits => 'Credits aufladen';
 
   @override
-  String get pleaseEnterCode => 'Bitte gib einen Code ein';
+  String get pleaseEnterCode => 'Bitte gib einen Aufladecode ein';
 
   @override
   String get codeSubmitted => 'Code übermittelt';
@@ -152,7 +152,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get codeUnavailable => 'Das Aufladen ist gerade nicht verfügbar';
 
   @override
-  String get organizeCredits => 'Guthaben verwalten';
+  String get organizeCredits => 'Credits verwalten';
 
   @override
   String get gotoProfile => 'Zu meinem Profil auf wir-in-ungarn.hu';
@@ -178,6 +178,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get ttsFailed => 'Sprachwiedergabe fehlgeschlagen';
 
   @override
+  String get readAloudUnavailable =>
+      'Ich kann dir den Text gerade nicht vorlesen.';
+
+  @override
+  String get readAloudBusy =>
+      'Das Vorlesen ist gerade ausgelastet. Versuch es bitte in einer Minute noch einmal.';
+
+  @override
   String get recordingFailed => 'Aufnahme fehlgeschlagen.';
 
   @override
@@ -186,6 +194,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get couldNotTranscribe =>
       'Audio konnte nicht transkribiert werden. Bitte versuche es erneut.';
+
+  @override
+  String pdfPagesLabel(int count, String pages) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Seiten $pages',
+      one: 'Seite $pages',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get microphonePermissionNeeded =>
+      'Forditva braucht das Mikrofon für die Spracheingabe. Bitte erlaube es in den Einstellungen.';
 
   @override
   String get pleaseMakeRecording => 'Bitte nimm etwas auf';
@@ -226,8 +249,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Hier tippen oder aus Zwischenablage einfügen.';
 
   @override
-  String get cropInstruction =>
-      'Forme mit deinem Finger den gewünschten Bereich';
+  String get cropInstruction => 'Was möchtest du übersetzen?';
 
   @override
   String get errorTitle => 'Verbindung nicht möglich';
@@ -237,19 +259,19 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wir konnten den Übersetzungsdienst nicht erreichen. Bitte prüfe deine Internetverbindung und versuche es erneut.';
 
   @override
-  String get wiuEmptyTitle => 'Guthaben aufgebraucht';
+  String get wiuEmptyTitle => 'Credits aufgebraucht';
 
   @override
   String get wiuEmptyBody =>
-      'Dein WIU-Guthaben ist leer. Bitte lade es auf wir-in-ungarn.hu auf, um weiter zu übersetzen.';
+      'Du hast keine Credits mehr. Bitte lade auf wir-in-ungarn.hu auf, um weiter zu übersetzen.';
 
   @override
   String get wiuLowBody =>
-      'Dein WIU-Guthaben wird knapp. Lade bald auf wir-in-ungarn.hu auf.';
+      'Deine Credits werden knapp. Lade bald auf wir-in-ungarn.hu auf.';
 
   @override
   String wiuRemaining(Object count) {
-    return 'Noch $count WIUs übrig';
+    return 'Noch $count Credits übrig';
   }
 
   @override
@@ -257,7 +279,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get legalPrivacyBody =>
-      'Die App „fordítva“ arbeitet komplett werbefrei und speichert keine persönlichen Profile oder Standortdaten von dir. Um zu erfahren, wie wir deine Eingaben (wie Sprach- oder Bilddaten) rein flüchtig verarbeiten und wie das anonyme WIU-Guthabensystem funktioniert, kannst du jederzeit unsere vollständige Datenschutzerklärung einsehen.';
+      'Die App „fordítva“ arbeitet komplett werbefrei und speichert keine persönlichen Profile oder Standortdaten von dir. Um zu erfahren, wie wir deine Eingaben (wie Sprach- oder Bilddaten) rein flüchtig verarbeiten und wie das anonyme Credit-System funktioniert, kannst du jederzeit unsere vollständige Datenschutzerklärung einsehen.';
 
   @override
   String get openPrivacyPolicy => 'Datenschutzerklärung öffnen';
@@ -295,8 +317,16 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String pdfImporterInstruction(Object count) {
-    return 'Das Dokument enthält $count einzelne Seiten. Welche davon sollen wir importieren? Wähle mit einem Klick in die Ecke aus.';
+  String pdfImporterInstruction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Das Dokument enthält $count einzelne Seiten. Welche davon sollen wir importieren? Wähle mit einem Klick in die Ecke aus.',
+      one:
+          'Das Dokument enthält 1 Seite. Sollen wir sie importieren? Wähle sie mit einem Klick in die Ecke aus.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -341,4 +371,196 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get conversionFailedBody =>
       'Bitte stellen Sie sicher, dass die Datei nicht passwortgeschützt oder beschädigt ist und ein unterstütztes Format hat. Versuchen Sie es anschließend erneut.';
+
+  @override
+  String languageMismatchBody(String detected, String selected) {
+    return 'Dieser Text ist auf $detected, nicht auf $selected.';
+  }
+
+  @override
+  String languageNotFoundBody(String selected) {
+    return 'Ich habe keinen Text auf $selected gefunden. Prüfe bitte, ob du die richtige Ausgangssprache gewählt hast.';
+  }
+
+  @override
+  String languageMismatchUse(String language) {
+    return '$language verwenden';
+  }
+
+  @override
+  String get languageNameHu => 'Ungarisch';
+
+  @override
+  String get languageNameDe => 'Deutsch';
+
+  @override
+  String get languageNameEn => 'Englisch';
+
+  @override
+  String get languageNameNl => 'Niederländisch';
+
+  @override
+  String get languageNameFr => 'Französisch';
+
+  @override
+  String get languageNameEs => 'Spanisch';
+
+  @override
+  String get languageNameRu => 'Russisch';
+
+  @override
+  String get languageNameIt => 'Italienisch';
+
+  @override
+  String get tutorUnderstanding => 'Verstehen';
+
+  @override
+  String get tutorDecoding => 'Dekodieren';
+
+  @override
+  String get tutorFocus => 'Lernfokus';
+
+  @override
+  String get tutorChooseSentences => 'Sätze auswählen';
+
+  @override
+  String tutorCharCount(int count, int max) {
+    return '$count / $max Zeichen';
+  }
+
+  @override
+  String get tutorConsecutiveOnly => 'nur aufeinanderfolgende Sätze';
+
+  @override
+  String get tutorApplySelection => 'Auswahl übernehmen';
+
+  @override
+  String get tutorLevel => 'Sprachlevel';
+
+  @override
+  String get tutorThinking =>
+      'Einen Moment bitte, ich bereite Deine Antwort vor.\nPlane bitte mal 30 Sekunden ein, je nach Umfang kann es auch länger dauern.';
+
+  @override
+  String get tutorAnswerNow => 'Kürzere Antwort';
+
+  @override
+  String get swipeToDeleteTip =>
+      'Tipp: Wische einen Eintrag nach links, um ihn zu löschen.';
+
+  @override
+  String get walletWelcomeTitle => 'Willkommen bei fordítva';
+
+  @override
+  String get walletWelcomeBody =>
+      'Du kannst mit 200 kostenlosen Credits starten. Hast du bereits einen Sicherungscode? Damit kannst du deine Credits wiederherstellen.';
+
+  @override
+  String get walletStartNew => 'Mit 200 Credits starten';
+
+  @override
+  String get walletHaveRecoveryCode => 'Sicherungscode eingeben';
+
+  @override
+  String get walletNeedsInternet =>
+      'Um deine Credits einzurichten, benötigst du eine Internetverbindung. Bitte verbinde dich mit dem Internet.';
+
+  @override
+  String get recoveryCodeTitle => 'Dein Sicherungscode';
+
+  @override
+  String get recoveryCodeBody =>
+      'Bewahre diesen Code an einem sicheren Ort auf. Damit kannst du deine Credits wiederherstellen, wenn du die App neu installierst oder dein Handy wechselst. Der Code wird nur einmal angezeigt.';
+
+  @override
+  String get recoveryCodeDone => 'Ich habe den Code gesichert';
+
+  @override
+  String get recoverTitle => 'Credits wiederherstellen';
+
+  @override
+  String get recoverNeededBody =>
+      'Auf diesem Handy waren bereits Credits eingerichtet. Gib deinen Sicherungscode ein, um sie wiederherzustellen.';
+
+  @override
+  String get recoverHint => 'Code mit 25 Zeichen';
+
+  @override
+  String get recoverButton => 'Credits wiederherstellen';
+
+  @override
+  String get recoverDone => 'Deine Credits wurden wiederhergestellt.';
+
+  @override
+  String get recoverLimit =>
+      'Dieser Sicherungscode wurde innerhalb der letzten 30 Tage bereits dreimal verwendet. Versuche es später erneut.';
+
+  @override
+  String get recoverDeviceLinked =>
+      'Mit diesem Handy sind bereits Credits verknüpft. Andere Credits können hier nicht wiederhergestellt werden.';
+
+  @override
+  String get codeLockedHour =>
+      'Du hast zu oft einen ungültigen Aufladecode eingegeben. Versuche es in einer Stunde erneut.';
+
+  @override
+  String get codeAlreadyAdded =>
+      'Diesen Aufladecode hast du bereits eingelöst. Die Credits wurden dir schon gutgeschrieben.';
+
+  @override
+  String get newRecoveryCode => 'Neuen Sicherungscode erstellen';
+
+  @override
+  String get newRecoveryCodeConfirm =>
+      'Wenn du einen neuen Sicherungscode erstellst, wird dein bisheriger Code ungültig. Möchtest du fortfahren?';
+
+  @override
+  String get newRecoveryCodeCreate => 'Neuen Code erstellen';
+
+  @override
+  String get topUpCodeHint => 'Aufladecode';
+
+  @override
+  String creditsAdded(Object count) {
+    return 'Aufladecode eingelöst: $count Credits gutgeschrieben';
+  }
+
+  @override
+  String get tutorTakingLonger =>
+      'Deine Antwort braucht gerade etwas länger als üblich. Du kannst weiter warten oder eine kürzere Antwort anfordern.';
+
+  @override
+  String get fileTooLargeTitle => 'Datei zu groß';
+
+  @override
+  String fileTooLargeBody(String size) {
+    return 'Diese Datei hat $size MB. fordítva kann Dateien bis 14 MB lesen. Bitte verkleinere die Datei, zum Beispiel indem du das PDF mit geringerer Bildqualität speicherst, und versuche es erneut.';
+  }
+
+  @override
+  String get documentImporterTitle => 'Dokument importieren';
+
+  @override
+  String convertedToPdfNote(String type) {
+    return 'Wir haben deine $type-Datei in ein PDF umgewandelt, damit fordítva sie lesen kann.';
+  }
+
+  @override
+  String get tutorNoHungarian =>
+      'In diesem Text habe ich keinen ungarischen Satz gefunden. Der Tutor erklärt ungarische Sätze.';
+
+  @override
+  String get tutorPreparing =>
+      'Einen Moment bitte, ich bereite Deine Antwort vor.';
+
+  @override
+  String get cropInstructionBody =>
+      'Kreise den gewünschten Bereich ein oder tippe auf OK für das ganze Bild.';
+
+  @override
+  String get tutorStillWriting => 'Ich schreibe noch …';
+
+  @override
+  String get tutorUnavailable =>
+      'Leider dauert das Erstellen der Erklärung gerade zu lange oder der Server ist ausgelastet. Bitte probiere es später erneut.';
 }

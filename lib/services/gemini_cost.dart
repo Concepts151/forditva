@@ -23,3 +23,22 @@ double geminiWiuCost({required int promptTokens, required int outputTokens}) {
       promptTokens * inputWiuPerToken + outputTokens * outputWiuPerToken;
   return realCost * feeMargin;
 }
+
+/// Output tokens to bill for one Gemini response: the visible answer PLUS
+/// the model's hidden "thinking", which Google charges at the output rate.
+/// Billing only the visible answer undercharged thinking-heavy calls many
+/// times over (2026-10-09: a Tutor Decoder request thought for ~3,600-7,500
+/// tokens and answered in ~230). Markus, 2026-10-09: bill it from the
+/// user's credits. [thoughts] comes from the REST `thoughtsTokenCount`;
+/// where only [total] is known (the SDK), thinking is total minus
+/// prompt minus answer.
+int billableOutputTokens({
+  required int prompt,
+  required int candidates,
+  int? thoughts,
+  int? total,
+}) {
+  if (thoughts != null) return candidates + thoughts;
+  if (total != null && total - prompt > candidates) return total - prompt;
+  return candidates;
+}

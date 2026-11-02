@@ -15,9 +15,25 @@ const Color _navGreen = Color(0xFF436F4D);
 /// 2026-07-16). Shown as a modal over the Image page, which stays dimmed
 /// behind it. Returns the sorted 1-based page numbers, or null if cancelled.
 class PdfPageSelectorDialog extends StatefulWidget {
-  const PdfPageSelectorDialog({super.key, required this.file});
+  const PdfPageSelectorDialog({
+    super.key,
+    required this.file,
+    this.initialSelection = const {},
+    this.convertedFrom,
+  });
 
   final File file;
+
+  /// The original file type ("DOCX", "XLSX", ...) when [file] is the PDF
+  /// the conversion server made from it. The picker then says so, instead
+  /// of "pdf-importer" for a Word file (Markus, 2026-10-29: "the normal
+  /// user will not understand").
+  final String? convertedFrom;
+
+  /// Pages ticked when the picker opens: the pages translated last time,
+  /// when the user comes back to the same PDF to pick others (Markus,
+  /// 2026-10-25). The picker opens on the first of them.
+  final Set<int> initialSelection;
 
   @override
   State<PdfPageSelectorDialog> createState() => _PdfPageSelectorDialogState();
@@ -38,6 +54,8 @@ class _PdfPageSelectorDialogState extends State<PdfPageSelectorDialog> {
   @override
   void initState() {
     super.initState();
+    _selected.addAll(widget.initialSelection);
+    if (_selected.isNotEmpty) _current = (_selected.toList()..sort()).first;
     _open();
   }
 
@@ -57,8 +75,10 @@ class _PdfPageSelectorDialogState extends State<PdfPageSelectorDialog> {
       setState(() {
         _doc = doc;
         _pageCount = doc.pagesCount;
+        _selected.removeWhere((p) => p > _pageCount);
+        if (_current > _pageCount) _current = 1;
       });
-      _ensureThumb(1);
+      _ensureThumb(_current);
     } catch (_) {
       if (mounted) setState(() => _failed = true);
     }
@@ -156,13 +176,23 @@ class _PdfPageSelectorDialogState extends State<PdfPageSelectorDialog> {
     return Column(
       children: [
         Text(
-          'pdf-importer',
+          widget.convertedFrom == null
+              ? 'pdf-importer'
+              : loc.documentImporterTitle,
           style: GoogleFonts.robotoCondensed(
             fontSize: 30,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 12),
+        if (widget.convertedFrom != null) ...[
+          Text(
+            loc.convertedToPdfNote(widget.convertedFrom!),
+            textAlign: TextAlign.center,
+            style: GoogleFonts.robotoCondensed(fontSize: 18, height: 1.25),
+          ),
+          const SizedBox(height: 8),
+        ],
         Text(
           loc.pdfImporterInstruction(_pageCount),
           textAlign: TextAlign.center,

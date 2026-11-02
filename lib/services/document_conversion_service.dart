@@ -34,12 +34,19 @@ class DocumentConversionException implements Exception {
 /// uploaded PDF. Gemini's inline_data only accepts images and PDF natively,
 /// this is the workaround for everything else (Markus, 2026-08 proposal).
 ///
-/// Configuration comes from `.env` (also add to the GitHub DOTENV secret so
-/// iOS builds pick it up): CONVERSION_API_BASE_URL, e.g.
-/// https://convert.wir-in-ungarn.hu — feature stays dormant (throws
-/// [ConversionErrorKind.config]) until it's filled in.
+/// The server is Andy's deployment at [defaultConversionBaseUrl] (live
+/// 2026-10-23). CONVERSION_API_BASE_URL in `.env` overrides it, for testing
+/// against another server.
 class DocumentConversionService {
-  String get _baseUrl => (dotenv.env['CONVERSION_API_BASE_URL'] ?? '').trim();
+  static const defaultConversionBaseUrl = 'https://convert.wir-in-ungarn.hu';
+
+  String get _baseUrl {
+    final fromEnv = (dotenv.env['CONVERSION_API_BASE_URL'] ?? '').trim();
+    return fromEnv.isNotEmpty ? fromEnv : defaultConversionBaseUrl;
+  }
+
+  /// The Image page only offers Office formats when this is true.
+  bool get isConfigured => _baseUrl.isNotEmpty;
 
   /// Uploads [sourceFile] and returns a temp file containing the converted
   /// PDF. Throws [DocumentConversionException] on any failure.
@@ -76,7 +83,7 @@ class DocumentConversionService {
 
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse('$_baseUrl/convert-to-pdf'),
+      Uri.parse('$_baseUrl/convert/to-pdf'),
     )..headers['X-Firebase-AppCheck'] = appCheckToken;
     request.files.add(
       await http.MultipartFile.fromPath(
@@ -88,7 +95,9 @@ class DocumentConversionService {
 
     http.StreamedResponse streamed;
     try {
-      streamed = await request.send().timeout(const Duration(seconds: 60));
+      // The server gives LibreOffice up to 90 s; wait a little longer so
+      // its own answer arrives rather than our timeout.
+      streamed = await request.send().timeout(const Duration(seconds: 100));
     } on TimeoutException {
       throw DocumentConversionException(
         ConversionErrorKind.network,

@@ -23,6 +23,10 @@ class Translations extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// The one shared connection. History, Favorites and the Document page each
+  /// opened (and closed) their own connection to the same file before.
+  static final AppDatabase instance = AppDatabase();
+
   @override
   int get schemaVersion => 1;
 
@@ -59,6 +63,9 @@ class TranslationDao extends DatabaseAccessor<AppDatabase>
   /// Deletes the translation row with the given [id].
   Future<void> deleteEntry(int id) =>
       (delete(translations)..where((t) => t.id.equals(id))).go();
+
+  /// Deletes every translation (Settings > Clear entire history).
+  Future<int> deleteAll() => delete(translations).go();
 
   /// ✅ Find exact match of input/output
   Future<Translation?> findExactMatch(String input, String output) {

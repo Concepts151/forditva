@@ -1,18 +1,23 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 
 import '../flutter_gen/gen_l10n/app_localizations.dart';
 import '../models/language_enum.dart';
+import '../services/gemini_speech_service.dart';
+import 'mic_permission.dart';
 
 /// Central recording panel shown when the user taps the mic on a
 /// conversation card.
 ///
 /// Behaviour (per spec):
-/// - Live on-device speech recognition runs the whole time; the waveform
-///   reacts to the real microphone level (greyscale bars).
-/// - By default, 1.5 seconds of silence after the last recognized word
+/// - The app records the audio itself; the waveform reacts to the real
+///   microphone level (greyscale bars). On finish, Gemini transcribes it
+///   with punctuation ([GeminiSpeechService]).
+/// - By default, 1.5 seconds of silence after the last speech
 ///   auto-finalizes the recording and hands it off for translation.
 /// - The infinity button disables that auto-finalize, so the user can keep
 ///   talking through longer pauses; only a manual action ends the session.
@@ -21,11 +26,15 @@ import '../models/language_enum.dart';
 ///   (via [onEditRequested]) instead of translating immediately.
 /// - Checkmark manually finalizes now and translates, same as the automatic
 ///   1.5s path.
+///
+/// Until 2026-10-20 this used the phone's built-in recognizer, with Google
+/// Cloud STT as a fallback for phones without the language. Android played
+/// its start sound every time the recognizer restarted after a pause
+/// (Markus, 2026-10-12: the "pling"), and it returned no punctuation.
 class RecordingModal extends StatefulWidget {
   final Language lang;
   final Function(String) onTranscribed;
   final bool isTopPanel;
-  final Function(String)? onPartialTranscript;
   final Function(String)? onEditRequested;
   final VoidCallback? onCancel;
 
@@ -34,7 +43,6 @@ class RecordingModal extends StatefulWidget {
     required this.lang,
     required this.onTranscribed,
     required this.isTopPanel,
-    this.onPartialTranscript,
     this.onEditRequested,
     this.onCancel,
   });
@@ -45,14 +53,9 @@ class RecordingModal extends StatefulWidget {
 
 class _RecordingModalState extends State<RecordingModal> {
   static const _silenceTimeout = Duration(milliseconds: 1500);
-  // If the recognizer hasn't produced any signal (sound level or result)
-  // within this window, it's likely hung, so restart rather than let the
-  // panel sit frozen indefinitely.
-  static const _stallTimeout = Duration(seconds: 5);
   // Rolling window of recent mic levels driving the waveform bars.
   static const int _levelWindow = 24;
 
-  final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isRecording = false;
   bool _isFinishing = false;
   // Once the user taps OK/trash/edit the panel hides immediately (Markus: it
@@ -60,19 +63,22 @@ class _RecordingModalState extends State<RecordingModal> {
   // the recording still finalizes in the background.
   bool _dismissed = false;
   bool _continuousMode = false; // infinity toggle
-  String _transcript = '';
-  // Transcript kept across listen-session restarts, so continuous/infinity
-  // mode accumulates words instead of losing them each time the recognizer
-  // restarts after a pause.
-  String _committed = '';
+  // Whether the mic level ever reached speech in this recording. Silence is
+  // never sent to Gemini (see GeminiSpeechService.voiceLevel).
+  bool _heardSpeech = false;
+  bool _isTranscribing = false;
   Timer? _silenceTimer;
-  Timer? _stallTimer;
+  Timer? _limitTimer;
   final List<double> _levels = [];
-  // Current mic "energy" (0..1). Spiked by sound-level callbacks AND by newly
-  // recognized words, so the waveform still reacts to the voice on devices
-  // where onSoundLevelChange never fires. A ticker scrolls it into _levels.
+  // Current mic "energy" (0..1). A ticker scrolls it into _levels.
   double _energy = 0.0;
   Timer? _waveTimer;
+
+  AudioRecorder? _recorder;
+  StreamSubscription<Amplitude>? _ampSub;
+  String? _path;
+
+  final _speech = GeminiSpeechService();
 
   @override
   void initState() {
@@ -83,38 +89,17 @@ class _RecordingModalState extends State<RecordingModal> {
   @override
   void dispose() {
     _silenceTimer?.cancel();
-    _stallTimer?.cancel();
     _waveTimer?.cancel();
-    _speech.stop();
+    _limitTimer?.cancel();
+    _ampSub?.cancel();
+    _recorder?.dispose();
     super.dispose();
-  }
-
-  String get _localeId {
-    switch (widget.lang) {
-      case Language.hungarian:
-        return 'hu_HU';
-      case Language.german:
-        return 'de_DE';
-      case Language.english:
-        return 'en_US';
-      case Language.dutch:
-        return 'nl_NL';
-      case Language.french:
-        return 'fr_FR';
-      case Language.spanish:
-        return 'es_ES';
-      case Language.russian:
-        return 'ru_RU';
-      case Language.italian:
-        return 'it_IT';
-    }
   }
 
   Future<void> _start() async {
     setState(() {
       _isRecording = true;
-      _transcript = '';
-      _committed = '';
+      _heardSpeech = false;
       _levels.clear();
     });
 
@@ -129,155 +114,76 @@ class _RecordingModalState extends State<RecordingModal> {
       });
     });
 
-    final available = await _speech.initialize(
-      onStatus: (status) {
-        // If the OS-level recognizer stops itself (session limits, etc.)
-        // while we're still meant to be recording, restart it seamlessly so
-        // continuous mode genuinely keeps listening through long pauses.
-        if ((status == 'notListening' || status == 'done') &&
-            _isRecording &&
-            mounted) {
-          // The OS is stopping us mid-session, not because of silence — the
-          // user is likely still talking. Restart with minimal delay so the
-          // gap doesn't swallow the words being spoken right now (Markus,
-          // 2026-07-12: infinity mode breaking/losing the last 1.5-2s).
-          _restartListening(immediate: true);
-        }
-      },
-      onError: (e) {
-        // error_client (and the timeout/no-match variants) are transient,
-        // self-recovering conditions the recognizer throws routinely; the
-        // stall timer and retry-on-empty-result already handle the real
-        // consequences, so showing the raw code here is just noise.
-        // These transient codes (error_busy included) are self-recovering and
-        // must never surface to the user; the stall timer and retry-on-empty
-        // handle the real consequences. Raw codes are noise, so we ignore them.
-      },
-    );
-    if (!available) {
-      if (mounted) {
-        setState(() => _isRecording = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.couldNotTranscribe)),
-        );
-      }
+    final recorder = _recorder ??= AudioRecorder();
+    if (!await ensureMicPermission(context, recorder)) {
+      widget.onCancel?.call();
       return;
     }
-    _listen();
+    // record 5.x hands out one single-subscription amplitude stream per
+    // recorder, so subscribe once and reuse it across retries.
+    _ampSub ??= recorder
+        .onAmplitudeChanged(const Duration(milliseconds: 90))
+        .listen(_onAmplitude);
+
+    final dir = await getTemporaryDirectory();
+    _path = '${dir.path}/conv_rec_${DateTime.now().millisecondsSinceEpoch}.wav';
+    try {
+      await recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+        path: _path!,
+      );
+    } catch (_) {
+      _showCouldNotTranscribe();
+      widget.onCancel?.call();
+      return;
+    }
+    _limitTimer?.cancel();
+    _limitTimer = Timer(GeminiSpeechService.maxDuration, _finishAndTranslate);
   }
 
-  void _listen() {
-    _armStallTimer();
-    _speech.listen(
-      localeId: _localeId,
-      partialResults: true,
-      onSoundLevelChange: (level) {
-        if (!mounted) return;
-        _stallTimer?.cancel();
-        // Normalize the device's sound level into 0..1 energy (the ticker
-        // renders it). Range is device-dependent, so this is approximate.
-        final e = ((level + 2) / 12).clamp(0.0, 1.0);
-        if (e > _energy) _energy = e;
-      },
-      onResult: (res) {
-        if (!mounted) return;
-        _stallTimer?.cancel();
-        // Newly recognized speech also drives the waveform, so it reacts even
-        // when the device never reports sound levels.
-        _energy = 1.0;
-        setState(() {
-          // Prepend anything committed from earlier sessions (infinity mode).
-          _transcript = _mergeWithoutOverlap(_committed, res.recognizedWords);
-        });
-        if (widget.onPartialTranscript != null &&
-            _transcript.trim().isNotEmpty) {
-          widget.onPartialTranscript!(_transcript);
-        }
-        // Reset the 1.5s silence timer on every new bit of speech, unless
-        // the user has switched to continuous (infinity) mode.
+  void _onAmplitude(Amplitude amp) {
+    if (!mounted || !_isRecording || _isFinishing) return;
+    final e = GeminiSpeechService.level(amp.current);
+    if (e > _energy) _energy = e;
+    if (e >= GeminiSpeechService.voiceLevel) {
+      _heardSpeech = true;
+      // 1.5s after the last speech, finish automatically (not in infinity
+      // mode).
+      if (!_continuousMode) {
         _silenceTimer?.cancel();
-        if (!_continuousMode) {
-          _silenceTimer = Timer(_silenceTimeout, _finishAndTranslate);
-        }
-      },
-      cancelOnError: true,
-      listenFor: const Duration(minutes: 5),
-      pauseFor: const Duration(minutes: 5),
-    );
-  }
-
-  /// Appends [newWords] to [committed], stripping any leading words that
-  /// duplicate the tail of [committed]. A recognizer restart (infinity mode)
-  /// sometimes re-hears a bit of audio the previous session already
-  /// transcribed, which duplicated whole clauses in the transcript (Markus,
-  /// 2026-07-12, screenshot showing the same sentence twice).
-  String _mergeWithoutOverlap(String committed, String newWords) {
-    if (committed.isEmpty) return newWords;
-    if (newWords.trim().isEmpty) return committed;
-    final committedWords = committed.split(RegExp(r'\s+'));
-    final newWordsList = newWords.trim().split(RegExp(r'\s+'));
-    final maxOverlap =
-        committedWords.length < newWordsList.length
-            ? committedWords.length
-            : newWordsList.length;
-    for (var overlap = maxOverlap; overlap > 0; overlap--) {
-      final tail =
-          committedWords
-              .sublist(committedWords.length - overlap)
-              .join(' ')
-              .toLowerCase();
-      final head = newWordsList.sublist(0, overlap).join(' ').toLowerCase();
-      if (tail == head) {
-        final remainder = newWordsList.sublist(overlap).join(' ');
-        return remainder.isEmpty ? committed : '$committed $remainder';
+        _silenceTimer = Timer(_silenceTimeout, _finishAndTranslate);
       }
     }
-    return '$committed $newWords';
   }
 
-  /// If the recognizer produces no signal at all within [_stallTimeout], it
-  /// has likely hung: show an error and restart the recording session.
-  void _armStallTimer() {
-    _stallTimer?.cancel();
-    _stallTimer = Timer(_stallTimeout, () {
-      if (!mounted || !_isRecording) return;
-      // The recognizer went quiet (normal during pauses, especially in infinity
-      // mode and on devices that never report sound levels): restart it.
-      _restartListening();
-    });
-  }
-
-  /// Single, debounced+delayed restart path for the recognizer. Both the
-  /// self-stop (onStatus) and the stall timer funnel through here. Without the
-  /// guard and delay, the recognizer was being restarted so fast during silence
-  /// that it stopped picking up voice at all (the infinity-mode bug). The
-  /// transcript so far is committed so words accumulate across sessions.
-  bool _restarting = false;
-  Future<void> _restartListening({bool immediate = false}) async {
-    if (_restarting || !mounted || !_isRecording) return;
-    // Restarting mid-utterance is only meant to keep infinity mode listening
-    // through long pauses. In normal mode, once real words have already been
-    // recognized, restarting re-hears trailing/buffered audio and duplicates
-    // the transcript (Markus: sentence showing twice). Safe to restart only
-    // if continuous mode is on, or nothing has been captured yet (a stalled,
-    // silent start).
-    if (!_continuousMode && _transcript.trim().isNotEmpty) return;
-    _restarting = true;
-    _silenceTimer?.cancel();
-    _stallTimer?.cancel();
-    _committed = _transcript.trim();
+  /// Stops the recording and returns its transcript ('' when there was no
+  /// speech or it failed).
+  Future<String> _stopAndTranscribe() async {
+    _limitTimer?.cancel();
+    final path = await _recorder?.stop() ?? _path;
+    if (path == null || !File(path).existsSync()) return '';
     try {
-      await _speech.stop();
-    } catch (_) {}
-    // The 350ms delay avoids restarting so fast the recognizer stops picking
-    // up voice at all — but that same delay is a dead gap that can swallow
-    // words if the OS stopped us mid-speech rather than during real silence.
-    // Use a much shorter gap for that case (Markus, 2026-07-12).
-    await Future.delayed(
-      immediate ? const Duration(milliseconds: 60) : const Duration(milliseconds: 350),
+      if (!_heardSpeech) return '';
+      return await _speech.transcribe(File(path), widget.lang);
+    } catch (e) {
+      debugPrint('Voice input failed: $e');
+      return '';
+    } finally {
+      try {
+        File(path).deleteSync();
+      } catch (_) {}
+    }
+  }
+
+  void _showCouldNotTranscribe() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.couldNotTranscribe)),
     );
-    if (mounted && _isRecording) _listen();
-    _restarting = false;
   }
 
   void _toggleContinuous() {
@@ -289,30 +195,24 @@ class _RecordingModalState extends State<RecordingModal> {
   Future<void> _finishAndTranslate() async {
     if (!_isRecording || _isFinishing) return;
     _isFinishing = true;
-    // Hide the panel right away; keep transcribing in the background.
-    if (mounted) setState(() => _dismissed = true);
     _silenceTimer?.cancel();
-    _stallTimer?.cancel();
-    // The recognizer trails the actual audio noticeably; stopping too soon was
-    // still cutting the last 2-3 words (Markus). Give it a longer moment to
-    // catch up before stopping.
-    await Future.delayed(const Duration(milliseconds: 1200));
+    // The words only exist once Gemini answers (a few seconds), so keep the
+    // panel up with a spinner instead of hiding it with no feedback.
+    if (mounted) setState(() => _isTranscribing = true);
     _isRecording = false;
-    await _speech.stop();
+    final text = await _stopAndTranscribe();
     if (!mounted) return;
+    setState(() => _isTranscribing = false);
 
-    final text = _transcript.trim();
     if (text.isEmpty) {
       // Nothing understandable was captured: ask the user to try again
-      // instead of closing the panel with an empty result. Bring it back.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.couldNotTranscribe)),
-      );
+      // instead of closing the panel with an empty result.
+      _showCouldNotTranscribe();
       _isFinishing = false;
-      setState(() => _dismissed = false);
       _start();
       return;
     }
+    setState(() => _dismissed = true);
     widget.onTranscribed(text);
   }
 
@@ -320,23 +220,26 @@ class _RecordingModalState extends State<RecordingModal> {
   Future<void> _cancelAndDiscard() async {
     if (mounted) setState(() => _dismissed = true);
     _silenceTimer?.cancel();
-    _stallTimer?.cancel();
+    _limitTimer?.cancel();
     _isRecording = false;
-    await _speech.cancel();
+    await _recorder?.cancel();
     widget.onCancel?.call();
   }
 
   /// Pencil: stop and hand the transcript to the text editor.
   Future<void> _editInstead() async {
-    if (mounted) setState(() => _dismissed = true);
+    if (_isFinishing) return;
+    _isFinishing = true;
     _silenceTimer?.cancel();
-    _stallTimer?.cancel();
-    // Same trailing-audio catch-up as confirm, so edit doesn't drop the last
-    // words either.
-    await Future.delayed(const Duration(milliseconds: 1200));
+    if (mounted) setState(() => _isTranscribing = true);
     _isRecording = false;
-    await _speech.stop();
-    widget.onEditRequested?.call(_transcript.trim());
+    final text = await _stopAndTranscribe();
+    if (!mounted) return;
+    setState(() {
+      _isTranscribing = false;
+      _dismissed = true;
+    });
+    widget.onEditRequested?.call(text);
   }
 
   @override
@@ -375,7 +278,16 @@ class _RecordingModalState extends State<RecordingModal> {
           children: [
             SizedBox(
               height: 50,
-              child: Center(child: _LevelWaveform(levels: _levels)),
+              child: Center(
+                child:
+                    _isTranscribing
+                        ? const SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : _LevelWaveform(levels: _levels),
+              ),
             ),
             // No raw error codes shown in the panel (Markus): genuine failures
             // surface via a friendly dialog elsewhere, not as red text here.
