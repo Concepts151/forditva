@@ -132,7 +132,7 @@ class _TutorPageState extends State<TutorPage> {
 
   static const _answerTimesKey = 'tutor_answer_ms';
   static const _defaultAnswerMs = 15000;
-  static const _showShorterAfterMs = 10000;
+  static const _showShorterAfterMs = 20000;
 
   /// A wait that never ends is shown as an error instead (Markus: no
   /// endless waiting message). The accurate answer can take up to 2 min.
@@ -354,12 +354,10 @@ class _TutorPageState extends State<TutorPage> {
       setState(() {
         // Once sentences arrive the real answer is on its way: no more
         // "takes longer" note and no shorter answer.
-        // Sooner than 1.5x the usual time, but never later than 10 s
-        // (Markus, 2026-11-02: nobody should wait long for the button).
+        // Flat 20 s (Markus, 2026-11-02: at 10 s it came before the first
+        // sentence, which usually appears after about 14 s).
         _showAnswerNow =
-            !streaming &&
-            _waitWatch.elapsedMilliseconds >=
-                math.min(_usualMs * 1.5, _showShorterAfterMs);
+            !streaming && _waitWatch.elapsedMilliseconds >= _showShorterAfterMs;
       });
     });
     _fetch(mode, key, text, fast: false);

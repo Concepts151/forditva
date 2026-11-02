@@ -1,11 +1,13 @@
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forditva/widgets/cropper.dart';
 import 'package:image/image.dart' as img;
 
 void main() {
   _pngTest();
+  _instructionTest();
   // A 3-channel photo (like a JPEG), all red.
   img.Image redPhoto() {
     final photo = img.Image(width: 100, height: 100);
@@ -55,4 +57,57 @@ void _pngTest() {
     expect(result.height, 41);
     expect(cropToPolygonPng(Uint8List(5), [0, 0], 1, 1), isNull);
   });
+}
+
+void _instructionTest() {
+  const texts = {
+    'de': [
+      'Was möchtest du übersetzen?',
+      'Kreise den gewünschten Bereich ein oder tippe auf OK für das ganze Bild.',
+    ],
+    'en': [
+      'What would you like to translate?',
+      'Circle the desired area or tap OK to translate the entire image.',
+    ],
+    'hu': [
+      'Mit szeretnél lefordítani?',
+      'Karikázd be a kívánt részt, vagy nyomj OK-t a teljes képhez.',
+    ],
+  };
+  // Tests draw with the square Ahem font (every letter 1 em wide); Roboto
+  // Condensed is about 0.42 em, so the sizes are scaled down to match.
+  const titleStyle = TextStyle(fontSize: 7.5, fontWeight: FontWeight.w700);
+  const bodyStyle = TextStyle(fontSize: 6.7, fontWeight: FontWeight.w500);
+
+  for (final entry in texts.entries) {
+    for (final width in [190.0, 220.0, 260.0]) {
+      test('instruction fits 1 + 2 lines: ${entry.key} at $width', () {
+        final k = cropInstructionScale(
+          title: entry.value[0],
+          body: entry.value[1],
+          width: width,
+          titleStyle: titleStyle,
+          bodyStyle: bodyStyle,
+        );
+        expect(k, inInclusiveRange(0.55, 1.0));
+        int lines(String text, TextStyle style, int max) {
+          final p = TextPainter(
+            text: TextSpan(text: text, style: style),
+            textDirection: TextDirection.ltr,
+            maxLines: max,
+          )..layout(maxWidth: width);
+          return p.didExceedMaxLines ? max + 1 : max;
+        }
+
+        expect(
+          lines(entry.value[0], titleStyle.copyWith(fontSize: 7.5 * k), 1),
+          1,
+        );
+        expect(
+          lines(entry.value[1], bodyStyle.copyWith(fontSize: 6.7 * k), 2),
+          lessThanOrEqualTo(2),
+        );
+      });
+    }
+  }
 }

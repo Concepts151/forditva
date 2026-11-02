@@ -321,7 +321,8 @@ class _ImageCropperPageState extends State<ImageCropperPage> {
           ),
           // Instruction text, centered between the two buttons. Markus,
           // 2026-11-02: first line Roboto Condensed Bold, the other lines
-          // Medium and 2 px smaller; the buttons smaller.
+          // Medium and 2 px smaller; sized to the phone so that it is always
+          // 3 lines (title 1, body 2).
           Positioned(
             bottom: 36,
             left: 0,
@@ -331,30 +332,10 @@ class _ImageCropperPageState extends State<ImageCropperPage> {
               child: OverflowBox(
                 maxHeight: 110,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 86),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.cropInstruction,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.robotoCondensed(
-                          color: Colors.black,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        AppLocalizations.of(context)!.cropInstructionBody,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.robotoCondensed(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  padding: const EdgeInsets.symmetric(horizontal: 82),
+                  child: _CropInstruction(
+                    title: AppLocalizations.of(context)!.cropInstruction,
+                    body: AppLocalizations.of(context)!.cropInstructionBody,
                   ),
                 ),
               ),
@@ -393,4 +374,90 @@ class _FreehandPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FreehandPainter old) => old.points != points;
+}
+
+/// The largest scale (1.0 down to 0.55) at which [title] fits one line and
+/// [body] at most two lines in [width], for the given base styles.
+@visibleForTesting
+double cropInstructionScale({
+  required String title,
+  required String body,
+  required double width,
+  required TextStyle titleStyle,
+  required TextStyle bodyStyle,
+}) {
+  int lines(String text, TextStyle style, int maxLines) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+      textScaler: TextScaler.noScaling,
+      maxLines: maxLines,
+    )..layout(maxWidth: width);
+    return painter.didExceedMaxLines ? maxLines + 1 : maxLines;
+  }
+
+  TextStyle scaled(TextStyle s, double k) =>
+      s.copyWith(fontSize: (s.fontSize ?? 16) * k);
+
+  for (var k = 1.0; k > 0.55; k -= 0.04) {
+    if (lines(title, scaled(titleStyle, k), 1) == 1 &&
+        lines(body, scaled(bodyStyle, k), 2) <= 2) {
+      return k;
+    }
+  }
+  return 0.55;
+}
+
+/// The two instruction texts, sized to the available width so that they take
+/// 3 lines on every phone, whatever the system font size.
+class _CropInstruction extends StatelessWidget {
+  final String title;
+  final String body;
+  const _CropInstruction({required this.title, required this.body});
+
+  @override
+  Widget build(BuildContext context) {
+    final titleStyle = GoogleFonts.robotoCondensed(
+      color: Colors.black,
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+    );
+    final bodyStyle = GoogleFonts.robotoCondensed(
+      color: Colors.black,
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final k = cropInstructionScale(
+          title: title,
+          body: body,
+          width: constraints.maxWidth,
+          titleStyle: titleStyle,
+          bodyStyle: bodyStyle,
+        );
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              textScaler: TextScaler.noScaling,
+              style: titleStyle.copyWith(fontSize: 18 * k),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              body,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              textScaler: TextScaler.noScaling,
+              style: bodyStyle.copyWith(fontSize: 16 * k),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }

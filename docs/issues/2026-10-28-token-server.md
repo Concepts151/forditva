@@ -270,7 +270,7 @@ registered.
     tap starts the request (spinner). On 3G it took about 30 s, so no visible
     gain; we could not tell which request delivered the answer. Changes: the
     button appears after at most 10 s (was 1.5x the usual time, 22 s without
-    history); if the fast request fails, the button comes back; log lines for
+    history; Markus then asked for 20 s, see 39); if the fast request fails, the button comes back; log lines for
     each step.
 37. **Tutor from the Learning history asked again** (Markus, 21:13). Answers
     were already saved, but the Understanding answer is saved per level and the
@@ -281,6 +281,12 @@ registered.
 38. **Monthly cleanup of the history** (Markus): entries older than 3 months
     are deleted, once a month, on the first read after the app starts
     (`LearningStore.purgeOld`, tested).
+
+39. **Build 86, Markus's two points (22:19 and 22:20).** (a) "Shorter answer"
+    appears after a flat 20 s (the first sentence usually comes after about
+    14 s). (b) The crop instruction ran to 5 lines on his phone and below the
+    screen. It is now sized to the width so that it is 3 lines (title 1, body
+    2), whatever the system font size (`cropInstructionScale`, tested).
 
 ## Still open
 
