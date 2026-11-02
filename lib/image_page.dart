@@ -902,6 +902,47 @@ class _ImagePlaceholderPageState extends State<ImagePlaceholderPage> {
     await _saveState(_croppedImageFile ?? _imageFile!, _resultText);
 
     try {
+      // A rough look at the language first, so a wrong source language is
+      // caught before minutes of analysis (Markus, 2026-11-02). Skipped when
+      // an earlier analysis of this document already told its languages.
+      if (!interpret && _docLanguagesKey != _documentKey(imageFile)) {
+        final sourceCode = _langCode(_rightLang);
+        final detected = await _chat.detectDocumentLanguage(
+          file: imageFile,
+          pdfPages: _isPdf ? _pdfPageSpec : null,
+        );
+        if (!mounted || !identical(_imageFile, startImage)) {
+          stale = true;
+          return;
+        }
+        final offered = [
+          Language.hu,
+          Language.de,
+          _localThirdLang(),
+        ].map(_langCode);
+        if (detected != null &&
+            detected != sourceCode &&
+            offered.contains(detected)) {
+          setState(() {
+            _isProcessing = false;
+            _statusText = '';
+          });
+          final useDetected = await showLanguageMismatchDialog(
+            context,
+            selectedCode: sourceCode,
+            detectedCode: detected,
+          );
+          if (useDetected && mounted) {
+            setState(() {
+              _applySource(_langFromCode(detected));
+              _translateResultCache = null;
+              _interpretResultCache = null;
+            });
+            _processImage(imageFile: imageFile);
+          }
+          return;
+        }
+      }
       final out = await _chat.processImage(
         imageFile: imageFile,
         translate: !interpret,

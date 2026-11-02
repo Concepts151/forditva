@@ -125,6 +125,78 @@ If nothing can be read, reply only with:
 ''';
   }
 
+  static const _detectableLanguages = [
+    'HU',
+    'DE',
+    'EN',
+    'NL',
+    'FR',
+    'ES',
+    'RU',
+    'IT',
+  ];
+
+  /// The code a reply of [detectDocumentLanguage] names, or null when it says
+  /// the language is mixed or unknown (or says anything else).
+  @visibleForTesting
+  static String? parseDocumentLanguage(String reply) {
+    final word = RegExp(r'[A-Za-z]+').firstMatch(reply)?.group(0);
+    final code = word?.toUpperCase();
+    return _detectableLanguages.contains(code) ? code : null;
+  }
+
+  /// A quick, cheap first look at a document, before the real analysis: the
+  /// language most of its text is written in, or null when it is mixed,
+  /// unknown or the check failed. Light model, no thinking, a few output
+  /// tokens. Markus, 2026-11-02: a German document with Hungarian selected
+  /// ran for minutes and then failed; "check roughly, maybe with a lighter
+  /// model, which language it is" and show the standard box before anything
+  /// is analyzed.
+  Future<String?> detectDocumentLanguage({
+    required File file,
+    String? pdfPages,
+  }) async {
+    final scope =
+        pdfPages != null && pdfPages.trim().isNotEmpty
+            ? ', only page(s) ${pdfPages.trim()}'
+            : '';
+    final prompt =
+        'Look at the attached document$scope. In which language is most of '
+        'its text written?\n'
+        'Answer with ONLY one code from: ${_detectableLanguages.join(', ')}.\n'
+        'Answer MIXED if no single language clearly makes up most of the '
+        'text, and UNKNOWN if there is no readable text or the language is '
+        'not in the list.';
+    try {
+      final reply = await geminiGenerate(
+        AiModels.geminiFlashLite,
+        TextAiRequest(
+          user: prompt,
+          temperature: 0,
+          maxOutputTokens: 32,
+          thinking: false,
+        ),
+        file: GeminiFile(
+          lookupMimeType(file.path) ?? 'image/jpeg',
+          await file.readAsBytes(),
+        ),
+      ).timeout(const Duration(seconds: 25));
+      final result = reply.result;
+      TokenBalance.instance.spendFractional(
+        aiWiuCost(
+          AiModels.geminiFlashLite,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+        ),
+      );
+      return parseDocumentLanguage(result.text);
+    } catch (e) {
+      // Only a shortcut: when it fails, the analysis runs as before.
+      debugPrint('Document language check failed: $e');
+      return null;
+    }
+  }
+
   /// Languages the last [processImage] call found in the document, as
   /// two-letter codes (e.g. ["HU", "DE"]); empty when Gemini did not report
   /// them. Lets the Image page refuse a source language the document does
