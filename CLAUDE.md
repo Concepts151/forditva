@@ -1,7 +1,7 @@
 # Forditva — Project Notes for Claude
 
 Handoff notes so any Claude (or developer) can pick up this project. Kept
-current as of **2026-08-05, version 1.0.1+68**. Update the "Current status"
+current as of **2026-11-02, version 1.0.4+86**. Update the "Current status"
 and "Open / blocked" sections as work lands.
 
 ## What this is
@@ -10,18 +10,27 @@ Forditva is a **Flutter** speech + text + image translation app. Core language
 pair is **Hungarian ⇄ German**; a third language is user-selectable
 (EN/NL/FR/IT/RU/ES). It is branded for the **wir-in-ungarn.hu** community. The
 client is **Markus Messemer** (communicates via Telegram; the user/developer
-here is **Kayode**, "Jordanz"). Markus's web developer is **Alex** (Aliaksandr; headless WordPress + Next.js;
+here is **Abdulsalam**, who took over on 2026-10-02; Kayode, "Jordanz", is unreachable). Markus's web developer is **Alex** (Aliaksandr; headless WordPress + Next.js;
 replaced Shahin Alam, who built the prepaid code list). **Andy** is Markus's
 Linux admin and decides what runs on the servers (2026-10-12).
 
-Stack: Flutter/Dart, **Gemini** for translation + image OCR (raw REST,
-`gemini-flash-latest`), Google Cloud **STT** + **TTS**, `drift`/sqlite for
-history, `flutter_localizations` (EN/DE/HU ARB files in `lib/l10n/`). Secrets
-live in a bundled `.env` (Flutter asset): `GEMINI_API_KEY`, `GOOGLE_STT_KEY`,
-`OPENAI_API_KEY`, `LINGVANEX_API_KEY`, `PREPAID_API_BASE_URL`,
-`PREPAID_API_KEY`.
+Stack: Flutter/Dart, **Gemini** through **Firebase AI Logic on Vertex AI in
+the EU** (`FirebaseAI.agentPlatform(location: 'eu')`, App Check with
+limited-use tokens; models `gemini-3.8-flash` for the Tutor and files,
+`gemini-3.5-flash-lite` for translation and checks), Google Cloud **STT** +
+**TTS** (TTS via Alex's server), `drift`/sqlite for history,
+`flutter_localizations` (EN/DE/HU ARB files in `lib/l10n/`). Credits (internal
+name `wiu*`) come from Alex's **Token Server v3** wallet
+(`lib/services/forditva_token_client.dart`, `token_balance.dart`). A bundled
+`.env` still holds some keys (`GOOGLE_STT_KEY` etc.); see
+`docs/issues/2026-10-28-token-server.md`.
 
 ## Repo & environment
+
+**Since 2026-10-02 the project lives on a Mac at `~/Developer/forditva`**
+(repo `Concepts151/forditva`). The Windows/D: notes below are historical.
+**`main` is the release branch** (`feat/token-server` was merged on
+2026-11-02 in PR #2). Build the Play AAB from `main`.
 
 - Repo root: `D:\projects\forditva\forditva` (double-nested; the outer
   `D:\projects\forditva` just wraps it). Git branch: **main**.
@@ -111,7 +120,39 @@ machine; the CI workflows bump it to 4g (Jetifier OOMs at 1536m on the runner).
   new one; updates are normal after that.
 - iOS bundle id: `hu.wirinungarn.forditva3`.
 
-## Current status (2026-08-08, v1.0.1+69)
+## Current status (2026-11-02, v1.0.4+86)
+
+Everything of the Token Server round is on `main` (PR #2). Builds go to Play
+**internal testing**; the closed test was done before the handover, and the
+production release is the next step. Markus has tested the builds through
+86 (crop, wallet, Tutor).
+
+- **Credits:** Alex's Token Server v3 wallet, 200 free credits on first start,
+  25-character recovery code shown once. Users see "credits", code keeps
+  `wiu*` names. Still open with Alex: a test gift code, iOS App Check, the
+  Play Integrity daily limit (10,000), switching off the WordPress plugin
+  `app-translation-tokens` after the release.
+- **AI:** all in the EU, with App Check (Play Integrity on Android). Sideloaded
+  release APKs fail every AI call, so testers install from Play; debug builds
+  need the debug token registered in Firebase.
+- **Tutor:** answer written sentence by sentence ("still writing" note), sentence
+  split on the light model, "Shorter answer" button after 20 s (a parallel
+  request without thinking), saved answers reused from the Learning history
+  (also by sentence), history entries older than 3 months deleted monthly.
+- **File page:** Office to PDF conversion with loader, document icons, 14 MB
+  limit, language pre-check before long analysis, outline crop that cuts away
+  the outside, state kept across Tutor trips, Copy and Share give plain text.
+- **Item-by-item log:** `docs/issues/2026-10-28-token-server.md` (items 1 to 39).
+- **Releases:** `android-aab.yml` (manual) signs with the upload key
+  (`F5:2C:45:91:...:E6:7C:CE`); download the artifact, verify the signer,
+  upload to Play. Release notes: 500 characters at most per language.
+- **Rules that still hold:** never ship self-written final DE/HU text without
+  Markus's correction (drafts are labeled, du/te form); no Co-Authored-By line in
+  commits; commit only when told; log every fix in the issues file.
+- **Not yet verified on a device (as of build 86):** the 20 s button, the
+  3-line crop text, saved answers from the History, plain-text Copy and Share.
+
+## Earlier status (2026-08-08, v1.0.1+69)
 
 Latest verified sideload APK for Markus:
 `Downloads\forditva-2026-08-08-de-hu-strings.apk` (v1.0.1+69, package
