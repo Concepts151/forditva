@@ -249,5 +249,6 @@
   },
   "tutorNoHungarian": "I couldn't find a Hungarian sentence in this text. The Tutor explains Hungarian sentences.",
   "tutorPreparing": "One moment please, I'm preparing your answer.",
-  "cropInstructionBody": "Circle the desired area or tap OK to translate the entire image."
+  "cropInstructionBody": "Circle the desired area or tap OK to translate the entire image.",
+  "tutorStillWriting": "Still writing …"
 }

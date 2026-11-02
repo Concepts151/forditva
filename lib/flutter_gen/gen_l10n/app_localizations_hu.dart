@@ -554,4 +554,7 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get cropInstructionBody =>
       'Karikázd be a kívánt részt, vagy nyomj OK-t a teljes képhez.';
+
+  @override
+  String get tutorStillWriting => 'Még írom …';
 }

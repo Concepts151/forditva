@@ -553,4 +553,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cropInstructionBody =>
       'Circle the desired area or tap OK to translate the entire image.';
+
+  @override
+  String get tutorStillWriting => 'Still writing …';
 }

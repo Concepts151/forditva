@@ -1041,6 +1041,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Circle the desired area or tap OK to translate the entire image.'**
   String get cropInstructionBody;
+
+  /// No description provided for @tutorStillWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Still writing …'**
+  String get tutorStillWriting;
 }
 
 class _AppLocalizationsDelegate

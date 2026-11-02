@@ -556,4 +556,7 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get cropInstructionBody =>
       'Kreise den gewünschten Bereich ein oder tippe auf OK für das ganze Bild.';
+
+  @override
+  String get tutorStillWriting => 'Ich schreibe noch …';
 }

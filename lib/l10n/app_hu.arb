@@ -180,5 +180,6 @@
   },
   "tutorNoHungarian": "Ebben a szövegben nem találtam magyar mondatot. A Tutor magyar mondatokat magyaráz.",
   "tutorPreparing": "Egy pillanat türelmet, előkészítem a válaszodat.",
-  "cropInstructionBody": "Karikázd be a kívánt részt, vagy nyomj OK-t a teljes képhez."
+  "cropInstructionBody": "Karikázd be a kívánt részt, vagy nyomj OK-t a teljes képhez.",
+  "tutorStillWriting": "Még írom …"
 }
