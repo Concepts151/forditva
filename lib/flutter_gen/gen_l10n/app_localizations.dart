@@ -1053,6 +1053,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unfortunately, creating the explanation is currently taking too long or the server is overloaded. Please try again later.'**
   String get tutorUnavailable;
+
+  /// No description provided for @welcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to forditva!'**
+  String get welcomeTitle;
+
+  /// No description provided for @welcomeTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate, understand, and communicate with each other.'**
+  String get welcomeTagline;
+
+  /// No description provided for @welcomeIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'forditva is part of **Wir in Ungarn**, a non-profit community project. We want to help people overcome language barriers, understand Hungarian better, and communicate more easily.'**
+  String get welcomeIntro;
+
+  /// No description provided for @welcomeDataHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'How do we handle your data?'**
+  String get welcomeDataHeading;
+
+  /// No description provided for @welcomeDataAi.
+  ///
+  /// In en, this message translates to:
+  /// **'We use artificial intelligence for translations, speech features, and the Tutor. Depending on the feature you use, your texts, speech content, images, or documents are sent to a Google AI service for processing.'**
+  String get welcomeDataAi;
+
+  /// No description provided for @welcomeNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not need a user account to use forditva. We do not link your translations to a username, nor do we attempt to identify who owns the smartphone being used.'**
+  String get welcomeNoAccount;
+
+  /// No description provided for @welcomeDeviceId.
+  ///
+  /// In en, this message translates to:
+  /// **'We use a device identifier to manage credits and protect the app against misuse. It is not used to establish your identity.'**
+  String get welcomeDeviceId;
+
+  /// No description provided for @welcomeContentNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Please keep in mind that the content you submit may itself contain personal information.'**
+  String get welcomeContentNote;
+
+  /// No description provided for @welcomeChoiceHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Your choice'**
+  String get welcomeChoiceHeading;
+
+  /// No description provided for @welcomeChoiceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'By giving your consent, you allow your selected content to be sent to the external AI service so that forditva can process it. You can withdraw your consent at any time in the app settings. Without your consent, the AI-powered features will not be available.'**
+  String get welcomeChoiceBody;
+
+  /// No description provided for @welcomeMore.
+  ///
+  /// In en, this message translates to:
+  /// **'You can find more information in our [Privacy Policy](https://wir-in-ungarn.hu/datenschutz-forditva/).'**
+  String get welcomeMore;
+
+  /// No description provided for @welcomeAgree.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and get started'**
+  String get welcomeAgree;
+
+  /// No description provided for @welcomeNotNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get welcomeNotNow;
+
+  /// No description provided for @aiProcessingSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow AI processing'**
+  String get aiProcessingSwitch;
 }
 
 class _AppLocalizationsDelegate

@@ -560,4 +560,54 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tutorUnavailable =>
       'Unfortunately, creating the explanation is currently taking too long or the server is overloaded. Please try again later.';
+
+  @override
+  String get welcomeTitle => 'Welcome to forditva!';
+
+  @override
+  String get welcomeTagline =>
+      'Translate, understand, and communicate with each other.';
+
+  @override
+  String get welcomeIntro =>
+      'forditva is part of **Wir in Ungarn**, a non-profit community project. We want to help people overcome language barriers, understand Hungarian better, and communicate more easily.';
+
+  @override
+  String get welcomeDataHeading => 'How do we handle your data?';
+
+  @override
+  String get welcomeDataAi =>
+      'We use artificial intelligence for translations, speech features, and the Tutor. Depending on the feature you use, your texts, speech content, images, or documents are sent to a Google AI service for processing.';
+
+  @override
+  String get welcomeNoAccount =>
+      'You do not need a user account to use forditva. We do not link your translations to a username, nor do we attempt to identify who owns the smartphone being used.';
+
+  @override
+  String get welcomeDeviceId =>
+      'We use a device identifier to manage credits and protect the app against misuse. It is not used to establish your identity.';
+
+  @override
+  String get welcomeContentNote =>
+      'Please keep in mind that the content you submit may itself contain personal information.';
+
+  @override
+  String get welcomeChoiceHeading => 'Your choice';
+
+  @override
+  String get welcomeChoiceBody =>
+      'By giving your consent, you allow your selected content to be sent to the external AI service so that forditva can process it. You can withdraw your consent at any time in the app settings. Without your consent, the AI-powered features will not be available.';
+
+  @override
+  String get welcomeMore =>
+      'You can find more information in our [Privacy Policy](https://wir-in-ungarn.hu/datenschutz-forditva/).';
+
+  @override
+  String get welcomeAgree => 'Agree and get started';
+
+  @override
+  String get welcomeNotNow => 'Not now';
+
+  @override
+  String get aiProcessingSwitch => 'Allow AI processing';
 }

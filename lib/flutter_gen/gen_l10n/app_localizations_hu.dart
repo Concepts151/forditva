@@ -561,4 +561,54 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get tutorUnavailable =>
       'Sajnos most túl sokáig tart az magyarázat elkészítése, vagy túlterhelt a szerver. Kérlek, próbáld újra később.';
+
+  @override
+  String get welcomeTitle => 'Üdvözlünk a forditva alkalmazásban!';
+
+  @override
+  String get welcomeTagline => 'Fordítás, megértés és könnyebb kommunikáció.';
+
+  @override
+  String get welcomeIntro =>
+      'A forditva a **Wir in Ungarn** közösségi, nonprofit projekt része. Célunk, hogy segítsünk leküzdeni a nyelvi akadályokat, megkönnyítsük a magyar nyelv megértését, és segítsük az emberek közötti kommunikációt.';
+
+  @override
+  String get welcomeDataHeading => 'Hogyan kezeljük az adataidat?';
+
+  @override
+  String get welcomeDataAi =>
+      'A fordításokhoz, a beszédfunkciókhoz és a Tutor használatához mesterséges intelligenciát alkalmazunk. A választott funkciótól függően a szövegeidet, beszédtartalmaidat, képeidet vagy dokumentumaidat feldolgozás céljából továbbítjuk a Google egyik mesterségesintelligencia-szolgáltatásának.';
+
+  @override
+  String get welcomeNoAccount =>
+      'A forditva használatához nincs szükséged felhasználói fiókra. A fordításaidat nem kapcsoljuk felhasználónévhez, és nem próbáljuk megállapítani, hogy kié a használt okostelefon.';
+
+  @override
+  String get welcomeDeviceId =>
+      'A kreditek kezeléséhez és az alkalmazás technikai védelméhez eszközazonosítót használunk. Ezt nem használjuk a személyazonosságod megállapítására.';
+
+  @override
+  String get welcomeContentNote =>
+      'Fontos tudnod, hogy az általad megadott tartalmak maguk is tartalmazhatnak személyes adatokat.';
+
+  @override
+  String get welcomeChoiceHeading => 'A te döntésed';
+
+  @override
+  String get welcomeChoiceBody =>
+      'A hozzájárulásoddal engedélyezed, hogy a kiválasztott tartalmaidat továbbítsuk a külső mesterségesintelligencia-szolgáltatásnak, hogy a forditva feldolgozhassa azokat. Hozzájárulásodat bármikor visszavonhatod az alkalmazás beállításaiban. Hozzájárulás nélkül a mesterséges intelligencián alapuló funkciók nem használhatók.';
+
+  @override
+  String get welcomeMore =>
+      'További információkat az [Adatvédelmi tájékoztatónkban](https://wir-in-ungarn.hu/datenschutz-forditva/) találsz.';
+
+  @override
+  String get welcomeAgree => 'Hozzájárulok és elkezdem';
+
+  @override
+  String get welcomeNotNow => 'Most nem';
+
+  @override
+  String get aiProcessingSwitch =>
+      'Mesterséges intelligencia használatának engedélyezése';
 }

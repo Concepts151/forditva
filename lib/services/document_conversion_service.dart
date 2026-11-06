@@ -1,3 +1,4 @@
+import 'ai_consent.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -51,6 +52,7 @@ class DocumentConversionService {
   /// Uploads [sourceFile] and returns a temp file containing the converted
   /// PDF. Throws [DocumentConversionException] on any failure.
   Future<File> convertToPdf(File sourceFile) async {
+    await AiConsent.require();
     if (_baseUrl.isEmpty) {
       throw DocumentConversionException(
         ConversionErrorKind.config,

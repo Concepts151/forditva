@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'flutter_gen/gen_l10n/app_localizations.dart';
 import 'models/language_enum.dart';
+import 'services/ai_consent.dart';
 import 'services/history_store.dart';
 import 'services/level_pref.dart';
 import 'services/third_language_pref.dart';
@@ -29,7 +30,8 @@ const String _profileUrl = 'https://wir-in-ungarn.hu';
 
 // Markus sent the section text/button labels on 2026-07-11 but left the
 // actual link empty ("(Link: )"); real URL sent 2026-07-14.
-const String _privacyPolicyUrl = 'https://wir-in-ungarn.hu/datenschutz-forditva/';
+const String _privacyPolicyUrl =
+    'https://wir-in-ungarn.hu/datenschutz-forditva/';
 
 // Language names are shown as endonyms regardless of UI language.
 const List<String> _languages = ['Deutsch', 'English', 'Magyar'];
@@ -101,7 +103,10 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
               _loc.clearEntireHistory,
               style: GoogleFonts.robotoCondensed(),
             ),
-            content: Text(_loc.clearHistoryConfirm, style: GoogleFonts.roboto()),
+            content: Text(
+              _loc.clearHistoryConfirm,
+              style: GoogleFonts.roboto(),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -153,9 +158,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            value > 0
-                ? _loc.creditsAdded(value)
-                : _loc.codeAlreadyAdded,
+            value > 0 ? _loc.creditsAdded(value) : _loc.codeAlreadyAdded,
           ),
         ),
       );
@@ -230,6 +233,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
           _sectionHeader(_loc.appSettings),
           _padded(_appLanguage()),
           _padded(_thirdLanguageSelector()),
+          _padded(_aiConsentRow()),
           _padded(_saveHistoryRow()),
           _padded(_clearHistoryRow()),
 
@@ -266,10 +270,8 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     ),
   );
 
-  Widget _padded(Widget child) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-    child: child,
-  );
+  Widget _padded(Widget child) =>
+      Padding(padding: const EdgeInsets.fromLTRB(16, 14, 16, 14), child: child);
 
   TextStyle get _label => GoogleFonts.robotoCondensed(
     fontSize: 19,
@@ -277,11 +279,8 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     color: _labelDark,
   );
 
-  TextStyle get _greenBody => GoogleFonts.robotoCondensed(
-    fontSize: 16,
-    height: 1.35,
-    color: _navGreen,
-  );
+  TextStyle get _greenBody =>
+      GoogleFonts.robotoCondensed(fontSize: 16, height: 1.35, color: _navGreen);
 
   // ─── App Settings ──────────────────────────────────────────────────
   Widget _appLanguage() {
@@ -385,6 +384,31 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     );
   }
 
+  Widget _aiConsentRow() => ValueListenableBuilder<bool?>(
+    valueListenable: AiConsent.granted,
+    builder:
+        (context, granted, _) => Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: Text(_loc.aiProcessingSwitch, style: _label)),
+            Switch(
+              value: granted == true,
+              activeThumbColor: Colors.white,
+              activeTrackColor: _navGreen,
+              onChanged: (v) async {
+                if (!v) {
+                  await AiConsent.set(false);
+                  return;
+                }
+                // Same text as the welcome page; only "Agree" turns it on.
+                final ok = await AiConsent.showConsentDialog(context);
+                if (ok == true) await AiConsent.set(true);
+              },
+            ),
+          ],
+        ),
+  );
+
   Widget _saveHistoryRow() => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
@@ -422,8 +446,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       children: [
         GestureDetector(
           onTap:
-              () =>
-                  setState(() => _howItWorksExpanded = !_howItWorksExpanded),
+              () => setState(() => _howItWorksExpanded = !_howItWorksExpanded),
           child: Container(
             color: _navGreen,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -567,15 +590,16 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                 color: _navGreen,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: _isRedeeming
-                  ? const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.check, color: Colors.white, size: 28),
+              child:
+                  _isRedeeming
+                      ? const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                      : const Icon(Icons.check, color: Colors.white, size: 28),
             ),
           ),
         ],

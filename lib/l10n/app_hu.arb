@@ -182,5 +182,19 @@
   "tutorPreparing": "Egy pillanat türelmet, előkészítem a válaszodat.",
   "cropInstructionBody": "Karikázd be a kívánt részt, vagy nyomj OK-t a teljes képhez.",
   "tutorStillWriting": "Még írom …",
-  "tutorUnavailable": "Sajnos most túl sokáig tart az magyarázat elkészítése, vagy túlterhelt a szerver. Kérlek, próbáld újra később."
+  "tutorUnavailable": "Sajnos most túl sokáig tart az magyarázat elkészítése, vagy túlterhelt a szerver. Kérlek, próbáld újra később.",
+  "welcomeTitle": "Üdvözlünk a forditva alkalmazásban!",
+  "welcomeTagline": "Fordítás, megértés és könnyebb kommunikáció.",
+  "welcomeIntro": "A forditva a **Wir in Ungarn** közösségi, nonprofit projekt része. Célunk, hogy segítsünk leküzdeni a nyelvi akadályokat, megkönnyítsük a magyar nyelv megértését, és segítsük az emberek közötti kommunikációt.",
+  "welcomeDataHeading": "Hogyan kezeljük az adataidat?",
+  "welcomeDataAi": "A fordításokhoz, a beszédfunkciókhoz és a Tutor használatához mesterséges intelligenciát alkalmazunk. A választott funkciótól függően a szövegeidet, beszédtartalmaidat, képeidet vagy dokumentumaidat feldolgozás céljából továbbítjuk a Google egyik mesterségesintelligencia-szolgáltatásának.",
+  "welcomeNoAccount": "A forditva használatához nincs szükséged felhasználói fiókra. A fordításaidat nem kapcsoljuk felhasználónévhez, és nem próbáljuk megállapítani, hogy kié a használt okostelefon.",
+  "welcomeDeviceId": "A kreditek kezeléséhez és az alkalmazás technikai védelméhez eszközazonosítót használunk. Ezt nem használjuk a személyazonosságod megállapítására.",
+  "welcomeContentNote": "Fontos tudnod, hogy az általad megadott tartalmak maguk is tartalmazhatnak személyes adatokat.",
+  "welcomeChoiceHeading": "A te döntésed",
+  "welcomeChoiceBody": "A hozzájárulásoddal engedélyezed, hogy a kiválasztott tartalmaidat továbbítsuk a külső mesterségesintelligencia-szolgáltatásnak, hogy a forditva feldolgozhassa azokat. Hozzájárulásodat bármikor visszavonhatod az alkalmazás beállításaiban. Hozzájárulás nélkül a mesterséges intelligencián alapuló funkciók nem használhatók.",
+  "welcomeMore": "További információkat az [Adatvédelmi tájékoztatónkban](https://wir-in-ungarn.hu/datenschutz-forditva/) találsz.",
+  "welcomeAgree": "Hozzájárulok és elkezdem",
+  "welcomeNotNow": "Most nem",
+  "aiProcessingSwitch": "Mesterséges intelligencia használatának engedélyezése"
 }

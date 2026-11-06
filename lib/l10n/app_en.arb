@@ -251,5 +251,19 @@
   "tutorPreparing": "One moment please, I'm preparing your answer.",
   "cropInstructionBody": "Circle the desired area or tap OK to translate the entire image.",
   "tutorStillWriting": "Still writing …",
-  "tutorUnavailable": "Unfortunately, creating the explanation is currently taking too long or the server is overloaded. Please try again later."
+  "tutorUnavailable": "Unfortunately, creating the explanation is currently taking too long or the server is overloaded. Please try again later.",
+  "welcomeTitle": "Welcome to forditva!",
+  "welcomeTagline": "Translate, understand, and communicate with each other.",
+  "welcomeIntro": "forditva is part of **Wir in Ungarn**, a non-profit community project. We want to help people overcome language barriers, understand Hungarian better, and communicate more easily.",
+  "welcomeDataHeading": "How do we handle your data?",
+  "welcomeDataAi": "We use artificial intelligence for translations, speech features, and the Tutor. Depending on the feature you use, your texts, speech content, images, or documents are sent to a Google AI service for processing.",
+  "welcomeNoAccount": "You do not need a user account to use forditva. We do not link your translations to a username, nor do we attempt to identify who owns the smartphone being used.",
+  "welcomeDeviceId": "We use a device identifier to manage credits and protect the app against misuse. It is not used to establish your identity.",
+  "welcomeContentNote": "Please keep in mind that the content you submit may itself contain personal information.",
+  "welcomeChoiceHeading": "Your choice",
+  "welcomeChoiceBody": "By giving your consent, you allow your selected content to be sent to the external AI service so that forditva can process it. You can withdraw your consent at any time in the app settings. Without your consent, the AI-powered features will not be available.",
+  "welcomeMore": "You can find more information in our [Privacy Policy](https://wir-in-ungarn.hu/datenschutz-forditva/).",
+  "welcomeAgree": "Agree and get started",
+  "welcomeNotNow": "Not now",
+  "aiProcessingSwitch": "Allow AI processing"
 }

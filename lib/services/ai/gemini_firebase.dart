@@ -1,3 +1,4 @@
+import '../ai_consent.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -39,6 +40,7 @@ Future<GeminiReply> geminiGenerate(
   GeminiFile? file,
   http.Client? client,
 }) async {
+  await AiConsent.require();
   // Debug builds log each request URL, so the location in use can be read
   // from the phone's log.
   final ownClient = kDebugMode && client == null ? http.Client() : null;
@@ -115,6 +117,7 @@ Stream<String> geminiGenerateStream(
   http.Client? client,
   void Function(TextAiResult result)? onDone,
 }) async* {
+  await AiConsent.require();
   final ownClient = kDebugMode && client == null ? http.Client() : null;
   final httpClient =
       kDebugMode ? _RequestLogClient(client ?? ownClient!) : client;

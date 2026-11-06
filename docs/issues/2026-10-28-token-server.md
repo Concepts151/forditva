@@ -288,6 +288,24 @@ registered.
     screen. It is now sized to the width so that it is 3 lines (title 1, body
     2), whatever the system font size (`cropInstructionScale`, tested).
 
+## Round of 4 Nov (build 87)
+
+40. **Welcome page with AI consent** (Markus, voice note 4 Nov 17:43, texts
+    EN/DE/HU). Shown once before first use, also for users who update from
+    86. Language switch on top (Deutsch, English, Magyar); it starts with the
+    language saved before, else the phone's language if it is DE/EN/HU, else
+    German. "Agree and get started" turns AI use on. "Not now" opens the app
+    with the AI features locked: Markus first wanted the app to close, then
+    agreed (4 Nov) to the locked mode on Google and iPhone, because Apple
+    rejects apps that close themselves. The texts are Markus's own, shipped
+    verbatim (the DE title keeps his spelling "fordítva").
+41. **Consent gate for every AI call.** Translation, Tutor, images and files,
+    speech, read-aloud and document conversion ask for consent first
+    (`AiConsent.require`). Without it a dialog with the same text appears; "Not now"
+    makes the call fail like any other error.
+42. **Settings: switch "Allow AI processing"** (new, label DE/HU drafted for
+    Markus to correct). Off withdraws consent; on shows the consent dialog.
+
 ## Still open
 
 - Phone test against the live server (see the plan's checklist).

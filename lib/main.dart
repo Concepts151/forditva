@@ -21,6 +21,7 @@ import 'history.dart';
 import 'image_page.dart';
 import 'learning_list.dart';
 import 'profile_settings_page.dart';
+import 'services/ai_consent.dart';
 import 'services/history_store.dart';
 import 'services/level_pref.dart';
 import 'services/third_language_pref.dart';
@@ -28,6 +29,7 @@ import 'services/token_balance.dart';
 import 'spacing.dart';
 import 'textpage.dart';
 import 'tutor/tutor_page.dart';
+import 'welcome_page.dart';
 import 'widgets/wallet_dialogs.dart';
 
 // Colors and constants
@@ -48,6 +50,7 @@ void main() async {
   await _initFirebaseAppCheck();
   await ThirdLanguagePref.load();
   await LevelPref.load();
+  await AiConsent.load();
   await HistoryStore.load();
   await TokenBalance.instance.load();
   // Not awaited: a sync can take up to 20 s on a bad connection. The
@@ -151,6 +154,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         return MaterialApp(
           // <-- INSIDE THIS WIDGET
           locale: locale,
+          navigatorKey: AiConsent.navigatorKey,
           debugShowCheckedModeBanner: false,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -216,9 +220,23 @@ class _SplashScreenRedirectState extends State<SplashScreenRedirect> {
     super.initState();
     Future.delayed(_minSplashDuration, () {
       if (!mounted) return;
+      final main = MainScreen(onLocaleChanged: widget.onLocaleChanged);
+      // First start (or an update from before the consent existed): the
+      // welcome page asks once, then the app opens either way.
+      final needsWelcome = AiConsent.granted.value == null;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => MainScreen(onLocaleChanged: widget.onLocaleChanged),
+          builder:
+              (ctx) =>
+                  needsWelcome
+                      ? WelcomePage(
+                        onLocaleChanged: widget.onLocaleChanged,
+                        onDone:
+                            () => Navigator.of(ctx).pushReplacement(
+                              MaterialPageRoute(builder: (_) => main),
+                            ),
+                      )
+                      : main,
         ),
       );
     });
@@ -478,164 +496,165 @@ class _MainScreenState extends State<MainScreen> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(32),
             child: SizedBox(
-            height: navBarHeight,
-            child: Row(
-              children: [
-                // menu
-                Flexible(
-                  flex: 1,
-                  child: Builder(
-                    builder:
-                        (ctx) => GestureDetector(
-                          onTap:
-                              () => Navigator.of(ctx).push(
-                                MaterialPageRoute(
-                                  builder:
-                                      (_) => ProfileSettingsPage(
-                                        onLocaleChanged: widget.onLocaleChanged,
-                                      ),
+              height: navBarHeight,
+              child: Row(
+                children: [
+                  // menu
+                  Flexible(
+                    flex: 1,
+                    child: Builder(
+                      builder:
+                          (ctx) => GestureDetector(
+                            onTap:
+                                () => Navigator.of(ctx).push(
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => ProfileSettingsPage(
+                                          onLocaleChanged:
+                                              widget.onLocaleChanged,
+                                        ),
+                                  ),
                                 ),
+                            child: Container(
+                              color: navRed,
+                              alignment: Alignment.center,
+                              // Nudge the icon off the rounded left corner —
+                              // it was sitting flush against the curve.
+                              padding: const EdgeInsets.only(left: 8),
+                              child: Image.asset(
+                                'assets/png24/white/w_menu.png',
+                                width: iconSize,
+                                height: iconSize,
+                                color: Colors.white,
+                                colorBlendMode: BlendMode.srcIn,
                               ),
+                            ),
+                          ),
+                    ),
+                  ),
+
+                  // Tutor bulb: same nav-bar position on all three pages now,
+                  // always opens the Tutor for whatever Hungarian text is on
+                  // the currently active page. Page switching between
+                  // Conversation/Document/Image happens via the title area
+                  // (below) and the card's own document-mode icon.
+                  Flexible(
+                    flex: 1,
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: _bulbEnabledListenable,
+                      builder: (context, enabled, _) {
+                        return GestureDetector(
+                          onTap: !enabled ? null : _openTutor,
                           child: Container(
                             color: navRed,
                             alignment: Alignment.center,
-                            // Nudge the icon off the rounded left corner —
-                            // it was sitting flush against the curve.
-                            padding: const EdgeInsets.only(left: 8),
-                            child: Image.asset(
-                              'assets/png24/white/w_menu.png',
-                              width: iconSize,
-                              height: iconSize,
-                              color: Colors.white,
-                              colorBlendMode: BlendMode.srcIn,
-                            ),
-                          ),
-                        ),
-                  ),
-                ),
-
-                // Tutor bulb: same nav-bar position on all three pages now,
-                // always opens the Tutor for whatever Hungarian text is on
-                // the currently active page. Page switching between
-                // Conversation/Document/Image happens via the title area
-                // (below) and the card's own document-mode icon.
-                Flexible(
-                  flex: 1,
-                  child: ValueListenableBuilder<bool>(
-                    valueListenable: _bulbEnabledListenable,
-                    builder: (context, enabled, _) {
-                      return GestureDetector(
-                        onTap: !enabled ? null : _openTutor,
-                        child: Container(
-                          color: navRed,
-                          alignment: Alignment.center,
-                          child: Opacity(
-                            opacity: enabled ? 1.0 : 0.4,
-                            child: Image.asset(
-                              'assets/png24/white/w_lightbulb.png',
-                              width: iconSize,
-                              height: iconSize,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                // page title
-                Flexible(
-                  flex: 3,
-                  child: GestureDetector(
-                    onTap:
-                        () => setState(() {
-                          if (_currentPage == 1) {
-                            _currentPage = 5;
-                          } else if (_currentPage == 5) {
-                            _currentPage = 6;
-                          } else if (_currentPage == 7) {
-                            _currentPage = _pageBeforeTutor;
-                          } else {
-                            _currentPage = 1;
-                          }
-                        }),
-                    child: Container(
-                      color: Colors.white,
-                      alignment: Alignment.center,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        // Was a per-label FittedBox, so short labels ("Bild")
-                        // rendered larger than long ones ("Tanulási lista")
-                        // (Markus, 2026-07-11: "never allowed to change it...
-                        // all words there have always the same font size").
-                        // Compute ONE size that fits the longest label across
-                        // every language, and use it everywhere.
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return Text(
-                              _getPageName(_currentPage),
-                              maxLines: 2,
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.robotoCondensed(
-                                fontWeight: FontWeight.w500,
-                                fontSize: _navLabelFontSize(
-                                  constraints.maxWidth,
-                                  navBarHeight - 6,
-                                ),
-                                height: _navLabelLineHeight,
-                                color: Colors.black,
+                            child: Opacity(
+                              opacity: enabled ? 1.0 : 0.4,
+                              child: Image.asset(
+                                'assets/png24/white/w_lightbulb.png',
+                                width: iconSize,
+                                height: iconSize,
                               ),
-                            );
-                          },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // page title
+                  Flexible(
+                    flex: 3,
+                    child: GestureDetector(
+                      onTap:
+                          () => setState(() {
+                            if (_currentPage == 1) {
+                              _currentPage = 5;
+                            } else if (_currentPage == 5) {
+                              _currentPage = 6;
+                            } else if (_currentPage == 7) {
+                              _currentPage = _pageBeforeTutor;
+                            } else {
+                              _currentPage = 1;
+                            }
+                          }),
+                      child: Container(
+                        color: Colors.white,
+                        alignment: Alignment.center,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          // Was a per-label FittedBox, so short labels ("Bild")
+                          // rendered larger than long ones ("Tanulási lista")
+                          // (Markus, 2026-07-11: "never allowed to change it...
+                          // all words there have always the same font size").
+                          // Compute ONE size that fits the longest label across
+                          // every language, and use it everywhere.
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Text(
+                                _getPageName(_currentPage),
+                                maxLines: 2,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.robotoCondensed(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: _navLabelFontSize(
+                                    constraints.maxWidth,
+                                    navBarHeight - 6,
+                                  ),
+                                  height: _navLabelLineHeight,
+                                  color: Colors.black,
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-                // learning / favorite / history
-                Flexible(
-                  flex: 3,
-                  child: Container(
-                    color: navGreen,
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        GestureDetector(
-                          onTap: () => setState(() => _currentPage = 2),
-                          child: Image.asset(
-                            'assets/png24/white/w_learninglist.png',
-                            width: iconSize,
-                            height: iconSize,
-                            colorBlendMode: BlendMode.srcIn,
+                  // learning / favorite / history
+                  Flexible(
+                    flex: 3,
+                    child: Container(
+                      color: navGreen,
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          GestureDetector(
+                            onTap: () => setState(() => _currentPage = 2),
+                            child: Image.asset(
+                              'assets/png24/white/w_learninglist.png',
+                              width: iconSize,
+                              height: iconSize,
+                              colorBlendMode: BlendMode.srcIn,
+                            ),
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: () => setState(() => _currentPage = 3),
-                          child: Image.asset(
-                            'assets/png24/white/w_favorit.png',
-                            width: iconSize,
-                            height: iconSize,
-                            colorBlendMode: BlendMode.srcIn,
+                          GestureDetector(
+                            onTap: () => setState(() => _currentPage = 3),
+                            child: Image.asset(
+                              'assets/png24/white/w_favorit.png',
+                              width: iconSize,
+                              height: iconSize,
+                              colorBlendMode: BlendMode.srcIn,
+                            ),
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: () => setState(() => _currentPage = 4),
-                          child: Image.asset(
-                            'assets/png24/white/w_history.png',
-                            width: iconSize,
-                            height: iconSize,
-                            colorBlendMode: BlendMode.srcIn,
+                          GestureDetector(
+                            onTap: () => setState(() => _currentPage = 4),
+                            child: Image.asset(
+                              'assets/png24/white/w_history.png',
+                              width: iconSize,
+                              height: iconSize,
+                              colorBlendMode: BlendMode.srcIn,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           ),
         ),
       ),

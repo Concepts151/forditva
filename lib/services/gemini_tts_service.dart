@@ -6,6 +6,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'ai_consent.dart';
 import 'token_balance.dart';
 
 /// Why read-aloud failed, so the pages can tell the user something useful.
@@ -105,6 +106,7 @@ class GeminiTtsService {
     String? instructions,
     String? langCode,
   }) async {
+    await AiConsent.require();
     final code = _resolveLang(langCode, instructions);
     final v = _voices[code]!;
 
@@ -165,12 +167,7 @@ class GeminiTtsService {
       );
       switch (e.code) {
         case 'unavailable' || 'deadline-exceeded' when !retried:
-          return _synthesizePart(
-            text,
-            languageCode,
-            voiceName,
-            retried: true,
-          );
+          return _synthesizePart(text, languageCode, voiceName, retried: true);
         case 'invalid-argument' when _isGoogleRejected(e.details):
           final halves = splitInHalf(text);
           if (halves == null) {
@@ -207,10 +204,9 @@ List<String> splitForTts(String text, int maxBytes) {
   if (utf8.encode(trimmed).length <= maxBytes) return [trimmed];
 
   final sentences =
-      RegExp(r'[^.!?…\n]+(?:[.!?…]+|\n+|$)\s*')
-          .allMatches(trimmed)
-          .map((m) => m.group(0)!)
-          .toList();
+      RegExp(
+        r'[^.!?…\n]+(?:[.!?…]+|\n+|$)\s*',
+      ).allMatches(trimmed).map((m) => m.group(0)!).toList();
 
   final parts = <String>[];
   var current = StringBuffer();

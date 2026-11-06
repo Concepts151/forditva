@@ -563,4 +563,54 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get tutorUnavailable =>
       'Leider dauert das Erstellen der Erklärung gerade zu lange oder der Server ist ausgelastet. Bitte probiere es später erneut.';
+
+  @override
+  String get welcomeTitle => 'Willkommen bei fordítva!';
+
+  @override
+  String get welcomeTagline =>
+      'Übersetzen, verstehen und miteinander sprechen.';
+
+  @override
+  String get welcomeIntro =>
+      'forditva ist Teil von **Wir in Ungarn**, einem sozialen Non-Profit-Projekt. Wir möchten Menschen helfen, Sprachbarrieren zu überwinden, Ungarisch besser zu verstehen und leichter miteinander ins Gespräch zu kommen.';
+
+  @override
+  String get welcomeDataHeading => 'Wie gehen wir mit deinen Daten um?';
+
+  @override
+  String get welcomeDataAi =>
+      'Für Übersetzungen, Sprachfunktionen und den Tutor verwenden wir künstliche Intelligenz. Je nach gewählter Funktion werden dafür deine Texte, Sprachinhalte, Bilder oder Dokumente zur Verarbeitung an einen KI-Dienst von Google übertragen.';
+
+  @override
+  String get welcomeNoAccount =>
+      'Du brauchst für forditva kein Benutzerkonto. Wir verknüpfen deine Übersetzungen nicht mit einem Nutzernamen und versuchen auch nicht festzustellen, wem das verwendete Smartphone gehört.';
+
+  @override
+  String get welcomeDeviceId =>
+      'Für die Verwaltung der Credits und die technische Absicherung der App verwenden wir eine Gerätekennung. Sie dient nicht dazu, die Identität des Nutzers festzustellen.';
+
+  @override
+  String get welcomeContentNote =>
+      'Bitte beachte, dass eingegebene Inhalte selbst persönliche Informationen enthalten können.';
+
+  @override
+  String get welcomeChoiceHeading => 'Deine Entscheidung';
+
+  @override
+  String get welcomeChoiceBody =>
+      'Mit deiner Zustimmung erlaubst du die Übermittlung deiner ausgewählten Inhalte an den externen KI-Dienst, damit forditva sie verarbeiten kann. Du kannst deine Zustimmung jederzeit in den Einstellungen widerrufen. Ohne diese Zustimmung stehen die KI-Funktionen nicht zur Verfügung.';
+
+  @override
+  String get welcomeMore =>
+      'Weitere Informationen findest du in unserer [Datenschutzerklärung](https://wir-in-ungarn.hu/datenschutz-forditva/).';
+
+  @override
+  String get welcomeAgree => 'Zustimmen und starten';
+
+  @override
+  String get welcomeNotNow => 'Jetzt nicht';
+
+  @override
+  String get aiProcessingSwitch => 'KI-Verarbeitung erlauben';
 }

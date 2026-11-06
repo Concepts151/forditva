@@ -62,7 +62,7 @@ Future<bool> showWalletWelcome(BuildContext context) async {
   final recover = await showDialog<bool>(
     context: context,
     builder:
-        (dialogContext) => _WalletDialog(
+        (dialogContext) => AppDialog(
           icon: Icons.account_balance_wallet_outlined,
           title: loc.walletWelcomeTitle,
           body: Text(
@@ -71,7 +71,7 @@ Future<bool> showWalletWelcome(BuildContext context) async {
             style: _bodyStyle,
           ),
           actions: [
-            _primaryButton(
+            primaryDialogButton(
               loc.walletStartNew,
               () => Navigator.of(dialogContext).pop(false),
             ),
@@ -127,7 +127,7 @@ Future<void> showRecoveryCodeDialog(BuildContext context, String code) {
     context: context,
     barrierDismissible: false,
     builder:
-        (dialogContext) => _WalletDialog(
+        (dialogContext) => AppDialog(
           icon: Icons.key_outlined,
           title: loc.recoveryCodeTitle,
           body: Column(
@@ -164,7 +164,7 @@ Future<void> showRecoveryCodeDialog(BuildContext context, String code) {
             ],
           ),
           actions: [
-            _primaryButton(
+            primaryDialogButton(
               loc.recoveryCodeDone,
               () => Navigator.of(dialogContext).pop(),
             ),
@@ -210,7 +210,7 @@ Future<bool> showRecoverDialog(
               }
             }
 
-            return _WalletDialog(
+            return AppDialog(
               icon: Icons.restore,
               title: loc.recoverTitle,
               body: Column(
@@ -245,7 +245,7 @@ Future<bool> showRecoverDialog(
                       padding: EdgeInsets.all(8),
                       child: CircularProgressIndicator(color: _navGreen),
                     )
-                    : _primaryButton(loc.recoverButton, submit),
+                    : primaryDialogButton(loc.recoverButton, submit),
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed:
@@ -348,7 +348,7 @@ const TextStyle _bodyStyle = TextStyle(
   height: 1.3,
 );
 
-Widget _primaryButton(String label, VoidCallback onPressed) => SizedBox(
+Widget primaryDialogButton(String label, VoidCallback onPressed) => SizedBox(
   width: double.infinity,
   child: ElevatedButton(
     style: ElevatedButton.styleFrom(
@@ -367,8 +367,9 @@ Widget _primaryButton(String label, VoidCallback onPressed) => SizedBox(
 );
 
 // Same look as the "WIU empty" dialog in wiu_gate.dart.
-class _WalletDialog extends StatelessWidget {
-  const _WalletDialog({
+class AppDialog extends StatelessWidget {
+  const AppDialog({
+    super.key,
     required this.icon,
     required this.title,
     required this.body,
