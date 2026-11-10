@@ -306,6 +306,20 @@ registered.
 42. **Settings: switch "Allow AI processing"** (new, label DE/HU drafted for
     Markus to correct). Off withdraws consent; on shows the consent dialog.
 
+## Round of 10 Nov (build 88)
+
+43. **Crop instruction cut off** (Markus, screenshot 10 Nov 11:14): the body
+    ended at "für das ganze", "Bild." was missing. Cause: the body allowed
+    only 2 lines and dropped the rest without a mark, and the size was
+    measured with a slightly different style than the one drawn. Now the
+    line spacing is tighter (1.1), the body may take 3 lines (4 in all), and
+    the size is measured with the style really drawn
+    (`cropInstructionScale`, tested). Checked on the Xiaomi in German: all 4
+    lines show, ending with "ganze Bild."
+
+    For Markus: "Fixed in build 88: tighter line spacing, the instruction
+    now shows on up to 4 lines, including the last word."
+
 ## Still open
 
 - Phone test against the live server (see the plan's checklist).

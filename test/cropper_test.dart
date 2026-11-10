@@ -76,12 +76,20 @@ void _instructionTest() {
   };
   // Tests draw with the square Ahem font (every letter 1 em wide); Roboto
   // Condensed is about 0.42 em, so the sizes are scaled down to match.
-  const titleStyle = TextStyle(fontSize: 7.5, fontWeight: FontWeight.w700);
-  const bodyStyle = TextStyle(fontSize: 6.7, fontWeight: FontWeight.w500);
+  const titleStyle = TextStyle(
+    fontSize: 7.5,
+    fontWeight: FontWeight.w700,
+    height: 1.1,
+  );
+  const bodyStyle = TextStyle(
+    fontSize: 6.7,
+    fontWeight: FontWeight.w500,
+    height: 1.1,
+  );
 
   for (final entry in texts.entries) {
     for (final width in [190.0, 220.0, 260.0]) {
-      test('instruction fits 1 + 2 lines: ${entry.key} at $width', () {
+      test('instruction fits 1 + up to 3 lines: ${entry.key} at $width', () {
         final k = cropInstructionScale(
           title: entry.value[0],
           body: entry.value[1],
@@ -104,8 +112,8 @@ void _instructionTest() {
           1,
         );
         expect(
-          lines(entry.value[1], bodyStyle.copyWith(fontSize: 6.7 * k), 2),
-          lessThanOrEqualTo(2),
+          lines(entry.value[1], bodyStyle.copyWith(fontSize: 6.7 * k), 3),
+          lessThanOrEqualTo(3),
         );
       });
     }

@@ -321,8 +321,9 @@ class _ImageCropperPageState extends State<ImageCropperPage> {
           ),
           // Instruction text, centered between the two buttons. Markus,
           // 2026-11-02: first line Roboto Condensed Bold, the other lines
-          // Medium and 2 px smaller; sized to the phone so that it is always
-          // 3 lines (title 1, body 2).
+          // Medium and 2 px smaller. Markus, 2026-11-10: the body was cut
+          // after line 2 ("Bild." missing); now tighter line spacing and up
+          // to 4 lines (title 1, body up to 3).
           Positioned(
             bottom: 36,
             left: 0,
@@ -377,7 +378,7 @@ class _FreehandPainter extends CustomPainter {
 }
 
 /// The largest scale (1.0 down to 0.55) at which [title] fits one line and
-/// [body] at most two lines in [width], for the given base styles.
+/// [body] at most three lines in [width], for the given base styles.
 @visibleForTesting
 double cropInstructionScale({
   required String title,
@@ -402,7 +403,7 @@ double cropInstructionScale({
 
   for (var k = 1.0; k > 0.55; k -= 0.04) {
     if (lines(title, scaled(titleStyle, k), 1) == 1 &&
-        lines(body, scaled(bodyStyle, k), 2) <= 2) {
+        lines(body, scaled(bodyStyle, k), 3) <= 3) {
       return k;
     }
   }
@@ -410,7 +411,7 @@ double cropInstructionScale({
 }
 
 /// The two instruction texts, sized to the available width so that they take
-/// 3 lines on every phone, whatever the system font size.
+/// at most 4 lines on every phone, whatever the system font size.
 class _CropInstruction extends StatelessWidget {
   final String title;
   final String body;
@@ -418,15 +419,24 @@ class _CropInstruction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleStyle = GoogleFonts.robotoCondensed(
-      color: Colors.black,
-      fontSize: 18,
-      fontWeight: FontWeight.w700,
+    // Measure with the style the Text widgets really render (DefaultTextStyle
+    // merged in), so the scale matches what ends up on screen.
+    final base = DefaultTextStyle.of(context).style;
+    final titleStyle = base.merge(
+      GoogleFonts.robotoCondensed(
+        color: Colors.black,
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        height: 1.1,
+      ),
     );
-    final bodyStyle = GoogleFonts.robotoCondensed(
-      color: Colors.black,
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
+    final bodyStyle = base.merge(
+      GoogleFonts.robotoCondensed(
+        color: Colors.black,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        height: 1.1,
+      ),
     );
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -447,10 +457,9 @@ class _CropInstruction extends StatelessWidget {
               textScaler: TextScaler.noScaling,
               style: titleStyle.copyWith(fontSize: 18 * k),
             ),
-            const SizedBox(height: 2),
             Text(
               body,
-              maxLines: 2,
+              maxLines: 3,
               textAlign: TextAlign.center,
               textScaler: TextScaler.noScaling,
               style: bodyStyle.copyWith(fontSize: 16 * k),
