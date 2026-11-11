@@ -344,6 +344,15 @@ registered.
     release, contact team@wir-in-ungarn.hu, review gift code with 500
     credits still needed from Alex.
 
+45. **Minimum iOS version 15.0 (build 90).** Apple accepted build 89 but
+    warned (ITMS-90068) that it targets iOS 13.0; from April 2027 uploads
+    must target 15.0 or later. The Xcode project and Podfile already said
+    15.0, but `ios-testflight.yml` overwrote it with 13.0 in the CI signing
+    settings. The workflow now writes 15.0, and
+    `ios/Flutter/AppFrameworkInfo.plist` says 15.0 too (was 12.0). iPhones
+    that can't run iOS 15 (older than the iPhone 6s) can no longer install
+    the app; Firebase App Check needed 15.0 anyway.
+
 ## Still open
 
 - Phone test against the live server (see the plan's checklist).

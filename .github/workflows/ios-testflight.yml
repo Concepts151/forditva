@@ -309,7 +309,7 @@ jobs:
           DEVELOPMENT_TEAM = ${APPLE_TEAM_ID}
           PROVISIONING_PROFILE = ${PP_UUID}
           OTHER_CODE_SIGN_FLAGS = --keychain ${KC_PATH}
-          IPHONEOS_DEPLOYMENT_TARGET = 13.0
+          IPHONEOS_DEPLOYMENT_TARGET = 15.0
           XCEOF
 
       - name: Build iOS IPA
