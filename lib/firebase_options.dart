@@ -8,10 +8,9 @@
 // The apiKey only identifies the Firebase project; it is not a secret.
 // Requests are protected by App Check (Play Integrity, see main.dart).
 //
-// iOS stays a placeholder: Alex registered the iOS app as
-// `hu.wirinungarn.forditva`, but the iOS bundle id is
-// `hu.wirinungarn.forditva3`, so App Attest would fail. Fill it in once
-// Markus confirms iOS and the bundle ids match.
+// iOS bundle id is `hu.wirinungarn.forditva2` (2026-11-11): `forditva3`
+// belongs to an old Apple team we cannot reach. Alex registered the
+// `forditva2` app on 2026-11-11 with App Attest (Team ID Q3AJ293VU9).
 library;
 
 import 'package:firebase_core/firebase_core.dart';
@@ -32,10 +31,11 @@ class DefaultFirebaseOptions {
   );
 
   static const ios = FirebaseOptions(
-    apiKey: 'REPLACE_ME',
-    appId: 'REPLACE_ME',
-    messagingSenderId: 'REPLACE_ME',
-    projectId: 'REPLACE_ME',
-    iosBundleId: 'hu.wirinungarn.forditva3',
+    apiKey: 'AIzaSyDnF4qKRrhqZzP1qrOtiMXQwzSXNygxr20',
+    appId: '1:851863893438:ios:682f066a585cd53befb5ef',
+    messagingSenderId: '851863893438',
+    projectId: 'forditva-151',
+    storageBucket: 'forditva-151.firebasestorage.app',
+    iosBundleId: 'hu.wirinungarn.forditva2',
   );
 }

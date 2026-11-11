@@ -320,6 +320,30 @@ registered.
     For Markus: "Fixed in build 88: tighter line spacing, the instruction
     now shows on up to 4 lines, including the last word."
 
+## Round of 11 Nov (build 89): iOS for the App Store
+
+44. **iOS set up for TestFlight.** Markus's Apple account (team "Linus
+    Messemer", Team ID `Q3AJ293VU9`, private membership, activated 10 Nov).
+    The iOS bundle id is now **`hu.wirinungarn.forditva2`**: `forditva3`
+    belongs to an old Apple team we cannot reach (Apple: "not available"),
+    and the App Store Connect record already uses `forditva2`. Alex added the
+    `forditva2` iOS app to `forditva-151` with App Attest and allowed it on
+    the conversion service. Linus turned on App Attest for the App ID.
+    - `lib/firebase_options.dart`: real iOS values (were placeholders).
+    - `lib/main.dart`: App Check uses the Apple debug provider in debug
+      builds, App Attest in release.
+    - `ios/Runner/Runner.entitlements` (App Attest, production) and
+      `ios/Runner/PrivacyInfo.xcprivacy` (no tracking; text, audio, photos
+      and device id used for app features only), both in the Xcode project.
+    - Team ID and bundle id in the Xcode project; home-screen name
+      "forditva" (Markus's spelling).
+    - GitHub secrets `APP_STORE_CONNECT_*`, `APPLE_TEAM_ID`, `IOS_BUNDLE_ID`
+      set; the API key backup is in `.deploy/apple/` (not in git).
+    Markus's answers for the submission (4 Nov): credits free for at least
+    6 months (no in-app purchase), iPhone only, DE/EN/HU, worldwide, manual
+    release, contact team@wir-in-ungarn.hu, review gift code with 500
+    credits still needed from Alex.
+
 ## Still open
 
 - Phone test against the live server (see the plan's checklist).

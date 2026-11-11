@@ -108,7 +108,11 @@ machine; the CI workflows bump it to 4g (Jetifier OOMs at 1536m on the runner).
   Firebase App Check needs it): SHA-256 `03:FD:44:FE:...:D5:42:E9`.
 - iOS signing is fully automated in `ios-testflight.yml` via the App Store
   Connect API key (GitHub secrets `APP_STORE_CONNECT_*`, `APPLE_TEAM_ID`,
-  `IOS_BUNDLE_ID`). iOS bundle id: `hu.wirinungarn.forditva3`.
+  `IOS_BUNDLE_ID`). iOS bundle id: `hu.wirinungarn.forditva2` (2026-11-11;
+  `forditva3` belongs to an unreachable old team). Apple team "Linus
+  Messemer", Team ID `Q3AJ293VU9`, private membership: only the account
+  holder can open Certificates, IDs & Profiles. ASC API key backup in
+  `.deploy/apple/`. `ios-testflight.yml` is manual (`workflow_dispatch`).
 
 ## App identifiers
 
@@ -118,7 +122,7 @@ machine; the CI workflows bump it to 4g (Jetifier OOMs at 1536m on the runner).
   fine). Because the applicationId changed, the +57 build installs as a **fresh
   app** — testers uninstall the old `com.example` build once, then install the
   new one; updates are normal after that.
-- iOS bundle id: `hu.wirinungarn.forditva3`.
+- iOS bundle id: `hu.wirinungarn.forditva2`.
 
 ## Current status (2026-11-02, v1.0.4+86)
 
