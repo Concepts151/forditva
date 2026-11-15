@@ -453,10 +453,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get walletWelcomeBody =>
-      'Du kannst mit 200 kostenlosen Credits starten. Hast du bereits einen Sicherungscode? Damit kannst du deine Credits wiederherstellen.';
+      'Du kannst fordítva kostenlos nutzen. Tippe auf „Kostenlos starten“ und lege direkt los. Wenn du bereits einen Sicherungscode hast, kannst du damit dein bisheriges Guthaben wiederherstellen.';
 
   @override
-  String get walletStartNew => 'Mit 200 Credits starten';
+  String get walletStartNew => 'Kostenlos starten';
 
   @override
   String get walletHaveRecoveryCode => 'Sicherungscode eingeben';

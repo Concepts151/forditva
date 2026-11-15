@@ -95,9 +95,7 @@ Future<void> _initFirebaseAppCheck() async {
               : const AppleAppAttestProvider(),
     );
   } catch (e) {
-    debugPrint(
-      'Firebase App Check not active: $e',
-    );
+    debugPrint('Firebase App Check not active: $e');
   }
 }
 
@@ -437,225 +435,234 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     const double navBarHeight = 56.0;
     final double iconSize = navBarHeight * 0.5; // 60% of nav-bar height
-    return Scaffold(
-      appBar: null,
-      // Markus, 2026-07-12: the white area behind the nav-bar pill should
-      // stay white, just be taller (see bottomNavigationBar's top padding).
-      backgroundColor: Colors.white,
-      // A flat 16px top clearance (with the real inset stripped via
-      // MediaQuery.removePadding) was only ever tuned against Android's
-      // shorter status bar. iOS notches/Dynamic Island need 44-59pt, so the
-      // card was starting almost under the status bar there (Markus,
-      // 2026-07-13: "touching the network bar on top"). Use the device's
-      // real safe-area inset instead of a hardcoded guess. The real inset
-      // alone already clears the status bar; the +30 buffer added on top of
-      // it (2026-07-13) was excess, producing a visibly oversized top gap
-      // on every page (Markus, 2026-07-14). Down to Spacing.sm.
-      body: Padding(
-        padding: EdgeInsets.fromLTRB(
-          0,
-          Spacing.sm + MediaQuery.of(context).viewPadding.top,
-          0,
-          0,
+    // Dark status bar icons on this white screen. Without it the style stuck
+    // at "light" after the green Settings app bar was shown, so the clock
+    // and battery turned invisible (white on white) on the iPhone
+    // (2026-11-15, App Store screenshots).
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        appBar: null,
+        // Markus, 2026-07-12: the white area behind the nav-bar pill should
+        // stay white, just be taller (see bottomNavigationBar's top padding).
+        backgroundColor: Colors.white,
+        // A flat 16px top clearance (with the real inset stripped via
+        // MediaQuery.removePadding) was only ever tuned against Android's
+        // shorter status bar. iOS notches/Dynamic Island need 44-59pt, so the
+        // card was starting almost under the status bar there (Markus,
+        // 2026-07-13: "touching the network bar on top"). Use the device's
+        // real safe-area inset instead of a hardcoded guess. The real inset
+        // alone already clears the status bar; the +30 buffer added on top of
+        // it (2026-07-13) was excess, producing a visibly oversized top gap
+        // on every page (Markus, 2026-07-14). Down to Spacing.sm.
+        body: Padding(
+          padding: EdgeInsets.fromLTRB(
+            0,
+            Spacing.sm + MediaQuery.of(context).viewPadding.top,
+            0,
+            0,
+          ),
+          child: _pages[_currentPage],
         ),
-        child: _pages[_currentPage],
-      ),
 
-      bottomNavigationBar: Padding(
-        // Lift the bar above the Android system navigation/gesture bar. Top
-        // padding gives breathing room above the pill: 33 -> 16 -> 8, still
-        // read as too much at 16 combined with each page's own gap above
-        // the switcher (Markus, 2026-07-14, after testing +39). This is a
-        // GLOBAL gap, so page-local bottom padding must not stack on top of
-        // it — see image_page.dart, which had its own removed for exactly
-        // that reason. Bottom padding is xs, since the system inset alone
-        // already clears the home indicator.
-        padding: EdgeInsets.fromLTRB(
-          16,
-          Spacing.sm,
-          16,
-          Spacing.sm + MediaQuery.of(context).viewPadding.bottom,
-        ),
-        child: Container(
-          // The outline is painted ON TOP of the clipped coloured sections
-          // (foregroundDecoration). Drawn underneath, the sections' anti-
-          // aliased edges covered it and it looked uneven, worst at the
-          // rounded ends (Markus, 2026-10-09, fixed version in Photoshop:
-          // even outline plus a soft shadow).
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 4,
-                offset: Offset(0, 1.5),
-              ),
-            ],
+        bottomNavigationBar: Padding(
+          // Lift the bar above the Android system navigation/gesture bar. Top
+          // padding gives breathing room above the pill: 33 -> 16 -> 8, still
+          // read as too much at 16 combined with each page's own gap above
+          // the switcher (Markus, 2026-07-14, after testing +39). This is a
+          // GLOBAL gap, so page-local bottom padding must not stack on top of
+          // it — see image_page.dart, which had its own removed for exactly
+          // that reason. Bottom padding is xs, since the system inset alone
+          // already clears the home indicator.
+          padding: EdgeInsets.fromLTRB(
+            16,
+            Spacing.sm,
+            16,
+            Spacing.sm + MediaQuery.of(context).viewPadding.bottom,
           ),
-          foregroundDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.black, width: 2),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
-            child: SizedBox(
-              height: navBarHeight,
-              child: Row(
-                children: [
-                  // menu
-                  Flexible(
-                    flex: 1,
-                    child: Builder(
-                      builder:
-                          (ctx) => GestureDetector(
-                            onTap:
-                                () => Navigator.of(ctx).push(
-                                  MaterialPageRoute(
-                                    builder:
-                                        (_) => ProfileSettingsPage(
-                                          onLocaleChanged:
-                                              widget.onLocaleChanged,
-                                        ),
+          child: Container(
+            // The outline is painted ON TOP of the clipped coloured sections
+            // (foregroundDecoration). Drawn underneath, the sections' anti-
+            // aliased edges covered it and it looked uneven, worst at the
+            // rounded ends (Markus, 2026-10-09, fixed version in Photoshop:
+            // even outline plus a soft shadow).
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 4,
+                  offset: Offset(0, 1.5),
+                ),
+              ],
+            ),
+            foregroundDecoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.black, width: 2),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: SizedBox(
+                height: navBarHeight,
+                child: Row(
+                  children: [
+                    // menu
+                    Flexible(
+                      flex: 1,
+                      child: Builder(
+                        builder:
+                            (ctx) => GestureDetector(
+                              onTap:
+                                  () => Navigator.of(ctx).push(
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) => ProfileSettingsPage(
+                                            onLocaleChanged:
+                                                widget.onLocaleChanged,
+                                          ),
+                                    ),
                                   ),
+                              child: Container(
+                                color: navRed,
+                                alignment: Alignment.center,
+                                // Nudge the icon off the rounded left corner —
+                                // it was sitting flush against the curve.
+                                padding: const EdgeInsets.only(left: 8),
+                                child: Image.asset(
+                                  'assets/png24/white/w_menu.png',
+                                  width: iconSize,
+                                  height: iconSize,
+                                  color: Colors.white,
+                                  colorBlendMode: BlendMode.srcIn,
                                 ),
+                              ),
+                            ),
+                      ),
+                    ),
+
+                    // Tutor bulb: same nav-bar position on all three pages now,
+                    // always opens the Tutor for whatever Hungarian text is on
+                    // the currently active page. Page switching between
+                    // Conversation/Document/Image happens via the title area
+                    // (below) and the card's own document-mode icon.
+                    Flexible(
+                      flex: 1,
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: _bulbEnabledListenable,
+                        builder: (context, enabled, _) {
+                          return GestureDetector(
+                            onTap: !enabled ? null : _openTutor,
                             child: Container(
                               color: navRed,
                               alignment: Alignment.center,
-                              // Nudge the icon off the rounded left corner —
-                              // it was sitting flush against the curve.
-                              padding: const EdgeInsets.only(left: 8),
-                              child: Image.asset(
-                                'assets/png24/white/w_menu.png',
-                                width: iconSize,
-                                height: iconSize,
-                                color: Colors.white,
-                                colorBlendMode: BlendMode.srcIn,
-                              ),
-                            ),
-                          ),
-                    ),
-                  ),
-
-                  // Tutor bulb: same nav-bar position on all three pages now,
-                  // always opens the Tutor for whatever Hungarian text is on
-                  // the currently active page. Page switching between
-                  // Conversation/Document/Image happens via the title area
-                  // (below) and the card's own document-mode icon.
-                  Flexible(
-                    flex: 1,
-                    child: ValueListenableBuilder<bool>(
-                      valueListenable: _bulbEnabledListenable,
-                      builder: (context, enabled, _) {
-                        return GestureDetector(
-                          onTap: !enabled ? null : _openTutor,
-                          child: Container(
-                            color: navRed,
-                            alignment: Alignment.center,
-                            child: Opacity(
-                              opacity: enabled ? 1.0 : 0.4,
-                              child: Image.asset(
-                                'assets/png24/white/w_lightbulb.png',
-                                width: iconSize,
-                                height: iconSize,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // page title
-                  Flexible(
-                    flex: 3,
-                    child: GestureDetector(
-                      onTap:
-                          () => setState(() {
-                            if (_currentPage == 1) {
-                              _currentPage = 5;
-                            } else if (_currentPage == 5) {
-                              _currentPage = 6;
-                            } else if (_currentPage == 7) {
-                              _currentPage = _pageBeforeTutor;
-                            } else {
-                              _currentPage = 1;
-                            }
-                          }),
-                      child: Container(
-                        color: Colors.white,
-                        alignment: Alignment.center,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          // Was a per-label FittedBox, so short labels ("Bild")
-                          // rendered larger than long ones ("Tanulási lista")
-                          // (Markus, 2026-07-11: "never allowed to change it...
-                          // all words there have always the same font size").
-                          // Compute ONE size that fits the longest label across
-                          // every language, and use it everywhere.
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              return Text(
-                                _getPageName(_currentPage),
-                                maxLines: 2,
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.robotoCondensed(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: _navLabelFontSize(
-                                    constraints.maxWidth,
-                                    navBarHeight - 6,
-                                  ),
-                                  height: _navLabelLineHeight,
-                                  color: Colors.black,
+                              child: Opacity(
+                                opacity: enabled ? 1.0 : 0.4,
+                                child: Image.asset(
+                                  'assets/png24/white/w_lightbulb.png',
+                                  width: iconSize,
+                                  height: iconSize,
                                 ),
-                              );
-                            },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // page title
+                    Flexible(
+                      flex: 3,
+                      child: GestureDetector(
+                        onTap:
+                            () => setState(() {
+                              if (_currentPage == 1) {
+                                _currentPage = 5;
+                              } else if (_currentPage == 5) {
+                                _currentPage = 6;
+                              } else if (_currentPage == 7) {
+                                _currentPage = _pageBeforeTutor;
+                              } else {
+                                _currentPage = 1;
+                              }
+                            }),
+                        child: Container(
+                          color: Colors.white,
+                          alignment: Alignment.center,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                            ),
+                            // Was a per-label FittedBox, so short labels ("Bild")
+                            // rendered larger than long ones ("Tanulási lista")
+                            // (Markus, 2026-07-11: "never allowed to change it...
+                            // all words there have always the same font size").
+                            // Compute ONE size that fits the longest label across
+                            // every language, and use it everywhere.
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                return Text(
+                                  _getPageName(_currentPage),
+                                  maxLines: 2,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.robotoCondensed(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: _navLabelFontSize(
+                                      constraints.maxWidth,
+                                      navBarHeight - 6,
+                                    ),
+                                    height: _navLabelLineHeight,
+                                    color: Colors.black,
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // learning / favorite / history
-                  Flexible(
-                    flex: 3,
-                    child: Container(
-                      color: navGreen,
-                      alignment: Alignment.center,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          GestureDetector(
-                            onTap: () => setState(() => _currentPage = 2),
-                            child: Image.asset(
-                              'assets/png24/white/w_learninglist.png',
-                              width: iconSize,
-                              height: iconSize,
-                              colorBlendMode: BlendMode.srcIn,
+                    // learning / favorite / history
+                    Flexible(
+                      flex: 3,
+                      child: Container(
+                        color: navGreen,
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            GestureDetector(
+                              onTap: () => setState(() => _currentPage = 2),
+                              child: Image.asset(
+                                'assets/png24/white/w_learninglist.png',
+                                width: iconSize,
+                                height: iconSize,
+                                colorBlendMode: BlendMode.srcIn,
+                              ),
                             ),
-                          ),
-                          GestureDetector(
-                            onTap: () => setState(() => _currentPage = 3),
-                            child: Image.asset(
-                              'assets/png24/white/w_favorit.png',
-                              width: iconSize,
-                              height: iconSize,
-                              colorBlendMode: BlendMode.srcIn,
+                            GestureDetector(
+                              onTap: () => setState(() => _currentPage = 3),
+                              child: Image.asset(
+                                'assets/png24/white/w_favorit.png',
+                                width: iconSize,
+                                height: iconSize,
+                                colorBlendMode: BlendMode.srcIn,
+                              ),
                             ),
-                          ),
-                          GestureDetector(
-                            onTap: () => setState(() => _currentPage = 4),
-                            child: Image.asset(
-                              'assets/png24/white/w_history.png',
-                              width: iconSize,
-                              height: iconSize,
-                              colorBlendMode: BlendMode.srcIn,
+                            GestureDetector(
+                              onTap: () => setState(() => _currentPage = 4),
+                              child: Image.asset(
+                                'assets/png24/white/w_history.png',
+                                width: iconSize,
+                                height: iconSize,
+                                colorBlendMode: BlendMode.srcIn,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

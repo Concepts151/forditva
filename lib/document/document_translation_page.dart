@@ -748,6 +748,18 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
     );
   }
 
+  /// One text style for both cards, so input and translation look identical.
+  /// The input field set no color and got Material's very dark grey
+  /// (#1D1B20) while the translation was pure black, which made the lower
+  /// text look thicker (Markus, 2026-11-12).
+  TextStyle _cardTextStyle(String text) => GoogleFonts.robotoCondensed(
+    fontSize: dynamicFontSize(text) * _zoomLevel,
+    height: 1.2,
+    fontWeight: FontWeight.w500,
+    color: Colors.black,
+    letterSpacing: -0.3,
+  );
+
   Widget _buildTopInputCard() {
     return Container(
       decoration: BoxDecoration(
@@ -808,14 +820,7 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                                           : null,
                                 ),
                             maxLines: null,
-                            style: GoogleFonts.robotoCondensed(
-                              fontSize:
-                                  dynamicFontSize(_inputController.text) *
-                                  _zoomLevel,
-                              height: 1.2,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.3,
-                            ),
+                            style: _cardTextStyle(_inputController.text),
                             decoration: const InputDecoration(
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.zero,
@@ -1081,16 +1086,16 @@ class _DocumentPlaceholderPageState extends State<DocumentPlaceholderPage> {
                         children: [
                           SingleChildScrollView(
                             controller: _scrollController,
-                            child: Text(
-                              _translatedText,
-                              style: GoogleFonts.robotoCondensed(
-                                fontSize:
-                                    dynamicFontSize(_translatedText) *
-                                    _zoomLevel,
-                                height: 1.2,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black,
-                                letterSpacing: -0.3,
+                            // Full width, so a short translation starts top
+                            // left like the input above. Without it the text
+                            // shrank to its own width and the column centered
+                            // it (Markus, 2026-11-12: "Test" sat in the middle).
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: Text(
+                                _translatedText,
+                                textAlign: TextAlign.start,
+                                style: _cardTextStyle(_translatedText),
                               ),
                             ),
                           ),

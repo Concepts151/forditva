@@ -451,10 +451,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get walletWelcomeBody =>
-      'You can start with 200 free credits. Already have a backup code? Use it to restore your credits.';
+      'You can use fordítva for free. Tap “Start for free” to get going. If you already have a backup code, you can use it to restore your previous balance.';
 
   @override
-  String get walletStartNew => 'Start with 200 credits';
+  String get walletStartNew => 'Start for free';
 
   @override
   String get walletHaveRecoveryCode => 'Enter backup code';

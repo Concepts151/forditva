@@ -353,6 +353,39 @@ registered.
     that can't run iOS 15 (older than the iPhone 6s) can no longer install
     the app; Firebase App Check needed 15.0 anyway.
 
+46. **Document page: translation left-aligned, same text look (build 90).**
+    Markus and Linus (12 Nov, Android and iPhone): a short translation like
+    "Test" sat in the middle of the lower card, and it looked thicker than
+    the input. The translation text shrank to its own width and the layout
+    centered it; long texts filled the width, so it only showed with short
+    ones. It now uses the full width and starts top left like the input.
+    Both cards now share one text style: same font, size and pure black
+    (the input was Flutter's very dark grey, which made the lower text look
+    heavier). File: `lib/document/document_translation_page.dart`.
+    For Markus: "Die Übersetzung steht jetzt links oben wie der Text darüber,
+    und beide Felder haben genau dieselbe Schrift und Farbe."
+
+47. **Start dialog without "200 credits" (build 90).** Markus (15 Nov):
+    people read "200 credits" as something they have to pay for. The wallet
+    start dialog now says the app is free to use, and the button reads
+    "Kostenlos starten" / "Start for free" / "Ingyenes kezdés". Text is
+    Markus's own (DE/EN/HU), `walletWelcomeBody` and `walletStartNew` in
+    `lib/l10n/app_*.arb`. The wallet still grants 200 credits as before.
+
+48. **Tutor: no more asterisks in explanations (build 90).** Found while
+    taking the App Store screenshots (15 Nov): Gemini sometimes marks
+    Hungarian forms with `*...*` in the explanation ("*tájékoztat* +
+    *-juk*"), and the Tutor showed the asterisks. Understanding and
+    Learning Focus now render `*...*` as italic and `**...**` as bold in
+    the intro and explanation. Decoding is unchanged (its `_` markers carry
+    meaning). File: `lib/tutor/tutor_page.dart`.
+
+49. **iPhone: clock and battery invisible after Settings (build 90).** Also
+    found during the screenshots: after the green Settings page was open,
+    the status bar stayed white, so on the white main screen the clock,
+    signal and battery disappeared. The main screen now always asks for
+    dark status bar icons. File: `lib/main.dart`.
+
 ## Still open
 
 - Phone test against the live server (see the plan's checklist).

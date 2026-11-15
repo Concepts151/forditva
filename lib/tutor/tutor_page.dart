@@ -855,13 +855,43 @@ class _TutorPageState extends State<TutorPage> {
           _huSentence(s['hu'] as String? ?? ''),
           if (intro.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Text(intro, style: GoogleFonts.robotoCondensed(fontSize: 17)),
+            _emphasized(intro, GoogleFonts.robotoCondensed(fontSize: 17)),
           ],
           for (final item in items)
             if (item is Map) _item(item),
         ],
       ),
     );
+  }
+
+  /// Gemini sometimes marks Hungarian forms in an explanation with
+  /// `*...*` (or `**...**`) although the prompt asks for plain text; shown
+  /// raw, the asterisks ended up on screen ("*tájékoztat* + *-juk*",
+  /// 2026-11-15). Render them as italic / bold instead.
+  static final _emphasis = RegExp(r'\*\*(.+?)\*\*|\*([^*\n]+?)\*');
+
+  Widget _emphasized(String text, TextStyle style) {
+    final spans = <TextSpan>[];
+    var last = 0;
+    for (final m in _emphasis.allMatches(text)) {
+      if (m.start > last) {
+        spans.add(TextSpan(text: text.substring(last, m.start)));
+      }
+      spans.add(
+        m.group(1) != null
+            ? TextSpan(
+              text: m.group(1),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            )
+            : TextSpan(
+              text: m.group(2),
+              style: const TextStyle(fontStyle: FontStyle.italic),
+            ),
+      );
+      last = m.end;
+    }
+    if (last < text.length) spans.add(TextSpan(text: text.substring(last)));
+    return Text.rich(TextSpan(style: style, children: spans));
   }
 
   Widget _huSentence(String hu) {
@@ -897,9 +927,9 @@ class _TutorPageState extends State<TutorPage> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          _emphasized(
             '${item['explanation'] ?? ''}',
-            style: GoogleFonts.robotoCondensed(fontSize: 17),
+            GoogleFonts.robotoCondensed(fontSize: 17),
           ),
           const SizedBox(height: 6),
           Text(

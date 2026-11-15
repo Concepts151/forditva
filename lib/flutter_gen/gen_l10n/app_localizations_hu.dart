@@ -451,10 +451,10 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get walletWelcomeBody =>
-      '200 ingyenes kredittel kezdhetsz. Már van mentési kódod? Ezzel visszaállíthatod a kreditjeidet.';
+      'A fordítvát ingyenesen használhatod. Koppints az „Ingyenes kezdés” gombra, és már indulhatsz is. Ha már van mentési kódod, azzal visszaállíthatod a korábbi egyenlegedet.';
 
   @override
-  String get walletStartNew => 'Kezdés 200 kredittel';
+  String get walletStartNew => 'Ingyenes kezdés';
 
   @override
   String get walletHaveRecoveryCode => 'Mentési kód megadása';

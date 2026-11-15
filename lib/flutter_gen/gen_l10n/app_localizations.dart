@@ -871,13 +871,13 @@ abstract class AppLocalizations {
   /// No description provided for @walletWelcomeBody.
   ///
   /// In en, this message translates to:
-  /// **'You can start with 200 free credits. Already have a backup code? Use it to restore your credits.'**
+  /// **'You can use fordítva for free. Tap “Start for free” to get going. If you already have a backup code, you can use it to restore your previous balance.'**
   String get walletWelcomeBody;
 
   /// No description provided for @walletStartNew.
   ///
   /// In en, this message translates to:
-  /// **'Start with 200 credits'**
+  /// **'Start for free'**
   String get walletStartNew;
 
   /// No description provided for @walletHaveRecoveryCode.
