@@ -130,19 +130,32 @@ A forditva a Wir in Ungarn közösség (wir-in-ungarn.hu) nonprofit projektje.
 ## App Review information
 - Sign-in required: **no**
 - Contact: Markus Messemer, team@wir-in-ungarn.hu (phone: the user decides)
-- Notes (EN):
+- Notes (EN), Markus's text of 16 Nov with the Settings path corrected
+  (the top-up field is in Settings, not behind the credits display). The
+  real code is in App Store Connect only; codes live in
+  `.deploy/apple/review-gift-codes.txt`.
 
-  > forditva needs no account. On first launch the app shows a welcome page
-  > that explains the AI processing (Google Gemini via Firebase, EU region)
-  > and asks for consent; AI features stay off until the user agrees, and the
-  > consent can be withdrawn in Settings. Every new install gets 200 free
-  > credits. To test topping up, open the wallet (credits display) and redeem
-  > this gift code: **[CODE FROM ALEX, 500+ credits]**. Credits are free
-  > during this release; the app sells nothing and links to no purchase.
-  > Camera, photo library and microphone are used only for translating
-  > photos, documents and speech.
+  > forditva does not require an account or login. On first launch, the app
+  > requests consent for the content processing required by its AI features,
+  > which use Google Gemini. AI processing remains disabled until consent is
+  > given. Consent can be withdrawn in Settings.
+  >
+  > New users receive 200 free credits to get started: tap "Start for free"
+  > in the dialog that follows the consent page. To test topping up, tap the
+  > menu icon at the left of the bottom bar to open Settings, enter this
+  > top-up code in the "Add credits" field and tap the green button next to
+  > it: **[CODE] (1000 credits)**.
+  >
+  > The app is free to download worldwide. During the first six months,
+  > top-up codes are distributed free of charge. This release does not sell
+  > credits or link to a purchase page. Camera, photo library and microphone
+  > access support the photo, document and speech features.
 
-## Age rating (proposed answers)
+## Age rating
+Entered via API on 16 Nov: every content question None; every capability
+No (ads, age assurance, gambling, health, loot boxes, chat, parental
+controls, web access, user-generated content, social media). Earlier
+proposal:
 All content categories (violence, sexual content, profanity, drugs, gambling,
 horror, medical, etc.): **None**. Unrestricted web access: **No**.
 User-generated content shared with other users: **No** (nothing is shared
@@ -151,19 +164,54 @@ AI-generated content or a chatbot: **Yes**, the Tutor and translation answer
 free-text input. Expected result: 4+ (Apple may set a higher age because of
 the AI answers; that is fine).
 
-## App Privacy (browser only, the API can't set it)
-Tracking: **No**. Data types, all "not linked to the user", purpose **App
-Functionality** only, not used for tracking:
-- **User Content > Other User Content**: texts and documents sent for
-  translation (Google Gemini, conversion server)
-- **User Content > Audio Data**: voice input (Gemini) and read-aloud
-- **User Content > Photos or Videos**: photos/images sent for translation
-- **Identifiers > Device ID**: identifier-for-vendor, used for the credit
-  wallet and app security (Firebase App Check)
+## App Privacy (browser only, the API can't set it), verified 16 Nov
+Tracking: **No**. Purpose for every type: **App Functionality** only.
 
-Not collected: contact info, location, health, financial, browsing, search
-history, usage data, diagnostics (no analytics or crash SDK in the app).
-This matches `ios/Runner/PrivacyInfo.xcprivacy`.
+| Data type | Linked to user | Why |
+|---|---|---|
+| User Content > Other User Content | No | texts and documents go to Gemini; Google may keep prompts for abuse detection |
+| User Content > Audio Data | No | voice input is transcribed by Gemini |
+| User Content > Photos or Videos | No | photos and images go to Gemini |
+| Identifiers > Device ID | **Yes** | token server keeps a hash of it, tied to the credits wallet |
+| Identifiers > User ID | **Yes** | the credits wallet is an assigned ID (with its backup code) |
+| Usage Data > Other Usage Data | **Yes** | ledger of credits granted, spent and redeemed per wallet |
+
+Gemini requests carry no device ID (only an App Check token), so content is
+not linked. Not collected: contact info, location, health, financial,
+browsing, search history, usage data, diagnostics (no analytics, crash or ad
+SDK). Matches `ios/Runner/PrivacyInfo.xcprivacy` (Device ID set to linked on
+16 Nov; ships with the next build).
+
+## Privacy facts (16 Nov, from the code, Alex and Andy)
+- **Gemini** (translation, Tutor, photos, documents, speech recognition):
+  Firebase AI Logic on Vertex AI, location `eu`, project forditva-151,
+  protected by App Check. Request/response logging off, data caching off
+  (since 16 Nov). Google may log prompts only to detect abuse (Google Cloud
+  terms 4.3) and does not train on the data.
+- **Speech recognition**: the app records audio itself and Gemini
+  transcribes it (same path as above). No Apple or Google speech service.
+- **Read-aloud**: Alex's Firebase function `synthesizeSpeech`
+  (europe-west1) calls `eu-texttospeech.googleapis.com`. The text is never
+  logged; one log line per call with voice name, character count and
+  status, kept 30 days in Cloud Logging.
+- **Document conversion**: Andy's server at Contabo, Germany. Each file
+  goes into a temporary folder that is deleted right after the PDF is sent
+  back (or right away on an error). The app log has only file type, sizes
+  and duration, no file name or content. No analytics or error-tracking
+  service; the only outbound call fetches Google's public App Check keys.
+  Andy (16 Nov): Nginx Proxy Manager access log (time, IP, method, URL,
+  status, size, user agent, referrer; no body), rotated, files cover about
+  two weeks, no fixed period yet. Docker logs: json-file, 3 × 10 MB,
+  size-based.
+- **Credits wallet** (token server): a hash of the device ID
+  (identifierForVendor on iPhone, Android ID on Android) linked to a
+  wallet with granted and spent totals, hashes of the access credential
+  and recovery code, a wrong-code counter, created and last-sync dates;
+  redemptions (code hash, wallet, date) and a balance ledger. No texts,
+  names, e-mail or IP addresses in the database. Access log with IP, path
+  and status: deleted nightly (at most 24 h). Reverse proxy log with IP:
+  about 4 weeks.
+- **No** analytics, crash reporting, advertising or tracking SDKs.
 
 ## Screenshots
 Required: 6.9" iPhone, 1320 × 2868 (portrait), 3 to 10 per language. Plan:

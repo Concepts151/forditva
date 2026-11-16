@@ -386,6 +386,16 @@ registered.
     signal and battery disappeared. The main screen now always asks for
     dark status bar icons. File: `lib/main.dart`.
 
+50. **iPhone privacy file: device ID counts as linked (next build).** Alex
+    confirmed (16 Nov) that the token server keeps a hash of the device ID
+    tied to the credits wallet. Apple treats data tied to a device as
+    linked to the user, so the Device ID entry now says linked. Texts,
+    audio and photos stay "not linked": Gemini requests carry no device
+    ID. Two more linked types added to match Apple's full list: User ID
+    (the wallet) and Other Usage Data (the credits ledger). The App Store
+    privacy answers in `docs/app-store-listing.md` match.
+    File: `ios/Runner/PrivacyInfo.xcprivacy`.
+
 ## Still open
 
 - Phone test against the live server (see the plan's checklist).
