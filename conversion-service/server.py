@@ -12,6 +12,9 @@ on 14 October 2026:
   no service account is needed on the server.
 - An optional test key works only for requests made from inside the
   container itself (127.0.0.1), never through the public address.
+- An optional server key (FORDITVA_CONVERTER_KEY, spec 099 CONV1, 16 November
+  2026) lets the WIU server (Vercel) convert files. The WIU server has no App
+  Check token. The key works from any address; App Check stays as it is.
 - Limits: 15 MB upload, 30 MB converted PDF, 2 parallel conversions,
   90 second timeout.
 
@@ -67,6 +70,23 @@ APP_CHECK_JWKS_URL = "https://firebaseappcheck.googleapis.com/v1/jwks"
 # Optional. Unset means the test key is switched off.
 INTERNAL_TEST_API_KEY = os.environ.get("INTERNAL_TEST_API_KEY", "")
 LOOPBACK_HOSTS = {"127.0.0.1", "::1"}
+
+# NOTE: the format of a key that a header can carry without a change (for example `openssl rand -hex 32`).
+CONVERTER_KEY_FORMAT = re.compile(r"[A-Za-z0-9_-]{32,}")
+
+
+def _converter_key() -> str:
+    """Optional server key for the WIU server. Empty means the key is switched off."""
+    value = os.environ.get("FORDITVA_CONVERTER_KEY", "").strip()
+    if value and not CONVERTER_KEY_FORMAT.fullmatch(value):
+        # WHY: the error names the variable, never the value, so no log line has the key.
+        raise RuntimeError(
+            "FORDITVA_CONVERTER_KEY must be empty or at least 32 characters of A-Z a-z 0-9 _ -"
+        )
+    return value
+
+
+FORDITVA_CONVERTER_KEY = _converter_key()
 
 MAX_UPLOAD_SIZE = _env_int("MAX_UPLOAD_MB", 15) * MB
 MAX_PDF_SIZE = _env_int("MAX_PDF_MB", 30) * MB
@@ -135,6 +155,17 @@ def authenticate(request: Request) -> None:
     if app_check_token:
         verify_app_check_token(app_check_token)
         return
+
+    # Server key of the WIU server: from any address (the WIU server runs on
+    # Vercel). It is compared as bytes, so a value that is not ASCII is a
+    # wrong key and not an error.
+    converter_key = request.headers.get("x-forditva-converter-key", "")
+    if converter_key and FORDITVA_CONVERTER_KEY:
+        if secrets.compare_digest(
+            converter_key.encode("utf-8"), FORDITVA_CONVERTER_KEY.encode("utf-8")
+        ):
+            return
+        log.info("Rejected converter key")
 
     # Internal test key: only from inside the container. Requests through
     # the reverse proxy arrive from the Docker network, never from

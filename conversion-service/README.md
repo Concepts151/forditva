@@ -16,6 +16,7 @@ deleted after the response.
 POST /convert/to-pdf
 Content-Type: multipart/form-data, field "file"
 Header: X-Firebase-AppCheck: <token>    (from the app)
+   or:  X-Forditva-Converter-Key: <key>  (from the WIU server)
 Response: application/pdf (the PDF bytes)
 
 GET /health  ->  {"status": "ok"}       (no authentication)
@@ -25,7 +26,7 @@ GET /health  ->  {"status": "ok"}       (no authentication)
 |---|---|
 | 200 | PDF in the response body |
 | 400 | No file, empty file, unsupported format, or content that does not match the format (for example a renamed file) |
-| 401 | Missing or invalid App Check token / test key |
+| 401 | Missing or invalid App Check token / converter key / test key |
 | 413 | Upload over 15 MB, or converted PDF over 30 MB |
 | 422 | LibreOffice could not convert it (corrupt, password-protected) |
 | 503 | Two conversions already running, or Google's keys unreachable; retry |
@@ -40,6 +41,19 @@ request. The server checks it against Google's public keys
 Google secret is needed on the server; it only needs outgoing HTTPS to
 `firebaseappcheck.googleapis.com`.
 
+The optional **converter key** (`X-Forditva-Converter-Key`, env
+`FORDITVA_CONVERTER_KEY`) is for the WIU server („fordítva im Browser“, WIU
+spec 099 CONV1). The WIU server runs on Vercel and has no App Check token.
+The key works from any address, also through the proxy. The server
+compares it in constant time. A request with an App Check token is decided
+by the token only; the key does not replace App Check. A wrong key gives
+`401` and the log line „Rejected converter key“, never the value. Empty
+means the key is off. A value that is not empty must have at least 32
+characters of `A-Z a-z 0-9 _ -` (make it with `openssl rand -hex 32`), else
+the server does not start; the error names the variable, not the value.
+The WIU server keeps the same value as the server-only env
+`FORDITVA_CONVERTER_KEY` on Vercel.
+
 The optional **test key** (`X-API-Key`) is accepted only for requests made
 from inside the container (address 127.0.0.1). Requests through the
 reverse proxy come from the Docker network, so the key never works
@@ -53,6 +67,7 @@ Copy `.env.example` to `/etc/forditva-converter.env` (`chmod 600`).
 |---|---|---|
 | `FIREBASE_PROJECT_NUMBER` | `851863893438` | Project `forditva-151`. Public, required |
 | `FIREBASE_APP_IDS` | `1:851863893438:android:c740e257fb79717cefb5ef` | Android app. Comma-separated if iOS is added. Public, required |
+| `FORDITVA_CONVERTER_KEY` | empty, or `openssl rand -hex 32` | Optional, the WIU server key, from any address. Secret |
 | `INTERNAL_TEST_API_KEY` | empty, or `openssl rand -hex 32` | Optional, only from inside the container |
 | `MAX_UPLOAD_MB` | `15` | |
 | `MAX_PDF_MB` | `30` | |
@@ -105,6 +120,13 @@ docker exec forditva-converter sh -c \
 # prints %PDF-
 
 # The same test key through the proxy: must return 401.
+
+# The converter key through the proxy (the key is read without echo and
+# goes to curl through a file descriptor, not argv): prints %PDF-
+printf 'Converter key: '; read -rs K; echo
+curl -fsS -X POST -H @<(printf 'X-Forditva-Converter-Key: %s\n' "$K") \
+  -F 'file=@example.docx' https://convert.wir-in-ungarn.hu/convert/to-pdf \
+  | head -c 5; echo; unset K
 ```
 
 Remove the test files afterwards: `docker exec forditva-converter rm /tmp/example.docx /tmp/example.pdf`.

@@ -8,9 +8,13 @@ example inside the Docker image).
 
 import io
 import os
+import secrets
 import shutil
+import subprocess
+import sys
 import time
 import zipfile
+from pathlib import Path
 
 import jwt
 import pytest
@@ -19,10 +23,13 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 PROJECT_NUMBER = "851863893438"
 APP_ID = "1:851863893438:android:c740e257fb79717cefb5ef"
 TEST_KEY = "test-key-0123456789abcdef0123456789abcdef"
+# NOTE: the converter key is made at run time, so no key value is in git.
+CONVERTER_KEY = secrets.token_hex(32)
 
 os.environ["FIREBASE_PROJECT_NUMBER"] = PROJECT_NUMBER
 os.environ["FIREBASE_APP_IDS"] = APP_ID
 os.environ["INTERNAL_TEST_API_KEY"] = TEST_KEY
+os.environ["FORDITVA_CONVERTER_KEY"] = CONVERTER_KEY
 os.environ["MAX_UPLOAD_MB"] = "1"
 
 import server  # noqa: E402
@@ -132,6 +139,137 @@ def test_test_key_accepted_from_loopback():
     local = TestClient(server.app, client=("127.0.0.1", 50000))
     assert upload(local, headers={"X-API-Key": TEST_KEY}).status_code == 200
     assert upload(local, headers={"X-API-Key": "wrong"}).status_code == 401
+
+
+def converter_key(value=CONVERTER_KEY):
+    return {"X-Forditva-Converter-Key": value}
+
+
+@pytest.mark.parametrize(
+    "host",
+    [None, ("203.0.113.7", 443), ("10.0.0.5", 40000), ("127.0.0.1", 50000)],
+    ids=["testclient", "public", "docker-network", "loopback"],
+)
+def test_converter_key_accepted_from_any_host(host):
+    remote = TestClient(server.app, client=host) if host else TestClient(server.app)
+    response = upload(remote, headers=converter_key())
+    assert response.status_code == 200
+    assert response.content.startswith(b"%PDF-")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        secrets.token_hex(32),
+        CONVERTER_KEY + "x",
+        CONVERTER_KEY[:-1],
+        CONVERTER_KEY.upper(),
+        "",
+        " ",
+        TEST_KEY,
+        ("é" * 64).encode("utf-8"),
+    ],
+    ids=["other", "longer", "shorter", "case", "empty", "space", "test-key", "not-ascii"],
+)
+def test_wrong_converter_key_rejected(value, caplog):
+    caplog.set_level("INFO", logger="forditva-converter")
+    remote = TestClient(server.app, client=("203.0.113.7", 443))
+    response = upload(remote, headers=converter_key(value))
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Unauthorized"}
+    assert CONVERTER_KEY not in response.text
+    assert CONVERTER_KEY not in caplog.text
+
+
+def test_wrong_converter_key_is_logged_without_the_value(caplog):
+    caplog.set_level("INFO", logger="forditva-converter")
+    wrong = secrets.token_hex(32)
+    remote = TestClient(server.app, client=("203.0.113.7", 443))
+    assert upload(remote, headers=converter_key(wrong)).status_code == 401
+    assert "Rejected converter key" in caplog.text
+    assert wrong not in caplog.text
+    assert CONVERTER_KEY not in caplog.text
+
+
+def test_converter_key_not_in_logs_on_success(caplog):
+    caplog.set_level("DEBUG")
+    remote = TestClient(server.app, client=("203.0.113.7", 443))
+    assert upload(remote, headers=converter_key()).status_code == 200
+    assert CONVERTER_KEY not in caplog.text
+
+
+@pytest.mark.parametrize("value", [CONVERTER_KEY, ""], ids=["key", "empty"])
+def test_converter_key_off_when_unset(monkeypatch, value):
+    monkeypatch.setattr(server, "FORDITVA_CONVERTER_KEY", "", raising=False)
+    for host in [("203.0.113.7", 443), ("127.0.0.1", 50000)]:
+        remote = TestClient(server.app, client=host)
+        assert upload(remote, headers=converter_key(value)).status_code == 401
+
+
+def test_converter_key_only_in_its_own_header():
+    remote = TestClient(server.app, client=("203.0.113.7", 443))
+    assert upload(remote, headers={"X-API-Key": CONVERTER_KEY}).status_code == 401
+    assert upload(remote, headers={"X-Firebase-AppCheck": CONVERTER_KEY}).status_code == 401
+
+
+def test_test_key_still_loopback_only_with_converter_key_on():
+    outside = TestClient(server.app, client=("203.0.113.7", 443))
+    local = TestClient(server.app, client=("127.0.0.1", 50000))
+    assert upload(outside, headers={"X-API-Key": TEST_KEY}).status_code == 401
+    assert upload(local, headers={"X-API-Key": TEST_KEY}).status_code == 200
+
+
+def test_app_check_still_decides_when_a_token_is_sent(client):
+    # NOTE: the App Check path is unchanged. A request with a token is decided by the token only.
+    assert upload(client, headers={**app_check(), **converter_key(secrets.token_hex(32))}).status_code == 200
+    assert upload(client, headers={**app_check("not-a-token"), **converter_key()}).status_code == 401
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["k" * 31, "k" * 39 + "+", "k" * 40 + " k", "k" * 40 + "/"],
+    ids=["short", "plus", "space-inside", "slash"],
+)
+def test_bad_converter_key_stops_the_start_without_the_value(value):
+    env = {
+        **os.environ,
+        "FORDITVA_CONVERTER_KEY": value,
+        "FIREBASE_PROJECT_NUMBER": PROJECT_NUMBER,
+        "FIREBASE_APP_IDS": APP_ID,
+    }
+    result = subprocess.run(
+        [sys.executable, "-c", "import server"],
+        cwd=Path(__file__).parent,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "FORDITVA_CONVERTER_KEY" in result.stderr
+    assert value not in result.stderr
+    assert value not in result.stdout
+
+
+@pytest.mark.parametrize("value", ["", "   "], ids=["empty", "spaces"])
+def test_empty_converter_key_starts_with_the_key_off(value):
+    env = {
+        **os.environ,
+        "FORDITVA_CONVERTER_KEY": value,
+        "FIREBASE_PROJECT_NUMBER": PROJECT_NUMBER,
+        "FIREBASE_APP_IDS": APP_ID,
+    }
+    result = subprocess.run(
+        [sys.executable, "-c", "import server; assert server.FORDITVA_CONVERTER_KEY == ''"],
+        cwd=Path(__file__).parent,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_test_key_off_when_unset(monkeypatch):
