@@ -109,10 +109,13 @@ machine; the CI workflows bump it to 4g (Jetifier OOMs at 1536m on the runner).
 - iOS signing is fully automated in `ios-testflight.yml` via the App Store
   Connect API key (GitHub secrets `APP_STORE_CONNECT_*`, `APPLE_TEAM_ID`,
   `IOS_BUNDLE_ID`). iOS bundle id: `hu.wirinungarn.forditva2` (2026-11-11;
-  `forditva3` belongs to an unreachable old team). Apple team "Linus
-  Messemer", Team ID `Q3AJ293VU9`, private membership: only the account
-  holder can open Certificates, IDs & Profiles. ASC API key backup in
-  `.deploy/apple/`. `ios-testflight.yml` is manual (`workflow_dispatch`).
+  `forditva3` belongs to an unreachable old team). **Since 2026-11-20 the
+  app is on Markus's team "Markus Messemer", Team ID `R5N248B47Y`**
+  (transferred from Linus's team `Q3AJ293VU9`). Individual membership: only
+  Markus can open Certificates, IDs & Profiles; we are Admin in App Store
+  Connect. The old ASC API key (5N233J5TWP) belongs to Linus's team and no
+  longer sees the app; the new team key is G59UX88Y4X (Issuer 8985561c-01c5-4146-83c5-5c70d47b79b7, Admin), in the GitHub secrets since 2026-11-20. ASC API key
+  backup in `.deploy/apple/`. `ios-testflight.yml` is manual (`workflow_dispatch`).
 
 ## App identifiers
 

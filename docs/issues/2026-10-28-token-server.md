@@ -452,6 +452,16 @@ registered.
     new countries" is still on; Linus can turn it off in Pricing and
     Availability. Linus starts the transfer (App Information, Transfer
     App) with Markus's Apple ID and Team ID.
+57. **Done: forditva moved to Markus's Apple account (20 Nov).** The first
+    transfer attempt was blocked by "Betatests mit TestFlight": the beta
+    review contact fields and a revoked tester were still on the app; both
+    removed through the API. Linus's transfer then went through. New team
+    "Markus Messemer", Team ID `R5N248B47Y`. The Xcode project uses the new
+    Team ID; a new team API key (`G59UX88Y4X`, Admin) is in `.deploy/apple/`
+    and in the GitHub secrets. Open: Alex changes the App Attest Team ID in
+    Firebase App Check; EU trader declaration on Markus's account; restore
+    the 174 countries; then iOS 1.0.5 goes to review together with the
+    Android release. Checklist: `forditva-ios-after-transfer.docx`.
 
 ## Still open
 
