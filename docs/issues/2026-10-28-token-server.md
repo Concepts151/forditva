@@ -396,6 +396,63 @@ registered.
     privacy answers in `docs/app-store-listing.md` match.
     File: `ios/Runner/PrivacyInfo.xcprivacy`.
 
+51. **Open: File page shows "{unsafe}" as text (found 17 Nov).** When
+    Gemini cannot read part of an image, the prompt tells it to mark that
+    segment as `{unsafe}` (`gemini_image_service.dart`, line 67). The
+    translate view printed two `{unsafe}` lines at the top of a recipe
+    translation (HU to EN, iOS simulator, build 90 code). Some paths
+    already drop these segments (`image_page.dart`, around lines 1175 and
+    1219), the display does not. Fix: leave out `{unsafe}` segments when
+    showing the result. Not fixed yet.
+
+52. **Open: debug assertion after the welcome page (found 17 Nov).** On
+    the welcome page, switching the language to Magyar, agreeing, then
+    pasting a text on the Conversation page gave the debug red screen
+    `framework.dart: Failed assertion ... '_dependents.isEmpty'`. Release
+    builds skip this check, so testers see no red screen, but it points to
+    a widget that still depends on an inherited widget (likely the locale)
+    after the welcome route was replaced. Not fixed yet; reproduce first.
+
+53. **Open with Alex: Gemini 3.8 Flash limits (17 Nov).** During the
+    screenshots Vertex AI (forditva-151, EU) returned 503 "service
+    unavailable" and 429 "resource exhausted" several times for
+    gemini-3.8-flash (Tutor, File page); 3.5 Flash Lite was fine. Asked
+    Alex to check and raise the quota before the App Store review.
+
+54. **Done: iOS 1.0.4 (90) released (19 Nov).** Apple approved the
+    submission of 17 Nov (0aa6b8ae-3ad5-429f-ae8a-b6af344a2ae3). Released
+    by hand through the App Store Connect API; state READY_FOR_SALE in 174
+    countries (all except China mainland). Store link:
+    https://apps.apple.com/app/id6790128373. Live listing has only the 6
+    German screenshots; the EN/HU sets and items 51 and 52 go into 1.0.5.
+    The app was hidden in the 27 EU countries: the DSA trader declaration
+    was missing on the Linus Messemer account. Declared as non-trader on
+    19 Nov (Markus: "We are not trader, but private person"); the API then
+    showed all 174 countries as available.
+
+55. **Open: translation answers a question instead of translating it
+    (Markus, 19 Nov).** Conversation page, DE to HU: "Wie heißt Flüssiges
+    Bitumen auf Ungarisch?" came back as "folyékony bitumen", the answer,
+    not the translated question. Prompt: `translationSystemPrompt` in
+    `lib/services/translation_prompts.dart` (gemini-3.5-flash-lite,
+    temperature 0). Markus asked for the prompt to repair it; sent with a
+    proposed rule. Attachments: `2026-11-19 15.11.19.jpg`, `.ogg`.
+    **20 Nov: Markus's new prompt is in** (`prompt_forditva_11-2026.txt`),
+    word for word, with only `{fromLang}`/`{toLang}` filled in. New:
+    questions stay questions (rule 2), a word the text asks about stays in
+    the source language (rule 8), and four examples, the first being his
+    bitumen sentence. Test `test/translation_prompts_test.dart` checks the
+    languages are filled in. Not yet checked against Gemini or on a phone.
+
+56. **forditva taken off sale on iOS (20 Nov), before the transfer to
+    Markus's own Apple account.** All 174 countries set to unavailable
+    through the API; earlier list in
+    `.deploy/apple/availability-before-removal-2026-11-19.json` to restore
+    it. TestFlight builds 89 and 90 expired, no review open. "Available in
+    new countries" is still on; Linus can turn it off in Pricing and
+    Availability. Linus starts the transfer (App Information, Transfer
+    App) with Markus's Apple ID and Team ID.
+
 ## Still open
 
 - Phone test against the live server (see the plan's checklist).
