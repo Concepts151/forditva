@@ -462,6 +462,22 @@ registered.
     Firebase App Check; EU trader declaration on Markus's account; restore
     the 174 countries; then iOS 1.0.5 goes to review together with the
     Android release. Checklist: `forditva-ios-after-transfer.docx`.
+    21 Nov: Alex changed the App Attest Team ID; the DSA trader declaration
+    is active on Markus's account. Build 1.0.5 (91) signed by the new team,
+    submitted for review (WAITING_FOR_REVIEW, manual release). Side effect
+    of the new team: the keychain prefix changed, so iPhones with 1.0.4 lose
+    the local wallet login and restore with the recovery code.
+
+58. **Deadline April 2027: build iOS with Xcode 27 (iOS 27 SDK).** Apple's
+    warning ITMS-90725 on build 91: from April 2027 App Store Connect only
+    accepts builds made with the iOS 27 SDK. Build 91 used iOS 26.5. Before
+    then, `ios-testflight.yml` must run on a runner with Xcode 27; Flutter
+    and CocoaPods may need an update with it (fits the postponed move to
+    Flutter 3.50). The other warning, ITMS-90076 (keychain), comes from the
+    team change and needs no action, see item 57.
+59. **Done: age rating answers for Shared Location and Dating (21 Nov).**
+    Apple's new questions (required from 15 Jan 2027); both set to No through
+    the API on the app record under review.
 
 ## Still open
 
